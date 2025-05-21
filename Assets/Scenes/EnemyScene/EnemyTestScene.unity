@@ -150,7 +150,7 @@ Transform:
   m_GameObject: {fileID: 242689145}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 0.6903145, z: -0, w: 0.7235095}
-  m_LocalPosition: {x: 23.9, y: -1.76, z: 23.64}
+  m_LocalPosition: {x: 31.33, y: -1.76, z: 13.910004}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -338,6 +338,7 @@ GameObject:
   - component: {fileID: 480587330}
   - component: {fileID: 480587329}
   - component: {fileID: 480587328}
+  - component: {fileID: 480587331}
   m_Layer: 0
   m_Name: TestFlyEnemy
   m_TagString: Untagged
@@ -435,6 +436,19 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 480587326}
   m_Mesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &480587331
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 480587326}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5f6a50a55702794e8f4c1bcb581632d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  speed: 5
 --- !u!1 &977652817
 GameObject:
   m_ObjectHideFlags: 0
@@ -475,14 +489,26 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 977652817}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8e9649db951bb234e8bad8396d4ba987, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   onTriggerStayEvent:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 480587331}
+        m_TargetAssemblyTypeName: FlyEnemyMove, Assembly-CSharp
+        m_MethodName: OnDetectObject
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
   onTriggerExitEvent:
     m_PersistentCalls:
       m_Calls: []
@@ -573,7 +599,7 @@ MonoBehaviour:
     - rid: 1524461233115758828
       type: {class: SplineAutoDolly/FixedSpeed, ns: Unity.Cinemachine, asm: Unity.Cinemachine}
       data:
-        Speed: 5
+        Speed: 0
 --- !u!1 &1370094153
 GameObject:
   m_ObjectHideFlags: 0
@@ -974,7 +1000,7 @@ Transform:
   m_GameObject: {fileID: 1688348023}
   serializedVersion: 2
   m_LocalRotation: {x: 0.459688, y: -0, z: -0, w: 0.88808054}
-  m_LocalPosition: {x: 46.73, y: 33.03, z: 22.569998}
+  m_LocalPosition: {x: 47.9, y: 26.1, z: 12.7}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1405,7 +1431,7 @@ Transform:
   m_GameObject: {fileID: 2104778400}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 45.53, y: 0.67, z: 36.229996}
+  m_LocalPosition: {x: 52.96, y: 0.67, z: 26.5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
