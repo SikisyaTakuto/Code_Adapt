@@ -338,7 +338,6 @@ GameObject:
   - component: {fileID: 480587330}
   - component: {fileID: 480587329}
   - component: {fileID: 480587328}
-  - component: {fileID: 480587331}
   m_Layer: 0
   m_Name: TestFlyEnemy
   m_TagString: Untagged
@@ -436,19 +435,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 480587326}
   m_Mesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
---- !u!114 &480587331
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 480587326}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c5f6a50a55702794e8f4c1bcb581632d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  speed: 5
 --- !u!1 &977652817
 GameObject:
   m_ObjectHideFlags: 0
@@ -489,26 +475,14 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 977652817}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8e9649db951bb234e8bad8396d4ba987, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   onTriggerStayEvent:
     m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 480587331}
-        m_TargetAssemblyTypeName: FlyEnemyMove, Assembly-CSharp
-        m_MethodName: OnDetectObject
-        m_Mode: 0
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
+      m_Calls: []
   onTriggerExitEvent:
     m_PersistentCalls:
       m_Calls: []
@@ -545,6 +519,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1211330107}
   - component: {fileID: 1211330108}
+  - component: {fileID: 1211330109}
   m_Layer: 0
   m_Name: Dolly Cart
   m_TagString: Untagged
@@ -586,7 +561,7 @@ MonoBehaviour:
     Units: 0
   UpdateMethod: 0
   AutomaticDolly:
-    Enabled: 1
+    Enabled: 0
     Method:
       rid: 1524461233115758828
   TrackingTarget: {fileID: 0}
@@ -600,6 +575,20 @@ MonoBehaviour:
       type: {class: SplineAutoDolly/FixedSpeed, ns: Unity.Cinemachine, asm: Unity.Cinemachine}
       data:
         Speed: 0
+--- !u!114 &1211330109
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1211330106}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5f6a50a55702794e8f4c1bcb581632d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  cinemachineSplineCart: {fileID: 1211330108}
+  cartSpeed: 2000
 --- !u!1 &1370094153
 GameObject:
   m_ObjectHideFlags: 0

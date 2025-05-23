@@ -1,24 +1,24 @@
+ï»¿using Unity.Cinemachine;
 using UnityEngine;
-using UnityEngine.AI;
 
 public class FlyEnemyMove : MonoBehaviour
 {
-    public float speed;
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-        speed = 0;
-    }
+    [SerializeField] CinemachineSplineCart cinemachineSplineCart;
+    [SerializeField] float cartSpeed;
 
-    // Player‚ª‹ß‚Ã‚¢‚½ê‡
-    public void OnDetectObject(Collider collider)
+    // Update is called once per frame
+    void Update()
     {
-        // Player‚ª”ÍˆÍ“à‚É“ü‚Á‚½‚Æ‚«
-        if (collider.gameObject.tag == "Player")
+        if (cinemachineSplineCart != null)
         {
-            // UŒ‚‚·‚é
-            Debug.Log("a");
-            speed = 0;
+            // ã‚¹ãƒ—ãƒ©ã‚¤ãƒ³ã®é•·ã•ã‚’å–å¾—
+            float splineLength = cinemachineSplineCart.Spline.CalculateLength();
+
+            // çµŒè·¯ä¸Šã®ç¾åœ¨ä½ç½®ï¼ˆ0ã€œ1ï¼‰ã‚’æ™‚é–“çµŒéã§é€²ã‚ã‚‹
+            float deltaDistance = cartSpeed * Time.deltaTime;
+            float deltaT = deltaDistance / splineLength;
+
+            cinemachineSplineCart.SplinePosition += deltaT;
         }
     }
 }
