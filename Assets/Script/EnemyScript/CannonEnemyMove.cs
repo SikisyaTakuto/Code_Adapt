@@ -2,10 +2,11 @@ using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.Experimental.AI;
 
-public class EnemyMove : MonoBehaviour
+public class CannonEnemyMove : MonoBehaviour
 {
     private NavMeshAgent navMeshAgent;
 
+    // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
         navMeshAgent = this.gameObject.GetComponent<NavMeshAgent>();

@@ -6,7 +6,7 @@ public class FlyEnemyMove : MonoBehaviour
     [SerializeField] CinemachineSplineCart cinemachineSplineCart;
     [SerializeField] float cartSpeed;
 
-    // Update is called once per frame
+
     void Update()
     {
         if (cinemachineSplineCart != null)
@@ -21,4 +21,29 @@ public class FlyEnemyMove : MonoBehaviour
             cinemachineSplineCart.SplinePosition += deltaT;
         }
     }
+
+    // Playerが近づいた場合
+    public void OnTriggerEnter(Collider collider)
+    {
+        // Playerが範囲内に入ったとき
+        if (collider.gameObject.tag == "Player")
+        {
+            // 動きを止める
+            cartSpeed = 0f;
+            Debug.Log("aa");
+        }
+    }
+
+    // Playerが離れた場合
+    public void OnTriggerExit(Collider collider)
+    {
+        // Playerが範囲外に出たとき
+        if (collider.gameObject.tag == "Player")
+        {
+            // 動き始める
+            cartSpeed = 2000f;
+            Debug.Log("ii");
+        }
+    }
+
 }
