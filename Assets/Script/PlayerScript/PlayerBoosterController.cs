@@ -6,150 +6,135 @@ using UnityEngine.UI;
 /// </summary>
 public class PlayerBoosterController : MonoBehaviour
 {
-    private Rigidbody rb;
-
     [Header("移動設定")]
-    public float moveForce = 30f;
-    public float maxSpeed = 25f;
-    public float rotationSpeed = 100f;
-    public float airControlMultiplier = 0.5f; // 空中時の移動力低下
+    private float moveSpeed = 5f;           // 通常の移動速度
+    private float boostForce = 200f;         // ブースト加速の力（前方向）
+    private float flyForce = 10f;           // 飛行上昇の力
 
-    [Header("ジャンプ・ホバリング")]
-    public float jumpForce = 8f;
-    public float hoverForce = 5f;
-    public float maxHoverTime = 3f;
-    private float currentHoverTime;
+    [Header("燃料設定")]
+    private float maxFuel = 100f;           // 最大燃料量
+    private float fuelRegenRate = 20f;      // 地上での燃料回復速度
+    private float fuelBurnBoost = 30f;      // ブースト時に消費する燃料量（1回）
+    private float fuelBurnFly = 20f;        // 飛行時の燃料消費（1秒あたり）
+    public Slider fuelSlider;               // UIスライダー（燃料残量表示）
 
-    [Header("ブースト設定")]
-    public float boostMultiplier = 2.5f;
-    public float boostFuelMax = 5f;
-    private float boostFuel;
-    public float boostFuelConsumption = 1f;
-    public float boostFuelRecharge = 0.5f;
-
-    [Header("接地判定")]
-    public Transform groundCheck;
-    public float groundDistance = 0.3f;
-    public LayerMask groundMask;
-    private bool isGrounded;
-
-    [Header("UI")]
-    public Slider boostSlider; // ブースト残量
-    public Slider hoverSlider; // ホバリング残量
-
-    // 横回転力.
-    [SerializeField] float rotPower = 30000f;
-    // 回転速度制限.
-    [SerializeField] float rotationSqrLimit = 0.5f;
-
+    private float currentFuel;              // 現在の燃料量
+    private Rigidbody rb;                   // Rigidbodyコンポーネントへの参照
+    public Transform cameraTransform;       // 追従してるカメラのTransform
     void Start()
     {
-        rb = GetComponent<Rigidbody>();
-        rb.freezeRotation = true;
-        boostFuel = boostFuelMax;
-        currentHoverTime = maxHoverTime;
-
-        if (boostSlider != null)
-        {
-            boostSlider.maxValue = boostFuelMax; // 初期設定
-            boostSlider.value = boostFuel;
-        }
-
-        if (hoverSlider != null)
-        {
-            hoverSlider.maxValue = maxHoverTime;
-            hoverSlider.value = currentHoverTime;
-        }
+        rb = GetComponent<Rigidbody>();                // Rigidbodyの取得
+        currentFuel = maxFuel;                         // 初期燃料を最大に設定
+        Cursor.lockState = CursorLockMode.Locked;      // マウスカーソルを画面中央に固定
     }
 
     void Update()
     {
-        // カメラ操作の回転（Yaw）
-        float mouseX = Input.GetAxis("Mouse X");
-        transform.Rotate(Vector3.up * mouseX * rotationSpeed * Time.deltaTime);
-
-        // 接地確認
-        isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
-
-        // ジャンプ・ホバリング処理
-        if (Input.GetKey(KeyCode.Space))
-        {
-            if (!isGrounded)
-            {
-                rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
-            }
-            else if (currentHoverTime > 0f)
-            {
-                rb.AddForce(Vector3.up * hoverForce, ForceMode.Acceleration);
-                currentHoverTime -= Time.deltaTime;
-            }
-        }
-        else if(isGrounded)
-        {
-             currentHoverTime = maxHoverTime;
-        }
-
-        // ブースト燃料処理
-        if (Input.GetMouseButton(0) && boostFuel > 0f)
-        {
-            boostFuel -= boostFuelConsumption * Time.deltaTime;
-        }
-        else
-        {
-            boostFuel += boostFuelRecharge * Time.deltaTime;
-        }
-        boostFuel = Mathf.Clamp(boostFuel, 0f, boostFuelMax);
-
-        // 移動入力
-        float h = Input.GetAxis("Horizontal");
-        float v = Input.GetAxis("Vertical");
-        Vector3 moveInput = transform.forward * v + transform.right * h;
-        Vector3 moveDir = moveInput.normalized;
-
-        if (boostSlider != null) boostSlider.value = boostFuel;
-        if (hoverSlider != null) hoverSlider.value = currentHoverTime;
-
-        // ブースト力を適用
-        float currentForce = moveForce;
-        if (Input.GetMouseButton(0) && boostFuel > 0f)
-        {
-            currentForce *= boostMultiplier;
-        }
-
-        // 空中であれば移動力を減少させる
-        if (!isGrounded)
-        {
-            currentForce *= airControlMultiplier;
-        }
-
-        // 入力方向の速度（速度制限チェック）
-        float inputVelocity = Vector3.Dot(rb.linearVelocity, moveDir);
-        if (inputVelocity < maxSpeed)
-        {
-            rb.AddForce(moveDir * currentForce, ForceMode.Acceleration);
-        }
-
-        // A/Dキーによる回転処理（物理ベース）
-        RotationUpdate();
+        Move();             // 通常移動
+        Fly();              // 飛行操作（スペースキー）
+        Boost();            // ブースト操作（左クリック）
+        HandleFuel();       // 燃料の回復と制限処理
+        UpdateFuelUI();     // UIスライダーの更新
     }
 
     /// <summary>
-    /// A/Dキーでの物理トルク回転処理
+    /// WASDによる移動処理
     /// </summary>
-    // ------------------------------------------------------------
-    void RotationUpdate()
+    void Move()
     {
-        float sqrAng = rb.angularVelocity.sqrMagnitude;
-        if (sqrAng > rotationSqrLimit) return;
+        float h = Input.GetAxis("Horizontal"); // A/D
+        float v = Input.GetAxis("Vertical");   // W/S
 
-        if (Input.GetKey(KeyCode.A))
+        Vector3 inputDir = new Vector3(h, 0, v);
+        inputDir = Vector3.ClampMagnitude(inputDir, 1);
+
+        if (inputDir.magnitude > 0.1f)
         {
-            rb.AddTorque(-transform.up * rotPower, ForceMode.Force);
+            // カメラのY軸の向きを取得（水平回転のみ）
+            Vector3 camForward = cameraTransform.forward;
+            camForward.y = 0;
+            camForward.Normalize();
+
+            Vector3 camRight = cameraTransform.right;
+            camRight.y = 0;
+            camRight.Normalize();
+
+            // カメラの向きに応じて移動方向を決定
+            Vector3 moveDir = camForward * v + camRight * h;
+            moveDir.Normalize();
+
+            // プレイヤーを移動方向に向ける（Y軸のみ回転）
+            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(moveDir), 0.15f);
+
+            // Rigidbodyの速度を設定（Y軸速度は維持）
+            Vector3 velocity = moveDir * moveSpeed;
+            velocity.y = rb.linearVelocity.y;
+            rb.linearVelocity = velocity;
+        }
+        else
+        {
+            // 入力なしなら横移動速度は0、Y軸速度維持
+            Vector3 velocity = rb.linearVelocity;
+            velocity.x = 0;
+            velocity.z = 0;
+            rb.linearVelocity = velocity;
+        }
+    }
+
+    /// <summary>
+    /// スペースキーでの上昇（飛行）処理と燃料消費
+    /// </summary>
+    void Fly()
+    {
+        if (Input.GetKey(KeyCode.Space) && currentFuel > 0)
+        {
+            rb.AddForce(Vector3.up * flyForce, ForceMode.Acceleration);         // 上昇力を加える
+            currentFuel -= fuelBurnFly * Time.deltaTime;                        // 時間に応じて燃料を消費
+        }
+    }
+
+    /// <summary>
+    /// 左クリックによる前方向へのブースト処理と燃料消費
+    /// </summary>
+    void Boost()
+    {
+        if (Input.GetMouseButtonDown(0) && currentFuel > 0)
+        {
+            rb.AddForce(transform.forward * boostForce, ForceMode.Impulse);     // ブースト力を一気に加える
+            currentFuel -= fuelBurnBoost;                                       // 一度に一定量燃料を消費
+        }
+    }
+
+    /// <summary>
+    /// 燃料の回復と制限処理（地上にいるときのみ回復）
+    /// </summary>
+    void HandleFuel()
+    {
+        if (IsGrounded() && currentFuel < maxFuel)
+        {
+            currentFuel += fuelRegenRate * Time.deltaTime;                      // 地上なら徐々に回復
         }
 
-        if (Input.GetKey(KeyCode.D))
+        currentFuel = Mathf.Clamp(currentFuel, 0, maxFuel);                     // 0〜最大燃料で制限
+    }
+
+    /// <summary>
+    /// 地面に接地しているかどうかをRaycastで判定
+    /// </summary>
+    /// <returns>地面に触れているかどうか</returns>
+    bool IsGrounded()
+    {
+        return Physics.Raycast(transform.position, Vector3.down, 1.1f);
+    }
+
+    /// <summary>
+    /// UIスライダーに燃料残量を反映
+    /// </summary>
+    void UpdateFuelUI()
+    {
+        if (fuelSlider != null)
         {
-            rb.AddTorque(transform.up * rotPower, ForceMode.Force);
+            fuelSlider.value = currentFuel / maxFuel; // 0〜1の割合で設定
         }
     }
 }
