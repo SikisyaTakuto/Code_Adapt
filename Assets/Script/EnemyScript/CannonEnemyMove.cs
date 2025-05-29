@@ -6,7 +6,7 @@ using UnityEngine.Experimental.AI;
 
 public class CannonEnemyMove : MonoBehaviour
 {
-    // Player
+    // Player‚Ì•ûŒü‚ÉŒü‚­•Ï”
     public Transform target;
     // ˆÚ“®‘¬“x
     public float moveSpeed;
@@ -80,7 +80,7 @@ public class CannonEnemyMove : MonoBehaviour
         if (collider.gameObject.tag == "Player")
         {
             // ‚»‚Ìê‚Å~‚Ü‚é
-            navMeshAgent.destination = this.gameObject.transform.position;
+            //navMeshAgent.destination = this.gameObject.transform.position;
         }
     }
 }

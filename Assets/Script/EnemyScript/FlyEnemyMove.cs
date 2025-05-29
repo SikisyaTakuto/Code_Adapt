@@ -5,10 +5,13 @@ public class FlyEnemyMove : MonoBehaviour
 {
     [SerializeField] CinemachineSplineCart cinemachineSplineCart;
     [SerializeField] float cartSpeed;
-
+   // public Transform target;
 
     void Update()
     {
+       // Vector3 targetPos = target.position;
+       // targetPos.y = transform.position.y;
+
         if (cinemachineSplineCart != null)
         {
             // スプラインの長さを取得
@@ -45,5 +48,4 @@ public class FlyEnemyMove : MonoBehaviour
             Debug.Log("ii");
         }
     }
-
 }
