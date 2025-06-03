@@ -33,7 +33,6 @@ public class FlyEnemyMove : MonoBehaviour
         {
             // 動きを止める
             cartSpeed = 0f;
-            Debug.Log("aa");
         }
     }
 
@@ -45,7 +44,6 @@ public class FlyEnemyMove : MonoBehaviour
         {
             // 動き始める
             cartSpeed = 2000f;
-            Debug.Log("ii");
         }
     }
 }

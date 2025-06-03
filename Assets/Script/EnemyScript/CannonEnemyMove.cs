@@ -36,8 +36,6 @@ public class CannonEnemyMove : MonoBehaviour
         // 自分自身のY座標を変数 target のY座標に格納
         //（ターゲットオブジェクトのX、Z座標のみ参照）
         targetPos.y = transform.position.y;
-        // オブジェクトを変数 targetPos の座標方向に向かせる
-        //transform.LookAt(targetPos);
 
         // 変数 distance を作成してオブジェクトの位置とターゲットオブジェクトの距離を格納
         float distance = Vector3.Distance(transform.position, target.position);
@@ -54,7 +52,7 @@ public class CannonEnemyMove : MonoBehaviour
 
         if (navMeshAgent.remainingDistance <= navMeshAgent.stoppingDistance)
         {
-            // 目的地の番号を１更新（右辺を剰余演算子にすることで目的地をループさせれる）
+            // 目的地の番号を１更新
             currentWaypointIndex = (currentWaypointIndex + 1) % waypointArray.Length;
             // 目的地を次の場所に設定
             navMeshAgent.SetDestination(waypointArray[currentWaypointIndex].position);

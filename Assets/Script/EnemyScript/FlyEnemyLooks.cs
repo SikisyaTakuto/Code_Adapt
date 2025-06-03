@@ -13,8 +13,6 @@ public class FlyEnemyLooks : MonoBehaviour
         // 自分自身のY座標を変数 target のY座標に格納
         //（ターゲットオブジェクトのX、Z座標のみ参照）
         targetPos.y = transform.position.y;
-        // オブジェクトを変数 targetPos の座標方向に向かせる
-        // transform.LookAt(target);
     }
 
     public void OnDetectObject(Collider collider)
