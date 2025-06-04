@@ -8,19 +8,25 @@ public class PlayerBoosterController : MonoBehaviour
 {
     [Header("移動設定")]
     private float moveSpeed = 5f;           // 通常の移動速度
-    private float boostForce = 200f;         // ブースト加速の力（前方向）
-    private float flyForce = 10f;           // 飛行上昇の力
+    private float groundBoostForce = 2000f; // 地上でのブースト力
+    private float airBoostForce = 500f;     // 空中でのブースト力
+    private float flyForce = 4.0f;          // 飛行上昇の力
 
     [Header("燃料設定")]
-    private float maxFuel = 100f;           // 最大燃料量
+    private float maxFuel = 1000f;          // 最大燃料量
     private float fuelRegenRate = 20f;      // 地上での燃料回復速度
-    private float fuelBurnBoost = 30f;      // ブースト時に消費する燃料量（1回）
+    private float fuelBurnBoost = 20f;      // ブースト時に消費する燃料量（1回）
     private float fuelBurnFly = 20f;        // 飛行時の燃料消費（1秒あたり）
     public Slider fuelSlider;               // UIスライダー（燃料残量表示）
+
+    private bool isBoosting = false;        // ブースト中かどうか
+    private float boostDuration = 0.5f;     // ブースト持続時間
+    private float boostTimer = 0f;          // ブースト経過時間
 
     private float currentFuel;              // 現在の燃料量
     private Rigidbody rb;                   // Rigidbodyコンポーネントへの参照
     public Transform cameraTransform;       // 追従してるカメラのTransform
+
     void Start()
     {
         rb = GetComponent<Rigidbody>();                // Rigidbodyの取得
@@ -98,10 +104,31 @@ public class PlayerBoosterController : MonoBehaviour
     /// </summary>
     void Boost()
     {
-        if (Input.GetMouseButtonDown(0) && currentFuel > 0)
+        // 左クリックでブースト開始（燃料が十分にある場合）
+        if (Input.GetMouseButtonDown(0) && currentFuel >= fuelBurnBoost && !isBoosting)
         {
-            rb.AddForce(transform.forward * boostForce, ForceMode.Impulse);     // ブースト力を一気に加える
-            currentFuel -= fuelBurnBoost;                                       // 一度に一定量燃料を消費
+            isBoosting = true;
+            boostTimer = 0f;
+            currentFuel -= fuelBurnBoost; // 燃料を先に消費（1回分）
+        }
+
+        // ブースト中なら前方向に加速し続ける
+        if (isBoosting)
+        {
+            // 地上か空中かで力を変える
+            float currentBoostForce = IsGrounded() ? groundBoostForce : airBoostForce;
+
+            // カメラの向いている方向に加速（上下含む）
+            Vector3 boostDirection = cameraTransform.forward.normalized; 
+            rb.AddForce(boostDirection * currentBoostForce * Time.deltaTime * 10f, ForceMode.Acceleration);
+
+            boostTimer += Time.deltaTime;
+            if (boostTimer >= boostDuration)
+            {
+                isBoosting = false;
+            }
+
+            currentFuel -= fuelBurnBoost * Time.deltaTime / boostDuration;
         }
     }
 
@@ -110,12 +137,15 @@ public class PlayerBoosterController : MonoBehaviour
     /// </summary>
     void HandleFuel()
     {
-        if (IsGrounded() && currentFuel < maxFuel)
+        // ブースト中でなく、スペースキーを押していない時のみ回復
+        bool notUsingFuel = !isBoosting && !Input.GetKey(KeyCode.Space);
+
+        if (notUsingFuel && currentFuel < maxFuel)
         {
-            currentFuel += fuelRegenRate * Time.deltaTime;                      // 地上なら徐々に回復
+            currentFuel += fuelRegenRate * Time.deltaTime;
         }
 
-        currentFuel = Mathf.Clamp(currentFuel, 0, maxFuel);                     // 0〜最大燃料で制限
+        currentFuel = Mathf.Clamp(currentFuel, 0, maxFuel);
     }
 
     /// <summary>
