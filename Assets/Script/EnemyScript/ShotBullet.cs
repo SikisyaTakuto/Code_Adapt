@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 public class ShotBullet : MonoBehaviour
@@ -6,13 +7,17 @@ public class ShotBullet : MonoBehaviour
     [SerializeField] private GameObject bulletPoint;
     // 弾
     [SerializeField] private GameObject bullet;
+    // 残弾数
+    public float bulletCount;
     // 弾の速さ
     public float Speed;
+    // リロード
+    bool reloading = false;
 
-    public void OnDetectObject(Collider collider)
+    public void OnTriggerEnter(Collider collider)
     {
         // Playerが範囲内に入ったとき
-        if (collider.gameObject.tag == "Player")
+        if (collider.gameObject.tag == "Player"&& !reloading)
         {
             // 弾の発射場所を取得
             Vector3 bulletPosition = bulletPoint.transform.position;
@@ -22,9 +27,25 @@ public class ShotBullet : MonoBehaviour
             Vector3 direction = newBullet.transform.forward;
             // 弾を発射（Z軸）
             newBullet.GetComponent<Rigidbody>().AddForce(direction * Speed, ForceMode.Impulse);
-            // 発射した弾を削除
-            //Destroy(newBullet, 0.8f);
-            //Debug.Log("撃つ");
+            // 残弾数を減らす
+            bulletCount = bulletCount - 1;
+
+            StartCoroutine(Shoot());
+        }
+    }
+
+    private IEnumerator Shoot()
+    {
+        if (bulletCount <= 0) 
+        {
+            reloading = true;
+            Debug.Log("リロード");
+
+            // リロード時間
+            yield return new WaitForSeconds(3);
+
+            bulletCount = 50f;
+            reloading = false;
         }
     }
 }
