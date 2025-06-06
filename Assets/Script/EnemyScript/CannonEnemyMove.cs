@@ -37,6 +37,14 @@ public class CannonEnemyMove : MonoBehaviour
         //（ターゲットオブジェクトのX、Z座標のみ参照）
         targetPos.y = transform.position.y;
 
+        if (navMeshAgent.remainingDistance <= navMeshAgent.stoppingDistance)
+        {
+            // 目的地の番号を１更新
+            currentWaypointIndex = (currentWaypointIndex + 1) % waypointArray.Length;
+            // 目的地を次の場所に設定
+            navMeshAgent.SetDestination(waypointArray[currentWaypointIndex].position);
+        }
+
         // 変数 distance を作成してオブジェクトの位置とターゲットオブジェクトの距離を格納
         float distance = Vector3.Distance(transform.position, target.position);
         // オブジェクトとターゲットオブジェクトの距離判定
@@ -50,13 +58,6 @@ public class CannonEnemyMove : MonoBehaviour
             transform.position = transform.position + transform.forward * moveSpeed * Time.deltaTime;
         }
 
-        if (navMeshAgent.remainingDistance <= navMeshAgent.stoppingDistance)
-        {
-            // 目的地の番号を１更新
-            currentWaypointIndex = (currentWaypointIndex + 1) % waypointArray.Length;
-            // 目的地を次の場所に設定
-            navMeshAgent.SetDestination(waypointArray[currentWaypointIndex].position);
-        }
     }
 
     // Playerが近づいた場合
