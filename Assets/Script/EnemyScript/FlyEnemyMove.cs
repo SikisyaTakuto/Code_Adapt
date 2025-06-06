@@ -8,9 +8,6 @@ public class FlyEnemyMove : MonoBehaviour
 
     void Update()
     {
-       // Vector3 targetPos = target.position;
-       // targetPos.y = transform.position.y;
-
         if (cinemachineSplineCart != null)
         {
             // スプラインの長さを取得
