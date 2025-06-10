@@ -2,13 +2,21 @@ using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.Experimental.AI;
 
-public class EnemyMove : MonoBehaviour
+public class PanjanEnemyMove : MonoBehaviour
 {
+    // ©”šŠÔ
+    private float BombTime = 10.0f;
+    // NavMeshAgent
     private NavMeshAgent navMeshAgent;
 
     void Start()
     {
         navMeshAgent = this.gameObject.GetComponent<NavMeshAgent>();
+    }
+
+    void Update()
+    {
+        
     }
 
     // Player‚ª‹ß‚Ã‚¢‚½ê‡
@@ -19,6 +27,8 @@ public class EnemyMove : MonoBehaviour
         {
             // Player‚ğ’Ç‚¢‚©‚¯‚é
             navMeshAgent.destination = collider.gameObject.transform.position;
+
+            Destroy(gameObject, BombTime);
         }
     }
 

@@ -13,24 +13,34 @@ public class ShotBullet : MonoBehaviour
     public float Speed;
     // リロード
     bool reloading = false;
+    // EnemyDaedアニメーション
+    public EnemyDaed enemyDaed;
+
+    void Start()
+    {
+        enemyDaed = GetComponent<EnemyDaed>();
+    }
 
     public void OnTriggerEnter(Collider collider)
     {
-        // Playerが範囲内に入ったとき
-        if (collider.gameObject.tag == "Player"&& !reloading)
+        if (!enemyDaed.Dead)
         {
-            // 弾の発射場所を取得
-            Vector3 bulletPosition = bulletPoint.transform.position;
-            // 弾のPrefabを作成
-            GameObject newBullet = Instantiate(bullet, bulletPosition, this.gameObject.transform.rotation);
-            // 弾の発射軸を取得（Z軸）
-            Vector3 direction = newBullet.transform.forward;
-            // 弾を発射（Z軸）
-            newBullet.GetComponent<Rigidbody>().AddForce(direction * Speed, ForceMode.Impulse);
-            // 残弾数を減らす
-            bulletCount = bulletCount - 1;
+            // Playerが範囲内に入ったとき
+            if (collider.gameObject.tag == "Player" && !reloading)
+            {
+                // 弾の発射場所を取得
+                Vector3 bulletPosition = bulletPoint.transform.position;
+                // 弾のPrefabを作成
+                GameObject newBullet = Instantiate(bullet, bulletPosition, this.gameObject.transform.rotation);
+                // 弾の発射軸を取得（Z軸）
+                Vector3 direction = newBullet.transform.forward;
+                // 弾を発射（Z軸）
+                newBullet.GetComponent<Rigidbody>().AddForce(direction * Speed, ForceMode.Impulse);
+                // 残弾数を減らす
+                bulletCount = bulletCount - 1;
 
-            StartCoroutine(Shoot());
+                StartCoroutine(Shoot());
+            }
         }
     }
 

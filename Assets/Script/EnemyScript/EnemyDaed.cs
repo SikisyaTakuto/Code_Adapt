@@ -1,10 +1,15 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.AI;
+using UnityEngine.Experimental.AI;
 
 public class EnemyDaed : MonoBehaviour
 {
     // アニメーション
     Animator animator;
+    // HP0
+    public bool Dead = false;
 
     void Start()
     {
@@ -19,9 +24,11 @@ public class EnemyDaed : MonoBehaviour
 
     private IEnumerator DaedDestroy()
     {
+        // スペースキーを押したとき(HPが0になったとき)
         if (Input.GetKeyDown(KeyCode.Space))
         {
-            animator.SetTrigger("Daed");
+            animator.SetTrigger("Dead");
+            Dead = true;
             yield return new WaitForSeconds(3);
             Destroy(gameObject);
         }
