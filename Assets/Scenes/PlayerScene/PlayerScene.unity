@@ -664,6 +664,61 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &569794169
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 569794171}
+  - component: {fileID: 569794170}
+  m_Layer: 0
+  m_Name: Tile
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &569794170
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 569794169}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9ce356591c2fced4abd9b447061fac87, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  tilePrefabs:
+  - {fileID: 100000, guid: b28dd70a689b2b649832f43119d5b551, type: 3}
+  - {fileID: 100000, guid: 2efb7a29ab58a38448bcedb48030cd47, type: 3}
+  - {fileID: 100002, guid: 5d640b36265eadc4a87d38682a77f08e, type: 3}
+  - {fileID: 100000, guid: f31206e3aa5c5ba4ca098413529f39f7, type: 3}
+  - {fileID: 100010, guid: 825edafc6ccf17640908cb6b69e1c65f, type: 3}
+  selectedPrefabIndex: 4
+  gridSize: {x: 10, y: 10}
+  maxHeight: 1
+  tileSpacing: 3.06
+  eraserMode: 0
+--- !u!4 &569794171
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 569794169}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &723410349
 GameObject:
   m_ObjectHideFlags: 0
@@ -785,7 +840,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 58058efee105f1e4ead36052238db0d3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  enemyName: 
   hp: 50
+  attack: 0
 --- !u!1 &772051397
 GameObject:
   m_ObjectHideFlags: 0
@@ -30028,6 +30085,8 @@ MonoBehaviour:
   attackRange: 2
   moveSpeed: 5
   attackCooldown: 1.5
+  maxCombo: 5
+  comboResetTime: 2
 --- !u!4 &3242326536172375001
 Transform:
   m_ObjectHideFlags: 0
@@ -81043,3 +81102,4 @@ SceneRoots:
   - {fileID: 361658640}
   - {fileID: 474325244}
   - {fileID: 1465871208}
+  - {fileID: 569794171}
