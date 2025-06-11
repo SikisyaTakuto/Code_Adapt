@@ -12,7 +12,7 @@ public class SceneLauncher
     [MenuItem("Launcher/Enemy Scene", priority = 0)]
     public static void OpenGameScene()
     {
-        OpenSceneWithSaveCheck("Assets/Scene/Enemy Scene/Enemy Test Scene.unity");
+        OpenSceneWithSaveCheck("Assets/Scenes/EnemyScene/EnemyTestScene.unity");
     }
 
     // メニューに「Launcher/PlayerScene」という項目を追加
@@ -20,7 +20,7 @@ public class SceneLauncher
     [MenuItem("Launcher/PlayerScene", priority = 0)]
     public static void OpenSampleScene()
     {
-        OpenSceneWithSaveCheck("Assets/Scene/PlayerScene/PlayerScene.unity");
+        OpenSceneWithSaveCheck("Assets/Scenes/PlayerScene/PlayerScene.unity");
     }
 
     /// <summary>

@@ -141,6 +141,13 @@ public class BitBehavior : MonoBehaviour
     {
         if (player == null) return;
 
+        // 敵が消えていたら戻る
+        if (targetAfterOrbit == null)
+        {
+            StartReturning();
+            return;
+        }
+
         // 時間をカウントダウン
         orbitTimer -= Time.deltaTime;
 
