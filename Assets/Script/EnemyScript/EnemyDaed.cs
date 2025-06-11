@@ -7,13 +7,13 @@ using UnityEngine.Experimental.AI;
 public class EnemyDaed : MonoBehaviour
 {
     // アニメーション
-    Animator animator;
+    //Animator animator;
     // HP0
     public bool Dead = false;
 
     void Start()
     {
-        animator = GetComponent<Animator>();
+        //animator = GetComponent<Animator>();
     }
 
     // Update is called once per frame
@@ -27,7 +27,7 @@ public class EnemyDaed : MonoBehaviour
         // スペースキーを押したとき(HPが0になったとき)
         if (Input.GetKeyDown(KeyCode.Space))
         {
-            animator.SetTrigger("Dead");
+            //animator.SetTrigger("Dead");
             Dead = true;
             yield return new WaitForSeconds(3);
             Destroy(gameObject);

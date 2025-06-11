@@ -6,6 +6,14 @@ public class FlyEnemyMove : MonoBehaviour
     [SerializeField] CinemachineSplineCart cinemachineSplineCart;
     [SerializeField] float cartSpeed;
 
+    // 死亡した場合のスクリプト
+    public EnemyDaed enemyDaed;
+
+    void Start()
+    {
+        enemyDaed = GetComponent<EnemyDaed>();
+    }
+
     void Update()
     {
         if (cinemachineSplineCart != null)

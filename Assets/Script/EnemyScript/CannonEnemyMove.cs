@@ -81,7 +81,7 @@ public class CannonEnemyMove : MonoBehaviour
             // Playerが範囲内に入ったとき
             if (collider.gameObject.tag == "Player")
             {
-                // Playerを攻撃
+                // Playerの方向に向く
                 transform.LookAt(target);
                 navMeshAgent.speed = 0f;
             }
@@ -94,7 +94,7 @@ public class CannonEnemyMove : MonoBehaviour
         // Playerが範囲外に出たとき
         if (collider.gameObject.tag == "Player")
         {
-            // その場で止まる
+            // 目的地の巡回に戻る
             navMeshAgent.speed = 50f;
         }
     }

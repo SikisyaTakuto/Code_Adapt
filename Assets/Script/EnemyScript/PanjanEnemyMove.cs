@@ -8,10 +8,14 @@ public class PanjanEnemyMove : MonoBehaviour
     private float BombTime = 10.0f;
     // NavMeshAgent
     private NavMeshAgent navMeshAgent;
+    // 死亡した場合のスクリプト
+    public EnemyDaed enemyDaed;
 
     void Start()
     {
         navMeshAgent = this.gameObject.GetComponent<NavMeshAgent>();
+
+        enemyDaed = GetComponent<EnemyDaed>();
     }
 
     void Update()
