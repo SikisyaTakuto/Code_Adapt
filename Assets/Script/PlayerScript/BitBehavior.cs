@@ -2,239 +2,260 @@ using UnityEngine;
 
 public class BitBehavior : MonoBehaviour
 {
-    // ビットの移動速度
-    public float speed = 10f;
-    // ビットの回転速度（度/秒）
-    public float rotationSpeed = 720f;
-    // ビットが攻撃可能な範囲
-    public float attackRange = 15f;
-    // 攻撃力
-    public int damage = 20;
-    // ビットの寿命（秒）
-    public float lifeTime = 10f;
+    // ビットの状態を表す列挙型
+    // Idle：待機中、Orbiting：プレイヤーの周囲を回転中、
+    // Launching：敵に向かって移動中、Returning：プレイヤーに戻る途中
+    enum BitState { Idle, Orbiting, Launching, Returning }
+    BitState state = BitState.Idle;
 
-    // 上昇状態の継続時間
-    public float ascendDuration = 2.0f;
-    // 上昇速度
-    public float ascendSpeed = 20f;
-    // 帰還時の待機位置の上の高さ
-    public float returnAscendHeight = 10f;
+    // プレイヤーのTransform
+    private Transform player;
 
-    // 所有者プレイヤーのTransform参照
-    private Transform ownerTransform;
-    // 待機位置のTransform参照
-    private Transform idlePosition;
-    // Rigidbodyコンポーネントの参照（物理制御用）
-    private Rigidbody rb;
-    // 所有者のPlayerBitController参照
-    private PlayerBitController owner;
+    // ビットの待機位置（プレイヤーの背後など）
+    private Transform standbyPosition;
 
-    // ビットの状態を管理する列挙型
-    private enum State
-    {
-        Idle,               // 待機中
-        Ascending,          // 上昇中
-        Seeking,            // 敵を追尾中
-        ReturningAscending,  // 帰還のため上昇中
-        ReturningToIdle     // 待機位置へ戻り中
-    }
+    // プレイヤーのコントローラー参照（管理や発射指令を受け取る）
+    private PlayerBitController controller;
 
-    // 現在の状態
-    private State currentState = State.Idle;
+    // ビットの移動速度（Launch中に使用）
+    private float speed = 15f;
 
-    // 追尾対象の敵のTransform
-    private Transform targetEnemy;
-    // 状態ごとの経過時間計測用タイマー
-    private float stateTimer;
-    // 帰還時に一旦移動する待機位置の上の座標
-    private Vector3 returnTargetAboveIdle;
+    // 発射状態の持続時間（秒）
+    private float forwardDuration = 2f;
 
-    // 初期化メソッド（PlayerBitControllerから呼ばれる）
-    public void Initialize(PlayerBitController ownerController, Transform idlePos)
-    {
-        owner = ownerController;                      // 所有者コントローラー設定
-        ownerTransform = owner.transform;             // 所有者のTransform取得
-        idlePosition = idlePos;                        // 待機位置設定
-        rb = GetComponent<Rigidbody>();               // Rigidbodyコンポーネント取得
+    // プレイヤーに戻るのにかかる時間（ベジェ曲線の補間時間）
+    private float returnDuration = 1.5f;
 
-        // 待機位置に初期配置・回転
-        transform.position = idlePosition.position;
-        transform.rotation = idlePosition.rotation;
+    // Launch中の残り時間を管理するタイマー
+    private float timer;
 
-        currentState = State.Idle;                     // 状態を待機に設定
-        stateTimer = 0f;                               // タイマーリセット
-    }
+    // 発射方向（ターゲットの方向ベクトルを保持）
+    private Vector3 launchDirection;
 
-    // ビットが待機状態かどうかを返すメソッド
-    public bool IsIdle()
-    {
-        return currentState == State.Idle;
-    }
+    // 戻る際の開始位置（ベジェ曲線の始点）
+    private Vector3 returnStartPos;
 
-    // ビットを射出（発射）するメソッド
-    public void Launch()
-    {
-        // 待機状態のみ射出可能
-        if (currentState == State.Idle)
-        {
-            currentState = State.Ascending;            // 状態を上昇中に変更
-            stateTimer = 0f;                           // タイマーリセット
-        }
-    }
+    // 戻る際の中間制御点（ベジェ曲線の曲がり具合を制御）
+    private Vector3 returnControlPoint;
 
-    // 毎フレーム呼ばれる更新処理
+    // ベジェ曲線補間の進行度（0～1）
+    private float returnProgress;
+
+    // ランダムな軌道でプレイヤー周囲を回る時間（秒）
+    private float orbitDuration = 1.5f;
+
+    // 残りの周回時間
+    private float orbitTimer;
+
+    // プレイヤーの周囲を回る半径
+    private float orbitRadius = 5f;
+
+    // ビットがプレイヤーよりどれだけ下に行けるか（負の値で下方向に制限）
+    private float minOrbitHeightOffset = 1.5f;
+
+    // 周回に使う回転軸（ランダムに決定される）
+    private Vector3 orbitAxis;
+
+    // 現在の回転角度（度数）
+    private float orbitAngle;
+
+    // 回転後に発射する対象の敵
+    private Transform targetAfterOrbit;
+
+    // 毎フレーム呼ばれる更新処理（状態に応じて処理分岐）
     void Update()
     {
-        switch (currentState)
+        switch (state)
         {
-            case State.Idle:
-                // 待機中は常に待機位置に固定し、回転も固定
-                transform.position = idlePosition.position;
-                transform.rotation = idlePosition.rotation;
-                rb.linearVelocity = Vector3.zero;              // 速度を0に
+            case BitState.Idle:
+                // 待機位置へ滑らかに追従
+                FollowStandbyPosition();
                 break;
 
-            case State.Ascending:
-                // 上昇時間を加算
-                stateTimer += Time.deltaTime;
-                // Rigidbodyに上方向の速度をセット（物理移動）
-                rb.linearVelocity = Vector3.up * ascendSpeed;
-
-                // 上昇時間が経過したら追尾状態へ移行
-                if (stateTimer >= ascendDuration)
-                {
-                    currentState = State.Seeking;
-                    stateTimer = 0f;
-                }
+            case BitState.Orbiting:
+                // プレイヤーの周囲をランダムな軌道で回転
+                OrbitAroundPlayerRandom();
                 break;
 
-            case State.Seeking:
-                stateTimer += Time.deltaTime;
-
-                if (stateTimer > lifeTime)
+            case BitState.Launching:
+                // 発射方向に直進
+                // ターゲットが消えていたら戻る
+                if (targetAfterOrbit == null)
                 {
-                    StartReturn();
+                    StartReturning();
                     break;
                 }
 
-                if (currentState != State.Seeking) break;  // 状態変更後は追尾処理スキップ
+                // 発射方向に直進
+                transform.position += launchDirection * speed * Time.deltaTime;
 
-                FindClosestEnemy();
-
-                if (targetEnemy != null)
-                {
-                    Vector3 dir = (targetEnemy.position - transform.position).normalized;
-                    rb.linearVelocity = dir * speed;
-                }
-                else
-                {
-                    rb.linearVelocity = transform.forward * (speed * 0.5f);
-                }
+                // 発射時間が終了したら戻り状態へ
+                timer -= Time.deltaTime;
+                if (timer <= 0f) StartReturning();
                 break;
 
-            case State.ReturningAscending:
-                // 帰還のため一旦待機位置の上空へ向かう
-                Vector3 toAbove = returnTargetAboveIdle - transform.position;
-                
-                // 十分に近ければ次の状態へ
-                if (toAbove.sqrMagnitude < 0.05f)
-                {
-                    currentState = State.ReturningToIdle;
-                }
-                else
-                {
-                    // 上空への方向に上昇速度で移動
-                    rb.linearVelocity = toAbove.normalized * ascendSpeed;
-                }
-                break;
-
-            case State.ReturningToIdle:
-                // 待機位置に戻るための方向を計算
-                Vector3 returnDir = idlePosition.position - transform.position;
-
-                // 待機位置に十分近ければ待機状態へ復帰
-                if (returnDir.sqrMagnitude < 0.05f)
-                {
-                    currentState = State.Idle;
-                    rb.linearVelocity = Vector3.zero;              // 速度リセット
-                    transform.position = idlePosition.position;
-                    transform.rotation = idlePosition.rotation;
-                    targetEnemy = null;                       // 追尾対象リセット
-                }
-                else
-                {
-                    // 待機位置へ速度セット
-                    rb.linearVelocity = returnDir.normalized * speed;
-                }
+            case BitState.Returning:
+                // ベジェ曲線でプレイヤーに戻る
+                ReturnToPlayer();
                 break;
         }
     }
 
-    // 最も近い敵を探してtargetEnemyに設定するメソッド
-    void FindClosestEnemy()
+    // ビットの初期化（プレイヤーと待機位置を登録）
+    public void Initialize(PlayerBitController controller, Transform standby)
     {
-        float closestDist = attackRange;  // 攻撃可能範囲内で探索
-        targetEnemy = null;
+        this.controller = controller;
+        this.standbyPosition = standby;
+        this.player = controller.transform;
 
-        // "Enemy"タグのついたゲームオブジェクトすべてをチェック
-        foreach (var enemy in GameObject.FindGameObjectsWithTag("Enemy"))
+        // 初期位置を待機位置に設定し、状態をIdleに
+        transform.position = standby.position;
+        state = BitState.Idle;
+    }
+
+    // ビットが待機状態かどうかを返す（外部から発射可能か判定するため）
+    public bool IsIdle() => state == BitState.Idle;
+
+    // ビットを発射（まず周回開始 → 一定時間後に敵に向かって射出）
+    public void Launch()
+    {
+        if (state != BitState.Idle) return;
+
+        // 発射先の敵を検索
+        targetAfterOrbit = FindNearestEnemy();
+
+        if (targetAfterOrbit != null)
         {
-            // 自身と敵との距離を計算
+            // ランダム軌道の初期化
+            orbitTimer = orbitDuration;
+            orbitAngle = Random.Range(0f, 360f);        // ランダムな角度から開始
+            orbitAxis = Random.onUnitSphere;            // ランダムな回転軸
+
+            // 状態を周回モードに
+            state = BitState.Orbiting;
+        }
+    }
+
+    // プレイヤーの周囲をランダムな軌道で回転させる処理
+    private void OrbitAroundPlayerRandom()
+    {
+        if (player == null) return;
+
+        // 時間をカウントダウン
+        orbitTimer -= Time.deltaTime;
+
+        // 回転角度を毎フレーム加算（回転スピード調整）
+        orbitAngle += 180f * Time.deltaTime;
+
+        // 指定軸で回転を生成し、プレイヤー中心の位置を計算
+        Quaternion rotation = Quaternion.AngleAxis(orbitAngle, orbitAxis);
+        Vector3 offset = rotation * (Vector3.forward * orbitRadius);
+
+        // プレイヤーの位置に対してオフセット位置に配置
+        transform.position = player.position + offset;
+
+        // 高さ制限：プレイヤーより下がりすぎないようにする
+        Vector3 pos = transform.position;
+        float minY = player.position.y + minOrbitHeightOffset;
+        if (pos.y < minY)
+        {
+            pos.y = minY;
+            transform.position = pos;
+        }
+
+        // 周回が終了したら発射状態へ遷移
+        if (orbitTimer <= 0f && targetAfterOrbit != null)
+        {
+            launchDirection = (targetAfterOrbit.position - transform.position).normalized;
+            timer = forwardDuration;
+            state = BitState.Launching;
+        }
+    }
+
+    // 最も近い敵のTransformを検索して返す
+    private Transform FindNearestEnemy()
+    {
+        GameObject[] enemies = GameObject.FindGameObjectsWithTag("Enemy");
+        Transform closest = null;
+        float minDist = float.MaxValue;
+
+        foreach (var enemy in enemies)
+        {
             float dist = Vector3.Distance(transform.position, enemy.transform.position);
-            
-            // 最短距離を更新し、対象の敵を記憶
-            if (dist < closestDist)
+            if (dist < minDist)
             {
-                closestDist = dist;
-                targetEnemy = enemy.transform;
+                minDist = dist;
+                closest = enemy.transform;
             }
         }
+
+        return closest;
     }
 
-    // 他オブジェクトとの衝突検知時に呼ばれる
-    void OnTriggerEnter(Collider other)
+    // 発射が終わったらプレイヤーに戻る処理を開始
+    private void StartReturning()
     {
-        // 追尾状態でない場合は何もしない
-        if (currentState != State.Seeking) return;
+        state = BitState.Returning;
 
-        if (other.CompareTag("Enemy"))
+        returnStartPos = transform.position;
+
+        // プレイヤーの背中方向（forwardの反対）へ向けたオフセット
+        Vector3 playerBack = -player.forward;
+        Vector3 sideOffset = Vector3.Cross(player.up, playerBack).normalized * 2f; // 横に回り込むオフセット（右または左）
+
+        // 50%の確率で左か右に避ける
+        if (Random.value < 0.5f) sideOffset = -sideOffset;
+
+        // 制御点はプレイヤーの背中方向 + 横 + 少し上
+        Vector3 mid = (returnStartPos + standbyPosition.position) * 0.5f;
+        returnControlPoint = mid + playerBack * 10f + sideOffset + Vector3.up * 10f;
+
+        returnProgress = 0f;
+    }
+
+    // ベジェ曲線を使って待機位置へ戻る
+    private void ReturnToPlayer()
+    {
+        // 時間に応じて補間値を進行
+        returnProgress += Time.deltaTime / returnDuration;
+
+        // 最終到達したら完全に戻す
+        if (returnProgress >= 1f)
         {
-            Enemy enemy = other.GetComponent<Enemy>();
-            if (enemy != null)
-            {
-                enemy.TakeDamage(damage);
-            }
-
-            StartReturn();
-
-            // 速度を即座に切り替え(念のため)
-            rb.linearVelocity = Vector3.zero;
-            rb.linearVelocity = Vector3.zero;
-
-            return;  // 念のため早期リターン
-        }
-        else if (!other.CompareTag("Player"))
-        {
-            StartReturn();
-
-            rb.linearVelocity = Vector3.zero;
-            rb.linearVelocity = Vector3.zero;
-
+            transform.position = standbyPosition.position;
+            state = BitState.Idle;
             return;
         }
+
+        // 2次ベジェ曲線を使って滑らかに移動
+        float t = returnProgress;
+        Vector3 curvedPos = Mathf.Pow(1 - t, 2) * returnStartPos +
+                            2 * (1 - t) * t * returnControlPoint +
+                            Mathf.Pow(t, 2) * standbyPosition.position;
+
+        transform.position = curvedPos;
     }
 
-    // 帰還動作を開始するメソッド
-    void StartReturn()
+    // 敵と接触したときの処理
+    private void OnTriggerEnter(Collider other)
     {
-        targetEnemy = null;   // 追尾対象リセット
-                              // 待機位置の上空へ戻るための座標を設定
-        returnTargetAboveIdle = idlePosition.position + Vector3.up * returnAscendHeight;
-        currentState = State.ReturningAscending;   // 状態を帰還上昇に変更
-        stateTimer = 0f;                            // タイマーリセット
+        // Launch中に敵と衝突したら
+        if (state == BitState.Launching && other.CompareTag("Enemy"))
+        {
+            // 敵を削除（例：Destroy）
+            Destroy(other.gameObject);
 
-        // Rigidbodyの速度を即座に帰還上昇方向へ切り替え（これを追加）
-        Vector3 toAbove = returnTargetAboveIdle - transform.position;
-        rb.linearVelocity = toAbove.normalized * ascendSpeed;
+            // すぐに戻る処理へ遷移
+            StartReturning();
+        }
+    }
+
+    // アイドル状態中にプレイヤーの待機位置へ滑らかに移動
+    private void FollowStandbyPosition()
+    {
+        float followSpeed = 5f;
+
+        // 線形補間で位置を滑らかに追従
+        transform.position = Vector3.Lerp(transform.position, standbyPosition.position, followSpeed);
     }
 }
