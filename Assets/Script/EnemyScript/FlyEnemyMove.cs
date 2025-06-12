@@ -16,7 +16,7 @@ public class FlyEnemyMove : MonoBehaviour
 
     void Update()
     {
-        if (cinemachineSplineCart != null)
+        if (cinemachineSplineCart != null && !enemyDaed.Dead)
         {
             // スプラインの長さを取得
             float splineLength = cinemachineSplineCart.Spline.CalculateLength();

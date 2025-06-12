@@ -5,6 +5,14 @@ public class FlyEnemyLooks : MonoBehaviour
     // Playerの方向に向く変数
     public Transform target;
 
+    // 死亡した場合のスクリプト
+    public EnemyDaed enemyDaed;
+
+    void Start()
+    {
+        enemyDaed = GetComponent<EnemyDaed>();
+    }
+
     // Update is called once per frame
     void Update()
     {

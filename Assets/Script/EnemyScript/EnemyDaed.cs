@@ -27,6 +27,7 @@ public class EnemyDaed : MonoBehaviour
         // スペースキーを押したとき(HPが0になったとき)
         if (Input.GetKeyDown(KeyCode.Space))
         {
+            Debug.Log("Death");
             //animator.SetTrigger("Dead");
             Dead = true;
             yield return new WaitForSeconds(3);
