@@ -9,6 +9,8 @@ public class ShotBullet : MonoBehaviour
     [SerializeField] private GameObject bullet;
     // 残弾数
     public float bulletCount;
+    // 初期弾数の保存
+    private float bulletAs;
     // 弾の速さ
     public float Speed;
     // リロード
@@ -19,6 +21,8 @@ public class ShotBullet : MonoBehaviour
     void Start()
     {
         enemyDaed = GetComponent<EnemyDaed>();
+
+        bulletAs = bulletCount;
     }
 
     public void OnTriggerEnter(Collider collider)
@@ -54,7 +58,7 @@ public class ShotBullet : MonoBehaviour
             // リロード時間
             yield return new WaitForSeconds(3);
 
-            bulletCount = 50f;
+            bulletCount = bulletAs;
             reloading = false;
         }
     }
