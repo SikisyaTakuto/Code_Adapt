@@ -2,90 +2,109 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// プレイヤーの移動とブースト飛行（燃料管理付き）を制御するクラス
+/// プレイヤーの移動・飛行・ブースト・燃料管理・モード切替を統括する制御クラス
 /// </summary>
 public class PlayerBoosterController : MonoBehaviour
 {
+    // --- モード別の移動速度設定（各アーマーモードの特徴に応じて調整） ---
+    [Header("モード別パラメータ")]
+    private float balanceSpeed = 10f;     // バランスモード：平均的な速度
+    private float busterSpeed = 3f;       // バスターモード：重量級で遅い
+    private float speedSpeed = 20f;       // スピードモード：非常に速い
+    private float stealthSpeed = 8f;      // ステルスモード：やや軽快な移動
+
+    // --- モード別の質量設定（Rigidbodyの挙動に影響） ---
+    private float balanceMass = 1f;       // バランスモード：標準的な質量
+    private float busterMass = 3f;        // バスターモード：重い（ノックバック耐性あり）
+    private float speedMass = 0.8f;       // スピードモード：軽い（加速しやすい）
+    private float stealthMass = 1.2f;     // ステルスモード：やや軽い
+
+    private ArmorMode currentMode = ArmorMode.Balance; // 現在のアーマーモード
+
+    // --- プレイヤーの通常移動に関する設定 ---
     [Header("移動設定")]
-    private float moveSpeed = 10f;           // 通常移動速度
-    private float flyForce = 10.0f;          // 飛行時に加える上昇力
+    private float moveSpeed = 10f;        // 現在有効な移動速度（モードに応じて変化）
+    private float flyForce = 5.0f;        // 飛行上昇時の加速度（スペースキー）
 
+    // --- 燃料に関するパラメータ ---
     [Header("燃料設定")]
-    private float maxFuel = 1000f;          // 最大燃料量
-    private float fuelRegenRate = 20f;      // 地上で燃料が回復する速度（単位：秒あたり）
-    private float fuelBurnFly = 20f;        // 飛行時に1秒間あたり消費する燃料量
-    public Slider fuelSlider;               // 燃料残量を表示するUIスライダー
+    private float maxFuel = 100f;         // 最大燃料量
+    private float fuelRegenRate = 20f;    // 地上での燃料回復速度（秒あたり）
+    private float fuelBurnFly = 20f;      // 飛行・ブースト時の燃料消費量（秒あたり）
+    public Slider fuelSlider;             // UIスライダーによる燃料残量表示
 
+    // --- ブースト機能に関する設定 ---
     [Header("ブーストアクション設定")]
-    private float boostSpeed = 80f;        // ブースト移動速度
-    private float boostDuration = 0.3f;    // ブースト継続時間
-    private float boostCooldown = 2f;      // ブースト使用後のクールダウン
+    private float boostSpeed = 80f;       // ブースト移動の速度
+    private float boostDuration = 0.3f;   // ブーストが継続する時間（秒）
+    private float boostCooldown = 2f;     // ブースト後に再使用可能になるまでの時間
 
-    private bool isBoosting = false;
-    private float boostTimer = 0f;
-    private float boostCooldownTimer = 0f;
-    private Vector3 boostDirection;
+    private bool isBoosting = false;              // ブースト中かどうか
+    private float boostTimer = 0f;                // ブースト経過時間
+    private float boostCooldownTimer = 0f;        // クールダウン用タイマー
+    private Vector3 boostDirection;               // ブーストの進行方向
 
-    private float currentFuel;              // 現在の燃料残量
-    private Rigidbody rb;                   // Rigidbodyコンポーネントへの参照（物理制御用）
-    public Transform cameraTransform;       // カメラのTransform（移動方向の基準として使用）
+    private float currentFuel;                    // 現在の燃料残量
+    private Rigidbody rb;                         // Rigidbodyへの参照
+    public Transform cameraTransform;             // カメラのTransform（方向計算用）
 
-    // 初期化処理
+    // --- 初期化処理 ---
     void Start()
     {
-        rb = GetComponent<Rigidbody>();                // Rigidbodyコンポーネントを取得
-        currentFuel = maxFuel;                         // 燃料を最大値に初期化
-        Cursor.lockState = CursorLockMode.Locked;      // マウスカーソルを画面中央に固定
+        rb = GetComponent<Rigidbody>();                     // Rigidbody取得
+        currentFuel = maxFuel;                              // 燃料初期化
+        Cursor.lockState = CursorLockMode.Locked;           // マウスカーソル固定（FPSスタイル）
+        SetMode(currentMode);                               // 初期モード設定
     }
 
-    // 毎フレーム呼ばれる更新処理
+    // --- 毎フレームの更新処理 ---
     void Update()
     {
-        Move();             // プレイヤーの移動入力を処理
-        Fly();              // スペースキーによる飛行操作
-        HandleFuel();       // 燃料の消費・回復を管理
-        UpdateFuelUI();     // UIスライダーを最新の燃料残量に更新
-        BoostAction();
+        HandleModeSwitch(); // モード切替入力検出（1〜4キー）
+        Move();             // 通常移動入力処理
+        Fly();              // 飛行処理（スペースキー）
+        HandleFuel();       // 燃料の回復・消費管理
+        UpdateFuelUI();     // UIスライダーの更新
+        BoostAction();      // ブースト処理（右クリック）
     }
 
     /// <summary>
-    /// WASD入力による通常移動処理
+    /// WASD移動入力に応じた通常移動処理
     /// </summary>
     void Move()
     {
-        float h = Input.GetAxis("Horizontal"); // 水平方向入力（A/Dキー）
-        float v = Input.GetAxis("Vertical");   // 前後方向入力（W/Sキー）
+        float h = Input.GetAxis("Horizontal"); // A/Dキー（左右）
+        float v = Input.GetAxis("Vertical");   // W/Sキー（前後）
 
-        Vector3 inputDir = new Vector3(h, 0, v);           // 入力ベクトルを作成
-        inputDir = Vector3.ClampMagnitude(inputDir, 1);    // ベクトルの大きさを最大1に制限
+        Vector3 inputDir = new Vector3(h, 0, v);                     // 入力ベクトル生成
+        inputDir = Vector3.ClampMagnitude(inputDir, 1);             // 最大長を1に制限
 
-        if (inputDir.magnitude > 0.1f) // ある程度の入力がある場合のみ移動処理
+        if (inputDir.magnitude > 0.1f)
         {
-            // カメラのY軸方向（水平面）を取得し正規化
+            // カメラの正面と右方向を水平面で取得（Y=0）
             Vector3 camForward = cameraTransform.forward;
             camForward.y = 0;
             camForward.Normalize();
 
-            // カメラの右方向（水平面）を取得し正規化
             Vector3 camRight = cameraTransform.right;
             camRight.y = 0;
             camRight.Normalize();
 
-            // カメラ方向に合わせて移動方向を決定
+            // カメラ基準の移動方向を計算
             Vector3 moveDir = camForward * v + camRight * h;
             moveDir.Normalize();
 
-            // プレイヤーのY軸回転をスムーズに移動方向へ向ける
+            // プレイヤーの回転方向を移動先へスムーズに補間
             transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(moveDir), 0.15f);
 
-            // Rigidbodyの速度を設定（Y軸の速度は現在維持）
+            // 水平方向の速度を更新（Y軸速度は維持）
             Vector3 velocity = moveDir * moveSpeed;
             velocity.y = rb.linearVelocity.y;
             rb.linearVelocity = velocity;
         }
         else
         {
-            // 入力なしの場合、水平速度を0にしてY軸の速度は維持
+            // 入力がない場合はX/Z速度をゼロに
             Vector3 velocity = rb.linearVelocity;
             velocity.x = 0;
             velocity.z = 0;
@@ -94,61 +113,57 @@ public class PlayerBoosterController : MonoBehaviour
     }
 
     /// <summary>
-    /// スペースキー押下時の飛行（上昇）処理と燃料消費
+    /// スペースキー押下による上昇移動（飛行）
     /// </summary>
     void Fly()
     {
-        // スペースキー押下かつ燃料が残っている場合に上昇処理
         if (Input.GetKey(KeyCode.Space) && currentFuel > 0)
         {
-            // Rigidbodyに上方向への加速度を加える
-            rb.AddForce(Vector3.up * flyForce, ForceMode.Acceleration);
-            // 燃料を時間に応じて減らす
-            currentFuel -= fuelBurnFly * Time.deltaTime;
+            rb.AddForce(Vector3.up * flyForce, ForceMode.Acceleration); // 上方向の加速
+            currentFuel -= fuelBurnFly * Time.deltaTime;                // 燃料を消費
         }
     }
 
     /// <summary>
-    /// 燃料の回復処理と最大・最小範囲への制限
+    /// 燃料の自動回復・制限処理
     /// </summary>
     void HandleFuel()
     {
-        // ブーストも飛行もしていない状態のみ燃料を回復させる
-        bool notUsingFuel = !isBoosting && !Input.GetKey(KeyCode.Space);
+        bool notUsingFuel = !isBoosting && !Input.GetKey(KeyCode.Space); // 使用中でないか
 
         if (notUsingFuel && currentFuel < maxFuel)
         {
-            currentFuel += fuelRegenRate * Time.deltaTime; // 燃料を時間に応じて回復
+            currentFuel += fuelRegenRate * Time.deltaTime; // 自然回復
         }
 
-        // 燃料の値を0〜maxFuelの範囲内に制限
-        currentFuel = Mathf.Clamp(currentFuel, 0, maxFuel);
+        currentFuel = Mathf.Clamp(currentFuel, 0, maxFuel); // 範囲制限
     }
 
     /// <summary>
-    /// UIの燃料スライダーの値を更新する
+    /// UIスライダーに現在の燃料量を反映
     /// </summary>
     void UpdateFuelUI()
     {
         if (fuelSlider != null)
         {
-            // 燃料の割合（0〜1）をスライダーの値に反映
             fuelSlider.value = currentFuel / maxFuel;
         }
     }
 
+    /// <summary>
+    /// ブーストアクション処理（右クリック入力）
+    /// </summary>
     void BoostAction()
     {
         boostCooldownTimer -= Time.deltaTime;
 
-        // 右クリックでブースト開始
         if (Input.GetMouseButtonDown(1) && boostCooldownTimer <= 0f && currentFuel > 0)
         {
-            // 水平面の入力を取得（前後左右）
-            float horizontalInput = Input.GetAxis("Horizontal"); // A/Dキー
-            float verticalInput = Input.GetAxis("Vertical");     // W/Sキー
+            // 入力ベクトル（前後左右）
+            float horizontalInput = Input.GetAxis("Horizontal");
+            float verticalInput = Input.GetAxis("Vertical");
 
-            // カメラの正面と右方向（水平面で正規化）
+            // カメラ基準の移動ベクトルを生成
             Vector3 camForward = cameraTransform.forward;
             camForward.y = 0;
             camForward.Normalize();
@@ -157,19 +172,13 @@ public class PlayerBoosterController : MonoBehaviour
             camRight.y = 0;
             camRight.Normalize();
 
-            // 入力ベクトルを作成（前後左右）
             Vector3 inputDir = camForward * verticalInput + camRight * horizontalInput;
 
+            // 入力が小さい場合は前方にブースト
             if (inputDir.magnitude < 0.1f)
-            {
-                // 入力がほぼなければカメラ正面方向にブースト
                 inputDir = camForward;
-            }
             else
-            {
-                // 入力方向を正規化
                 inputDir.Normalize();
-            }
 
             boostDirection = inputDir;
             isBoosting = true;
@@ -179,9 +188,9 @@ public class PlayerBoosterController : MonoBehaviour
 
         if (isBoosting)
         {
-            // ブースト移動（Y方向の速度は保持）
+            // 水平方向にブースト速度適用
             Vector3 velocity = boostDirection * boostSpeed;
-            velocity.y = rb.linearVelocity.y; // Y方向は維持
+            velocity.y = rb.linearVelocity.y; // Y速度維持
             rb.linearVelocity = velocity;
 
             // 燃料消費
@@ -189,9 +198,10 @@ public class PlayerBoosterController : MonoBehaviour
             if (currentFuel <= 0)
             {
                 currentFuel = 0;
-                isBoosting = false; // 燃料切れでブースト終了
+                isBoosting = false; // 燃料切れで終了
             }
 
+            // 時間経過でブースト終了
             boostTimer += Time.deltaTime;
             if (boostTimer >= boostDuration)
             {
@@ -200,4 +210,53 @@ public class PlayerBoosterController : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// アーマーモード切り替え（1～4キー）
+    /// </summary>
+    void HandleModeSwitch()
+    {
+        if (Input.GetKeyDown(KeyCode.Alpha1)) SetMode(ArmorMode.Balance);
+        else if (Input.GetKeyDown(KeyCode.Alpha2)) SetMode(ArmorMode.Buster);
+        else if (Input.GetKeyDown(KeyCode.Alpha3)) SetMode(ArmorMode.Speed);
+        else if (Input.GetKeyDown(KeyCode.Alpha4)) SetMode(ArmorMode.Stealth);
+    }
+
+    /// <summary>
+    /// アーマーモードに応じた速度・質量の適用
+    /// </summary>
+    void SetMode(ArmorMode mode)
+    {
+        currentMode = mode;
+
+        switch (mode)
+        {
+            case ArmorMode.Balance:
+                moveSpeed = balanceSpeed;
+                rb.mass = balanceMass;
+                break;
+            case ArmorMode.Buster:
+                moveSpeed = busterSpeed;
+                rb.mass = busterMass;
+                break;
+            case ArmorMode.Speed:
+                moveSpeed = speedSpeed;
+                rb.mass = speedMass;
+                break;
+            case ArmorMode.Stealth:
+                moveSpeed = stealthSpeed;
+                rb.mass = stealthMass;
+                break;
+        }
+    }
+}
+
+/// <summary>
+/// プレイヤーのアーマーモードの種類（切り替え可能）
+/// </summary>
+public enum ArmorMode
+{
+    Balance, // 標準バランス型
+    Buster,  // 重装甲・鈍足型
+    Speed,   // 高速・軽量型
+    Stealth  // 軽装・静音型
 }

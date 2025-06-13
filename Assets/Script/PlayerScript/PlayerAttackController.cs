@@ -2,7 +2,7 @@
 
 public class PlayerAttackController : MonoBehaviour
 {
-    // ========== 公開変数（Inspectorで調整可能） ==========
+    // 公開変数（Inspectorで調整可能
 
     public float detectRadius = 10f;         // 敵を検知する半径
     public float attackRange = 2f;           // 攻撃を開始できる距離
@@ -11,7 +11,7 @@ public class PlayerAttackController : MonoBehaviour
     public int maxCombo = 5;                 // 最大コンボ数
     public float comboResetTime = 2f;        // 入力がないとコンボがリセットされるまでの時間（秒）
 
-    // ========== 内部変数（状態管理） ==========
+    //内部変数（状態管理
 
     private Transform targetEnemy = null;    // 現在ターゲット中の敵（最も近い敵）
     private float attackTimer = 0f;          // 攻撃のクールダウンタイマー
@@ -19,7 +19,7 @@ public class PlayerAttackController : MonoBehaviour
     private int currentCombo = 0;            // 現在のコンボ段数（0〜maxCombo）
     private float comboResetTimer = 0f;      // コンボリセットまでのタイマー
 
-    // ========== 毎フレーム実行される処理 ==========
+    //毎フレーム実行される処理 
 
     void Update()
     {
@@ -68,7 +68,7 @@ public class PlayerAttackController : MonoBehaviour
             }
             else
             {
-                // ===== 攻撃範囲内にいる場合の処理 =====
+                // 攻撃範囲内にいる場合の処理
 
                 // 一定時間入力がなければコンボをリセット
                 if (comboResetTimer <= 0f)
@@ -97,7 +97,7 @@ public class PlayerAttackController : MonoBehaviour
         }
     }
 
-    // ========== 敵検出処理 ==========
+    // 敵検出処理
 
     void DetectClosestEnemy()
     {
@@ -125,7 +125,7 @@ public class PlayerAttackController : MonoBehaviour
         targetEnemy = closestEnemy;
     }
 
-    // ========== 攻撃処理（引数はコンボ段数） ==========
+    // 攻撃処理（引数はコンボ段数）
 
     void Attack(int comboIndex)
     {
@@ -133,7 +133,7 @@ public class PlayerAttackController : MonoBehaviour
         Debug.Log($"攻撃 {comboIndex} 段目！");
     }
 
-    // ========== エディタ上で検知範囲・攻撃範囲を可視化 ==========
+    //エディタ上で検知範囲・攻撃範囲を可視化
 
     private void OnDrawGizmosSelected()
     {
