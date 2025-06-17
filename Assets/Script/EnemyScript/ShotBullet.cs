@@ -43,12 +43,12 @@ public class ShotBullet : MonoBehaviour
                 // écíeêîÇå∏ÇÁÇ∑
                 bulletCount = bulletCount - 1;
 
-                StartCoroutine(Shoot());
+                StartCoroutine(Shot());
             }
         }
     }
 
-    private IEnumerator Shoot()
+    private IEnumerator Shot()
     {
         if (bulletCount <= 0) 
         {

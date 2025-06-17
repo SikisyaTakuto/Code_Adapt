@@ -4,10 +4,10 @@ using UnityEngine.Experimental.AI;
 
 public class PanjanEnemyMove : MonoBehaviour
 {
-    // 自爆時間
-    private float BombTime = 10.0f;
     // NavMeshAgent
     private NavMeshAgent navMeshAgent;
+    // 自爆時間
+    public float BombTime;
     // 死亡した場合のスクリプト
     public EnemyDaed enemyDaed;
 
@@ -27,7 +27,7 @@ public class PanjanEnemyMove : MonoBehaviour
     public void OnDetectObject(Collider collider)
     {
         // Playerが範囲内に入ったとき
-        if (collider.gameObject.tag == "Player")
+        if (collider.gameObject.tag == "Player" && !enemyDaed.Dead)
         {
             // Playerを追いかける
             navMeshAgent.destination = collider.gameObject.transform.position;

@@ -28,8 +28,8 @@ public class EnemyDaed : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Space))
         {
             Debug.Log("Death");
-            //animator.SetTrigger("Dead");
             Dead = true;
+            //animator.SetTrigger("Dead");
             yield return new WaitForSeconds(3);
             Destroy(gameObject);
         }

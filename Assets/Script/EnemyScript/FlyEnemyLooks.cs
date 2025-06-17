@@ -26,7 +26,7 @@ public class FlyEnemyLooks : MonoBehaviour
     public void OnDetectObject(Collider collider)
     {
         // Player‚ª”ÍˆÍ“à‚É“ü‚Á‚½‚Æ‚«
-        if (collider.gameObject.tag == "Player")
+        if (collider.gameObject.tag == "Player" && !enemyDaed.Dead)
         {
             // Player‚Ì•ûŒü‚ÉŒü‚­
             transform.LookAt(target);
