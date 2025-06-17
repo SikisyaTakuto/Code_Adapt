@@ -14,6 +14,10 @@ public class TpsLockOnCamera : MonoBehaviour
     private Vector3 _lookTargetPosition = Vector3.zero;               // 現在の注視点の位置
     private Vector3 _latestTargetPosition = Vector3.zero;             // 直前の注視点の位置（補間開始地点）
 
+    [SerializeField] private LayerMask cameraCollisionMask; // カメラが衝突を検出するレイヤー
+    [SerializeField] private float cameraCollisionRadius = 0.2f; // SphereCast用の半径
+    [SerializeField] private float cameraMinDistance = 0.5f; // キャラクターから最小距離
+
     // --- フリーカメラ用変数 ---
     [SerializeField] private float mouseSensitivity = 3f;             // マウス感度
     [SerializeField] private float verticalAngleMin = -30f;           // カメラの上下回転最小角度
@@ -131,9 +135,11 @@ public class TpsLockOnCamera : MonoBehaviour
     private void FreeCameraLateUpdate()
     {
         Quaternion rotation = Quaternion.Euler(rotationX, rotationY, 0f);
-        Vector3 position = _attachTarget.position + rotation * _attachOffset;
+        Vector3 desiredPosition = _attachTarget.position + rotation * _attachOffset;
 
-        transform.SetPositionAndRotation(position, rotation);
+        Vector3 safePosition = CalculateSafeCameraPosition(desiredPosition);
+
+        transform.SetPositionAndRotation(safePosition, rotation);
     }
 
     /// <summary>
@@ -143,7 +149,6 @@ public class TpsLockOnCamera : MonoBehaviour
     {
         Vector3 targetPosition = _lookTarget != null ? _lookTarget.position : _defaultLookPosition;
 
-        // ロックオンターゲットの位置へ滑らかに補間
         if (_timer < _changeDuration)
         {
             _timer += Time.deltaTime;
@@ -154,17 +159,14 @@ public class TpsLockOnCamera : MonoBehaviour
             _lookTargetPosition = targetPosition;
         }
 
-        // ターゲット方向ベクトル
         Vector3 targetVector = _lookTargetPosition - _attachTarget.position;
-        // ターゲット方向を向く回転
         Quaternion targetRotation = targetVector != Vector3.zero ? Quaternion.LookRotation(targetVector) : transform.rotation;
 
-        // カメラ位置はキャラクター位置にオフセットを掛けた位置
-        Vector3 position = _attachTarget.position + targetRotation * _attachOffset;
-        // カメラの向きはターゲット方向を向く
-        Quaternion rotation = Quaternion.LookRotation(_lookTargetPosition - position);
+        Vector3 desiredPosition = _attachTarget.position + targetRotation * _attachOffset;
+        Vector3 safePosition = CalculateSafeCameraPosition(desiredPosition);
+        Quaternion rotation = Quaternion.LookRotation(_lookTargetPosition - safePosition);
 
-        transform.SetPositionAndRotation(position, rotation);
+        transform.SetPositionAndRotation(safePosition, rotation);
     }
 
     /// <summary>
@@ -240,4 +242,20 @@ public class TpsLockOnCamera : MonoBehaviour
         _latestTargetPosition = _defaultLookPosition;
         _lookTargetPosition = _defaultLookPosition;
     }
+    private Vector3 CalculateSafeCameraPosition(Vector3 desiredPosition)
+    {
+        Vector3 origin = _attachTarget.position;
+        Vector3 direction = desiredPosition - origin;
+        float maxDistance = direction.magnitude;
+
+        // カメラ衝突チェック（SphereCast）
+        if (Physics.SphereCast(origin, cameraCollisionRadius, direction.normalized, out RaycastHit hit, maxDistance, cameraCollisionMask))
+        {
+            // 衝突地点の少し手前にカメラを配置（めり込み回避）
+            return origin + direction.normalized * Mathf.Max(hit.distance - 0.1f, cameraMinDistance);
+        }
+
+        return desiredPosition; // 衝突しない場合はそのまま
+    }
+
 }

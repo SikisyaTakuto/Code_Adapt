@@ -24,7 +24,7 @@ public class PlayerBoosterController : MonoBehaviour
     // --- プレイヤーの通常移動に関する設定 ---
     [Header("移動設定")]
     private float moveSpeed = 10f;        // 現在有効な移動速度（モードに応じて変化）
-    private float flyForce = 5.0f;        // 飛行上昇時の加速度（スペースキー）
+    private float flyForce = 15.0f;        // 飛行上昇時の加速度（スペースキー）
 
     // --- 燃料に関するパラメータ ---
     [Header("燃料設定")]
