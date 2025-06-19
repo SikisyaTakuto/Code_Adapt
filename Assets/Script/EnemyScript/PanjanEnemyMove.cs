@@ -10,12 +10,16 @@ public class PanjanEnemyMove : MonoBehaviour
     public float BombTime;
     // 死亡した場合のスクリプト
     public EnemyDaed enemyDaed;
+    // 自爆攻撃
+    public PanjanExplosion explosion;
 
     void Start()
     {
         navMeshAgent = this.gameObject.GetComponent<NavMeshAgent>();
 
         enemyDaed = GetComponent<EnemyDaed>();
+
+        explosion = GetComponent<PanjanExplosion>();
     }
 
     void Update()
@@ -31,8 +35,6 @@ public class PanjanEnemyMove : MonoBehaviour
         {
             // Playerを追いかける
             navMeshAgent.destination = collider.gameObject.transform.position;
-
-            Destroy(gameObject, BombTime);
         }
     }
 

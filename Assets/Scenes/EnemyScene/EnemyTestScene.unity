@@ -479,7 +479,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 6ad2a73938db8cc46ac786ac81c57166, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 6ad2a73938db8cc46ac786ac81c57166, type: 3}
       propertyPath: m_TagString
@@ -652,6 +652,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   BombTime: 10
   enemyDaed: {fileID: 0}
+  explosion: {fileID: 0}
 --- !u!114 &340425136
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2254,7 +2255,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &1705839671
 Transform:
   m_ObjectHideFlags: 0
@@ -2468,6 +2469,10 @@ PrefabInstance:
     - target: {fileID: 919132149155446097, guid: c8727503b1e61d34faf46d739db7ae51, type: 3}
       propertyPath: m_Name
       value: EnemyBossV3
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: c8727503b1e61d34faf46d739db7ae51, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
