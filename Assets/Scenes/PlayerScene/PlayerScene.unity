@@ -6597,7 +6597,7 @@ GameObject:
   - component: {fileID: 429069389}
   - component: {fileID: 429069388}
   - component: {fileID: 429069391}
-  - component: {fileID: 429069393}
+  - component: {fileID: 429069392}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -6723,7 +6723,7 @@ MonoBehaviour:
     m_MipBias: 0
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
---- !u!114 &429069393
+--- !u!114 &429069392
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -6732,23 +6732,13 @@ MonoBehaviour:
   m_GameObject: {fileID: 429069387}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 49129535f096bef489c70cff9d58fa9c, type: 3}
+  m_Script: {fileID: 11500000, guid: ae55ee12e067d0841ad85d1a69337daa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _attachTarget: {fileID: 3240965949130828097}
-  _attachOffset: {x: 0, y: 2, z: -7}
-  _defaultLookPosition: {x: 0, y: 0, z: 0}
-  _changeDuration: 0.01
-  cameraCollisionMask:
-    serializedVersion: 2
-    m_Bits: 128
-  cameraCollisionRadius: 0.2
-  cameraMinDistance: 0.5
-  mouseSensitivity: 3
-  verticalAngleMin: -30
-  verticalAngleMax: 60
-  enemyTag: Enemy
-  lockOnRange: 20
+  target: {fileID: 3240965949130828097}
+  distance: 5
+  sensitivity: 2
+  lookAtHeightOffset: 2
 --- !u!1 &429148936 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 439239393980121046, guid: 1e3974e3db8c48c41b2604d2478e7e9e, type: 3}
@@ -13855,7 +13845,7 @@ Transform:
   m_GameObject: {fileID: 924586153}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.023844633, z: 0.01230875}
+  m_LocalPosition: {x: 0, y: 0.02, z: 0.01230875}
   m_LocalScale: {x: 0.0125, y: 0.0125, z: 0.0125}
   m_ConstrainProportionsScale: 0
   m_Children: []
