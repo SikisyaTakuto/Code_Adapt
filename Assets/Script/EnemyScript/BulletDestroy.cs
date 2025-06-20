@@ -10,6 +10,11 @@ public class BulletDestroy : MonoBehaviour
         Destroy(gameObject, lifeTime);
     }
 
+    void Update()
+    {
+        
+    }
+
     private void OnTriggerEnter(Collider collider)
     {
         if (collider.gameObject.tag == "Player")
