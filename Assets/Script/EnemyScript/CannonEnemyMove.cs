@@ -95,7 +95,7 @@ public class CannonEnemyMove : MonoBehaviour
         if (collider.gameObject.tag == "Player")
         {
             // –Ú“I’n‚Ì„‰ñ‚É–ß‚é
-            navMeshAgent.speed = 50f;
+            navMeshAgent.speed = 5f;
         }
     }
 
