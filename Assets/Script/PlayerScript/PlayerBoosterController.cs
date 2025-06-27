@@ -6,6 +6,8 @@ using UnityEngine.UI;
 /// </summary>
 public class PlayerBoosterController : MonoBehaviour
 {
+    private Animator animator; // プレイヤーのAnimator
+
     // --- モード別の移動速度設定（各アーマーモードの特徴に応じて調整） ---
     [Header("モード別パラメータ")]
     private float balanceSpeed = 10f;     // バランスモード：平均的な速度
@@ -51,6 +53,7 @@ public class PlayerBoosterController : MonoBehaviour
     // --- 初期化処理 ---
     void Start()
     {
+        animator = GetComponent<Animator>();
         rb = GetComponent<Rigidbody>();                     // Rigidbody取得
         currentFuel = maxFuel;                              // 燃料初期化
         Cursor.lockState = CursorLockMode.Locked;           // マウスカーソル固定（FPSスタイル）
@@ -66,6 +69,7 @@ public class PlayerBoosterController : MonoBehaviour
         HandleFuel();       // 燃料の回復・消費管理
         UpdateFuelUI();     // UIスライダーの更新
         BoostAction();      // ブースト処理（右クリック）
+        UpdateAnimationState();
     }
 
     /// <summary>
@@ -248,6 +252,22 @@ public class PlayerBoosterController : MonoBehaviour
                 break;
         }
     }
+
+    void UpdateAnimationState()
+    {
+        // 入力によって歩行状態を判定
+        float h = Input.GetAxis("Horizontal");
+        float v = Input.GetAxis("Vertical");
+        bool isWalking = new Vector2(h, v).magnitude > 0.1f;
+
+        // 飛行中かどうか（Spaceが押されている && 燃料がある）
+        bool isFlying = Input.GetKey(KeyCode.Space) && currentFuel > 0;
+
+        // Animator に反映
+        animator.SetBool("isWalking", isWalking && !isFlying); // 飛行中は歩行しない
+        animator.SetBool("isFlying", isFlying);
+    }
+
 }
 
 /// <summary>
