@@ -24,8 +24,8 @@ public class EnemyDaed : MonoBehaviour
 
     private IEnumerator DaedDestroy()
     {
-        // スペースキーを押したとき(HPが0になったとき)
-        if (Input.GetKeyDown(KeyCode.Space))
+        // Jキーを押したとき(HPが0になったとき)
+        if (Input.GetKeyDown(KeyCode.J))
         {
             Debug.Log("Death");
             Dead = true;
