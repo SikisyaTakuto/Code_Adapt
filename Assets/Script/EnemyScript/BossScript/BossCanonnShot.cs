@@ -3,13 +3,17 @@ using System.Collections;
 
 public class BossCanonnShot : MonoBehaviour
 {
+    // Player‚Ì•ûŒü‚ÉŒü‚­•Ï”
+    public Transform target;
     // ’e‚Ì”­ËêŠ
     [SerializeField] private GameObject bulletPoint;
     // ’e
     [SerializeField] private GameObject bullet;
+    // ‘å–C
+    [SerializeField] private GameObject taiho;
     // c’e”
     public float bulletCount;
-    // ‰Šú’e”‚Ì•Û‘¶
+    // ‰Šú’e”
     private float bulletAs;
     // ’e‚Ì‘¬‚³
     public float Speed;
@@ -23,12 +27,21 @@ public class BossCanonnShot : MonoBehaviour
     void Start()
     {
         bossEnemyDead = GetComponent<BossEnemyDead>();
-
+        // ‰Šú’e”‚Ì•Û‘¶
         bulletAs = bulletCount;
+    }
+
+    private void Update()
+    {
+        Vector3 targetPos = target.position;
+        //targetPos.y = transform.position.y;
+        taiho.transform.LookAt(targetPos);
     }
 
     public void OnTriggerEnter(Collider collider)
     {
+        // ‘å–C‚ªPlayer‚Ì•ûŒü‚ÉŒü‚­
+
         if (!bossEnemyDead.BossDead)
         {
             // Player‚ª”ÍˆÍ“à‚É“ü‚Á‚½‚Æ‚«

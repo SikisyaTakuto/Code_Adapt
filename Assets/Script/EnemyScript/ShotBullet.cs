@@ -9,7 +9,7 @@ public class ShotBullet : MonoBehaviour
     [SerializeField] private GameObject bullet;
     // c’e”
     public float bulletCount;
-    // ‰Šú’e”‚Ì•Û‘¶
+    // ‰Šú’e”
     private float bulletAs;
     // ’e‚Ì‘¬‚³
     public float Speed;
@@ -21,7 +21,7 @@ public class ShotBullet : MonoBehaviour
     void Start()
     {
         enemyDaed = GetComponent<EnemyDaed>();
-
+        // ‰Šú’e”‚Ì•Û‘¶
         bulletAs = bulletCount;
     }
 
@@ -42,7 +42,7 @@ public class ShotBullet : MonoBehaviour
                 newBullet.GetComponent<Rigidbody>().AddForce(direction * Speed, ForceMode.Impulse);
                 // c’e”‚ğŒ¸‚ç‚·
                 bulletCount = bulletCount - 1;
-
+                // ƒŠƒ[ƒh
                 StartCoroutine(Shot());
             }
         }
