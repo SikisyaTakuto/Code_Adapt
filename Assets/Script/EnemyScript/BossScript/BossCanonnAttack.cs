@@ -1,7 +1,7 @@
 using UnityEngine;
 using System.Collections;
 
-public class BossCanonnShot : MonoBehaviour
+public class BossCanonnAttack : MonoBehaviour
 {
     // Player‚Ì•ûŒü‚ÉŒü‚­•Ï”
     public Transform target;
@@ -31,39 +31,51 @@ public class BossCanonnShot : MonoBehaviour
         bulletAs = bulletCount;
     }
 
-    private void Update()
+    void Update()
     {
         Vector3 targetPos = target.position;
-        //targetPos.y = transform.position.y;
+
+        // ‘å–C‚ªPlayer‚Ì•ûŒü‚ÉŒü‚­
         taiho.transform.LookAt(targetPos);
+
+        if (!bossEnemyDead.BossDead)
+        {
+            // ËŒ‚
+            Shot();
+
+        }
     }
 
     public void OnTriggerEnter(Collider collider)
     {
-        // ‘å–C‚ªPlayer‚Ì•ûŒü‚ÉŒü‚­
+        // Player‚ª”ÍˆÍ“à‚É“ü‚Á‚½‚Æ‚«
+        if (collider.gameObject.tag == "Player")
+        { 
 
-        if (!bossEnemyDead.BossDead)
-        {
-            // Player‚ª”ÍˆÍ“à‚É“ü‚Á‚½‚Æ‚«
-            if (collider.gameObject.tag == "Player" && !reloading && !coolTime)
-            {
-                // ’e‚Ì”­ËêŠ‚ğæ“¾
-                Vector3 bulletPosition = bulletPoint.transform.position;
-                // ’e‚ÌPrefab‚ğì¬
-                GameObject newBullet = Instantiate(bullet, bulletPosition, this.gameObject.transform.rotation);
-                // ’e‚Ì”­Ë²‚ğæ“¾iZ²j
-                Vector3 direction = newBullet.transform.forward;
-                // ’e‚ğ”­ËiZ²j
-                newBullet.GetComponent<Rigidbody>().AddForce(direction * Speed, ForceMode.Impulse);
-                // c’e”‚ğŒ¸‚ç‚·
-                bulletCount = bulletCount - 1;
-                // ƒŠƒ[ƒh
-                StartCoroutine(Shot());
-            }
         }
     }
 
-    private IEnumerator Shot()
+    public void Shot()
+    {
+        // Player‚ª”ÍˆÍ“à‚É“ü‚Á‚½‚Æ‚«
+        if (!reloading && !coolTime)
+        {
+            // ’e‚Ì”­ËêŠ‚ğæ“¾
+            Vector3 bulletPosition = bulletPoint.transform.position;
+            // ’e‚ÌPrefab‚ğì¬
+            GameObject newBullet = Instantiate(bullet, bulletPosition, this.gameObject.transform.rotation);
+            // ’e‚Ì”­Ë²‚ğæ“¾iZ²j
+            Vector3 direction = newBullet.transform.forward;
+            // ’e‚ğ”­ËiZ²j
+            newBullet.GetComponent<Rigidbody>().AddForce(direction * Speed, ForceMode.Impulse);
+            // c’e”‚ğŒ¸‚ç‚·
+            bulletCount = bulletCount - 1;
+            // ƒŠƒ[ƒh
+            StartCoroutine(ShotTime());
+        }
+    }
+
+    private IEnumerator ShotTime()
     {
         if (bulletCount <= 0)
         {

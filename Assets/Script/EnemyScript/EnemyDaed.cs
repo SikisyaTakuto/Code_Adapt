@@ -30,8 +30,7 @@ public class EnemyDaed : MonoBehaviour
             Debug.Log("Death");
             Dead = true;
             //animator.SetTrigger("Dead");
-            yield return new WaitForSeconds(3);
-            Destroy(gameObject);
+            yield return new WaitForSeconds(0);
         }
     }
 }

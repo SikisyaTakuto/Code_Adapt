@@ -1,5 +1,6 @@
 ﻿using Unity.Cinemachine;
 using UnityEngine;
+using System.Collections;
 
 public class FlyEnemyMove : MonoBehaviour
 {
@@ -16,16 +17,24 @@ public class FlyEnemyMove : MonoBehaviour
 
     void Update()
     {
-        if (cinemachineSplineCart != null && !enemyDaed.Dead)
+        if (!enemyDaed.Dead)
         {
-            // スプラインの長さを取得
-            float splineLength = cinemachineSplineCart.Spline.CalculateLength();
+            if (cinemachineSplineCart != null)
+            {
+                // スプラインの長さを取得
+                float splineLength = cinemachineSplineCart.Spline.CalculateLength();
 
-            // 経路上の現在位置（0〜1）を時間経過で進める
-            float deltaDistance = cartSpeed * Time.deltaTime;
-            float deltaT = deltaDistance / splineLength;
+                // 経路上の現在位置（0〜1）を時間経過で進める
+                float deltaDistance = cartSpeed * Time.deltaTime;
+                float deltaT = deltaDistance / splineLength;
 
-            cinemachineSplineCart.SplinePosition += deltaT;
+                cinemachineSplineCart.SplinePosition += deltaT;
+            }
+        }
+        else
+        {
+            // その場で死亡する
+            StartCoroutine(ZeroSpeed());
         }
     }
 
@@ -49,5 +58,11 @@ public class FlyEnemyMove : MonoBehaviour
             // 動き始める
             cartSpeed = 2000f;
         }
+    }
+
+    private IEnumerator ZeroSpeed()
+    {
+        yield return new WaitForSeconds(5);
+        Destroy(gameObject);
     }
 }

@@ -28,13 +28,13 @@ public class PanjanExplosion : MonoBehaviour
             // Player‚ª”ÍˆÍ“à‚É“ü‚Á‚½‚Æ‚«
             if (collider.gameObject.tag == "Player")
             {
-                StartCoroutine(Explos());
+                StartCoroutine(ExplosDamage());
             }
         }
     }
 
-    private IEnumerator Explos()
+    private IEnumerator ExplosDamage()
     {
-        yield return new WaitForSeconds(3);
+        yield return new WaitForSeconds(0);
     }
 }

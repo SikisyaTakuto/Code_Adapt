@@ -68,40 +68,39 @@ public class CannonEnemyMove : MonoBehaviour
         }
         else
         {
-            // その場で止まる
-            ZeroSpeed();
+            // その場で死亡する
+            StartCoroutine(ZeroSpeed());
         }
     }
 
     // Playerが近づいた場合
     public void OnDetectObject(Collider collider)
     {
-        if (!enemyDaed.Dead)
-        {
-            // Playerが範囲内に入ったとき
-            if (collider.gameObject.tag == "Player")
+        // Playerが範囲内に入ったとき
+        if (collider.gameObject.tag == "Player" && !enemyDaed.Dead)
             {
                 // Playerの方向に向く
                 transform.LookAt(target);
                 navMeshAgent.speed = 0f;
-            }
-        }
+            }        
     }
 
     // Playerが離れた場合
     public void OnLoseObject(Collider collider)
     {
         // Playerが範囲外に出たとき
-        if (collider.gameObject.tag == "Player")
+        if (collider.gameObject.tag == "Player" && !enemyDaed.Dead)
         {
             // 目的地の巡回に戻る
             navMeshAgent.speed = 5f;
         }
     }
 
-    private void ZeroSpeed()
+    private IEnumerator ZeroSpeed()
     {
         navMeshAgent.speed = 0f;
         moveSpeed = 0f;
+        yield return new WaitForSeconds(5);
+        Destroy(gameObject);
     }
 }
