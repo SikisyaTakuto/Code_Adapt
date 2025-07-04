@@ -2,15 +2,23 @@ using UnityEngine;
 
 public class BossCannonMove : MonoBehaviour
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
+    public float jumpPower;
+    private Rigidbody rb;
+    bool jump = false;
+
     void Start()
     {
-        
+        rb = GetComponent<Rigidbody>();
     }
 
-    // Update is called once per frame
     void Update()
     {
-        
+        if (Input.GetKeyDown(KeyCode.K))
+        {
+            // ジャンプ
+            Debug.Log("ジャンプ");
+            rb.linearVelocity = Vector3.up * jumpPower;
+            jump = true;
+        }
     }
 }

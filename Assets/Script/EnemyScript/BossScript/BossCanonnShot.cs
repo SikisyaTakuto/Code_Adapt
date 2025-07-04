@@ -1,7 +1,8 @@
 using UnityEngine;
 using System.Collections;
+using UnityEngine.AI;
 
-public class BossCanonnAttack : MonoBehaviour
+public class BossCanonnShot : MonoBehaviour
 {
     // Playerの方向に向く変数
     public Transform target;
@@ -21,12 +22,15 @@ public class BossCanonnAttack : MonoBehaviour
     bool reloading = false;
     // クールタイム
     bool coolTime = false;
+    // 近接攻撃
+    bool meleeAttack = false;
     // EnemyDaedアニメーション
     public BossEnemyDead bossEnemyDead;
 
+    public BossCannonMove bossCannonMove;
+
     void Start()
     {
-        bossEnemyDead = GetComponent<BossEnemyDead>();
         // 初期弾数の保存
         bulletAs = bulletCount;
     }
@@ -50,15 +54,24 @@ public class BossCanonnAttack : MonoBehaviour
     {
         // Playerが範囲内に入ったとき
         if (collider.gameObject.tag == "Player")
-        { 
+        {
+            meleeAttack = true;
+        }
+    }
 
+    public void OnLoseObject(Collider collider)
+    {
+        // Playerが範囲外に出たとき
+        if (collider.gameObject.tag == "Player")
+        {
+            meleeAttack = false;
         }
     }
 
     public void Shot()
     {
-        // Playerが範囲内に入ったとき
-        if (!reloading && !coolTime)
+        // Playerが範囲外にいるとき
+        if (!reloading && !coolTime && !meleeAttack)
         {
             // 弾の発射場所を取得
             Vector3 bulletPosition = bulletPoint.transform.position;
@@ -90,9 +103,12 @@ public class BossCanonnAttack : MonoBehaviour
         }
         else
         {
-            Debug.Log("クールタイム");
             coolTime = true;
+            Debug.Log("クールタイム");
+
+            // クールタイム
             yield return new WaitForSeconds(3);
+
             coolTime = false;
         }
     }

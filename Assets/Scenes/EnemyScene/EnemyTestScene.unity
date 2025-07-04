@@ -214,10 +214,34 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   onTriggerStayEvent:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 6854104890495117270}
+        m_TargetAssemblyTypeName: BossCanonnShot, Assembly-CSharp
+        m_MethodName: OnTriggerEnter
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
   onTriggerExitEvent:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 6854104890495117270}
+        m_TargetAssemblyTypeName: BossCanonnShot, Assembly-CSharp
+        m_MethodName: OnLoseObject
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!136 &75874657
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -2223,6 +2247,7 @@ GameObject:
   - component: {fileID: 34013187}
   - component: {fileID: 34013186}
   - component: {fileID: 919132147614145144}
+  - component: {fileID: 919132147614145145}
   m_Layer: 0
   m_Name: EnemyBossV3
   m_TagString: Untagged
@@ -2243,6 +2268,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   BossDead: 0
+--- !u!114 &919132147614145145
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 919132147614145143}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 581bdc8d309e8944493daa62fc5d6b56, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  jumpPower: 20
 --- !u!4 &919689140049985859
 Transform:
   m_ObjectHideFlags: 0
@@ -6848,7 +6886,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6076900409598475625}
-  - component: {fileID: 6854104890495117269}
   - component: {fileID: 6854104890495117270}
   m_Layer: 0
   m_Name: zyozyonokimyounaboss
@@ -6857,19 +6894,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &6854104890495117269
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6854104890495117267}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 90d31b926ecbc7348a4a42e0c6b74e21, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  BossDead: 0
 --- !u!114 &6854104890495117270
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6888,7 +6912,8 @@ MonoBehaviour:
   taiho: {fileID: 6854104890495117267}
   bulletCount: 100
   Speed: 65
-  bossEnemyDead: {fileID: 0}
+  bossEnemyDead: {fileID: 919132147614145144}
+  bossCannonMove: {fileID: 919132147614145145}
 --- !u!1 &6929554730109693606
 GameObject:
   m_ObjectHideFlags: 0
