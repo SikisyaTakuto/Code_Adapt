@@ -1,16 +1,43 @@
+// PlayerController.cs
 using UnityEngine;
-using UnityEngine.UI; // UI要素を扱うために追加
-using System.Collections.Generic; // Listを使うために追加
+using UnityEngine.UI;
+using System.Collections.Generic;
 using System.Linq; // OrderByを使うために追加
 
 public class PlayerController : MonoBehaviour
 {
-    // 移動速度
-    public float moveSpeed = 15.0f;
-    // ブースト時の速度倍率
-    public float boostMultiplier = 2.0f;
-    // 上昇/下降速度
-    public float verticalSpeed = 10.0f;
+    // --- ベースとなる能力値 (変更不可) ---
+    [Header("Base Stats")]
+    public float baseMoveSpeed = 15.0f;
+    public float baseBoostMultiplier = 2.0f;
+    public float baseVerticalSpeed = 10.0f;
+    public float baseEnergyConsumptionRate = 15.0f;
+    public float baseEnergyRecoveryRate = 10.0f;
+    public float baseMeleeAttackRange = 2.0f;
+    public float baseMeleeDamage = 10.0f; // 基本の近接ダメージ
+    public float baseBeamDamage = 50.0f; // 基本のビームダメージ
+    public float baseBitAttackEnergyCost = 20.0f; // 基本のビット攻撃エネルギー消費
+    public float baseBeamAttackEnergyCost = 30.0f; // ★追加：基本のビーム攻撃エネルギー消費
+
+    // --- 現在の能力値 (ArmorControllerによって変更される) ---
+    [Header("Current Stats (Modified by Armor)")]
+    public float moveSpeed;
+    public float boostMultiplier;
+    public float verticalSpeed;
+    public float energyConsumptionRate;
+    public float energyRecoveryRate;
+    public float meleeAttackRange;
+    public float meleeDamage;
+    public float beamDamage;
+    public float bitAttackEnergyCost;
+    public float beamAttackEnergyCost; // ★追加：現在のビーム攻撃エネルギー消費
+
+    // 飛行機能の有効/無効
+    public bool canFly = true;
+    // ソードビット攻撃の有効/無効
+    public bool canUseSwordBitAttack = false;
+
+
     // 重力の強さ
     public float gravity = -9.81f;
     // 地面判定のレイヤーマスク
@@ -19,8 +46,6 @@ public class PlayerController : MonoBehaviour
     // --- エネルギーゲージ関連の変数 ---
     public float maxEnergy = 100.0f;
     public float currentEnergy;
-    public float energyConsumptionRate = 15.0f;
-    public float energyRecoveryRate = 10.0f;
     public float recoveryDelay = 1.0f;
     private float lastEnergyConsumptionTime;
 
@@ -39,7 +64,6 @@ public class PlayerController : MonoBehaviour
     public float bitLaunchHeight = 5.0f; // ビットがプレイヤーの後ろから上昇する高さ
     public float bitLaunchDuration = 0.5f; // ビットが上昇するまでの時間
     public float bitAttackSpeed = 20.0f; // ビットが敵に向かって飛ぶ速度
-    public float bitAttackEnergyCost = 20.0f; // ビット攻撃1回あたりのエネルギー消費 (変数名を変更)
     public float lockOnRange = 30.0f; // 敵をロックオンできる最大距離
     public LayerMask enemyLayer; // 敵のレイヤー
     public int maxLockedEnemies = 6; // ロックできる敵の最大数
@@ -55,7 +79,6 @@ public class PlayerController : MonoBehaviour
 
     // --- 近接攻撃関連の変数 ---
     [Header("Melee Attack Settings")]
-    public float meleeAttackRange = 2.0f; // 近接攻撃の有効範囲
     public float meleeAttackRadius = 1.0f; // 近接攻撃の有効半径 (SphereCast用)
     public float meleeAttackCooldown = 0.5f; // 近接攻撃のクールダウン時間
     private float lastMeleeAttackTime = -Mathf.Infinity; // 最後に近接攻撃をした時間
@@ -67,12 +90,17 @@ public class PlayerController : MonoBehaviour
     // --- ビーム攻撃関連の変数 ---
     [Header("Beam Attack Settings")]
     public float beamAttackRange = 50.0f; // ビームの最大射程距離
-    public float beamDamage = 50.0f; // ビームのダメージ
-    public float beamEnergyCost = 10.0f; // ビーム攻撃1回あたりのエネルギー消費
     public float beamCooldown = 0.5f; // ビーム攻撃のクールダウン時間
     private float lastBeamAttackTime = -Mathf.Infinity; // 最後にビーム攻撃をした時間
     public GameObject beamEffectPrefab; // ビームのエフェクトPrefab (任意)
     public Transform beamSpawnPoint; // ビームの開始位置 (例: プレイヤーの目の前など)
+
+    // --- 装備中の武器Prefab ---
+    private GameObject currentPrimaryWeaponInstance;
+    private GameObject currentSecondaryWeaponInstance;
+    public Transform primaryWeaponAttachPoint; // 主武器を取り付けるTransform
+    public Transform secondaryWeaponAttachPoint; // 副武器を取り付けるTransform
+
 
     void Start()
     {
@@ -100,6 +128,20 @@ public class PlayerController : MonoBehaviour
         {
             Debug.LogWarning("PlayerController: Beam Spawn Pointが設定されていません。Hierarchyに空のゲームオブジェクトを作成し、このフィールドにドラッグ＆ドロップしてください。");
         }
+
+        // 初期能力値を現在の能力値に設定
+        moveSpeed = baseMoveSpeed;
+        boostMultiplier = baseBoostMultiplier;
+        verticalSpeed = baseVerticalSpeed;
+        energyConsumptionRate = baseEnergyConsumptionRate;
+        energyRecoveryRate = baseEnergyRecoveryRate;
+        meleeAttackRange = baseMeleeAttackRange;
+        meleeDamage = baseMeleeDamage;
+        beamDamage = baseBeamDamage;
+        bitAttackEnergyCost = baseBitAttackEnergyCost;
+        beamAttackEnergyCost = baseBeamAttackEnergyCost; // ★追加：初期値を設定
+
+        // PlayerArmorControllerから初期化されるため、ここではデフォルトの武器は装備しない
     }
 
     void Update()
@@ -123,8 +165,8 @@ public class PlayerController : MonoBehaviour
         {
             PerformMeleeAttack();
         }
-        // ホイール押込みでビット攻撃
-        else if (Input.GetMouseButtonDown(2)) // 2はホイール押込み
+        // ホイール押込みでビット攻撃 (バランスアーマーのみ)
+        else if (Input.GetMouseButtonDown(2) && canUseSwordBitAttack) // 2はホイール押込み
         {
             PerformBitAttack();
         }
@@ -173,22 +215,38 @@ public class PlayerController : MonoBehaviour
         }
         moveDirection *= currentSpeed;
 
-        if (Input.GetKey(KeyCode.Space) && currentEnergy > 0)
+        // 飛行機能が有効な場合のみスペース/Altでの上昇下降を許可
+        if (canFly)
         {
-            velocity.y = verticalSpeed;
-            currentEnergy -= energyConsumptionRate * Time.deltaTime;
-            isConsumingEnergy = true;
+            if (Input.GetKey(KeyCode.Space) && currentEnergy > 0)
+            {
+                velocity.y = verticalSpeed;
+                currentEnergy -= energyConsumptionRate * Time.deltaTime;
+                isConsumingEnergy = true;
+            }
+            else if ((Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt)) && currentEnergy > 0)
+            {
+                velocity.y = -verticalSpeed;
+                currentEnergy -= energyConsumptionRate * Time.deltaTime;
+                isConsumingEnergy = true;
+            }
+            else if (!isGrounded)
+            {
+                velocity.y += gravity * Time.deltaTime;
+            }
         }
-        else if ((Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt)) && currentEnergy > 0)
+        else // 飛行機能が無効な場合は重力の影響を常に受ける
         {
-            velocity.y = -verticalSpeed;
-            currentEnergy -= energyConsumptionRate * Time.deltaTime;
-            isConsumingEnergy = true;
+            if (!isGrounded)
+            {
+                velocity.y += gravity * Time.deltaTime;
+            }
+            else
+            {
+                velocity.y = -2f; // 地面に着地したらY速度をリセット
+            }
         }
-        else if (!isGrounded)
-        {
-            velocity.y += gravity * Time.deltaTime;
-        }
+
 
         if (currentEnergy <= 0)
         {
@@ -239,7 +297,7 @@ public class PlayerController : MonoBehaviour
 
         // 距離が近い順にソートして、maxLockedEnemiesの数までロックオン
         var sortedEnemies = hitColliders.OrderBy(col => Vector3.Distance(transform.position, col.transform.position))
-                                        .Take(maxLockedEnemies);
+                                         .Take(maxLockedEnemies);
 
         foreach (Collider col in sortedEnemies)
         {
@@ -343,8 +401,8 @@ public class PlayerController : MonoBehaviour
 
             if (enemyHealth != null)
             {
-                // コンボ段階によってダメージを変化させる例
-                int damage = 10 + (currentMeleeCombo - 1) * 5; // 1段階目10、2段階目15...
+                // コンボ段階と現在のmeleeDamageに基づいてダメージを計算
+                float damage = meleeDamage + (currentMeleeCombo - 1) * (meleeDamage * 0.5f); // 例: ベースダメージにコンボボーナスを加算
                 enemyHealth.TakeDamage(damage);
                 Debug.Log($"{hitCollider.name} に {damage} ダメージを与えました。(コンボ {currentMeleeCombo})");
             }
@@ -357,9 +415,9 @@ public class PlayerController : MonoBehaviour
     void PerformBeamAttack()
     {
         // クールダウン中、またはエネルギー不足、または既に攻撃中の場合は実行しない
-        if (Time.time < lastBeamAttackTime + beamCooldown || currentEnergy < beamEnergyCost || isAttacking)
+        if (Time.time < lastBeamAttackTime + beamCooldown || currentEnergy < beamAttackEnergyCost || isAttacking)
         {
-            if (currentEnergy < beamEnergyCost)
+            if (currentEnergy < beamAttackEnergyCost)
             {
                 Debug.Log("Not enough energy for Beam Attack!");
             }
@@ -372,7 +430,7 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        currentEnergy -= beamEnergyCost;
+        currentEnergy -= beamAttackEnergyCost;
         UpdateEnergyUI();
         lastBeamAttackTime = Time.time;
 
@@ -435,8 +493,8 @@ public class PlayerController : MonoBehaviour
     void HandleAttackState()
     {
         // 攻撃アニメーションやエフェクトの再生中にプレイヤーの動きを固定
-        // ビット攻撃中はロックオンした敵に向ける
-        if (Input.GetMouseButtonDown(2) && lockedEnemies.Count > 0 && lockedEnemies[0] != null) // ビット攻撃中の場合
+        // ビット攻撃中はロックオンした敵に向ける (bitAttackEnergyCostがベースから変更されている場合はビット攻撃とみなす)
+        if (canUseSwordBitAttack && Input.GetMouseButtonDown(2) && lockedEnemies.Count > 0 && lockedEnemies[0] != null) // ビット攻撃中の場合
         {
             Vector3 lookAtTarget = lockedEnemies[0].position;
             lookAtTarget.y = transform.position.y;
@@ -490,6 +548,35 @@ public class PlayerController : MonoBehaviour
         }
         yield return null; // コルーチンとして機能させるために最低1フレーム待つ
     }
+
+    /// <summary>
+    /// 武器を装備する
+    /// </summary>
+    public void EquipWeapons(WeaponData primaryWeaponData, WeaponData secondaryWeaponData)
+    {
+        // 既存の武器を破棄
+        if (currentPrimaryWeaponInstance != null) Destroy(currentPrimaryWeaponInstance);
+        if (currentSecondaryWeaponInstance != null) Destroy(currentSecondaryWeaponInstance);
+
+        // 主武器の装備
+        if (primaryWeaponData != null && primaryWeaponData.weaponPrefab != null && primaryWeaponAttachPoint != null)
+        {
+            currentPrimaryWeaponInstance = Instantiate(primaryWeaponData.weaponPrefab, primaryWeaponAttachPoint);
+            currentPrimaryWeaponInstance.transform.localPosition = Vector3.zero;
+            currentPrimaryWeaponInstance.transform.localRotation = Quaternion.identity;
+            Debug.Log($"Primary Weapon Equipped: {primaryWeaponData.weaponName}");
+        }
+
+        // 副武器の装備
+        if (secondaryWeaponData != null && secondaryWeaponData.weaponPrefab != null && secondaryWeaponAttachPoint != null)
+        {
+            currentSecondaryWeaponInstance = Instantiate(secondaryWeaponData.weaponPrefab, secondaryWeaponAttachPoint);
+            currentSecondaryWeaponInstance.transform.localPosition = Vector3.zero;
+            currentSecondaryWeaponInstance.transform.localRotation = Quaternion.identity;
+            Debug.Log($"Secondary Weapon Equipped: {secondaryWeaponData.weaponName}");
+        }
+    }
+
 
     // デバッグ表示用 (Gizmos)
     void OnDrawGizmosSelected()
