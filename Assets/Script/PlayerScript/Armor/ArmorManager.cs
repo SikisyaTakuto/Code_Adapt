@@ -7,9 +7,10 @@ public class ArmorManager : MonoBehaviour
     public static ArmorManager Instance { get; private set; }
 
     // 全ての利用可能なアーマーデータ (Inspectorで設定)
+    [Header("全てのアーマーデータ")]
     public List<ArmorData> allAvailableArmors;
 
-    // アーマー選択画面で選択されたアーマー
+    // アーマー選択画面で選択されたアーマー (最大3つ)
     [HideInInspector] // Inspectorには表示しない
     public List<ArmorData> selectedArmors = new List<ArmorData>();
 
@@ -34,5 +35,13 @@ public class ArmorManager : MonoBehaviour
         {
             Debug.Log($"- {armor.name}");
         }
+    }
+
+    /// <summary>
+    /// 選択されたアーマーリストをクリアします。
+    /// </summary>
+    public void ClearSelectedArmors()
+    {
+        selectedArmors.Clear();
     }
 }
