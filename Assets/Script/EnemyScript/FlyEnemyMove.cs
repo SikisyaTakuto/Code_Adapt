@@ -12,7 +12,7 @@ public class FlyEnemyMove : MonoBehaviour
 
     void Start()
     {
-        enemyDaed = GetComponent<EnemyDaed>();
+
     }
 
     void Update()
@@ -56,7 +56,7 @@ public class FlyEnemyMove : MonoBehaviour
         if (collider.gameObject.tag == "Player")
         {
             // 動き始める
-            cartSpeed = 2000f;
+            cartSpeed = 1000f;
         }
     }
 

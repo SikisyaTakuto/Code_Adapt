@@ -242,7 +242,7 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
-      - m_Target: {fileID: 7971555027271374631}
+      - m_Target: {fileID: 0}
         m_TargetAssemblyTypeName: ShotBullet, Assembly-CSharp
         m_MethodName: OnTriggerEnter
         m_Mode: 0
@@ -254,7 +254,7 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
-      - m_Target: {fileID: 1786890587297027791}
+      - m_Target: {fileID: 0}
         m_TargetAssemblyTypeName: FlyEnemyLooks, Assembly-CSharp
         m_MethodName: OnDetectObject
         m_Mode: 0
@@ -281,7 +281,7 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
-      - m_Target: {fileID: 1786890587297027791}
+      - m_Target: {fileID: 0}
         m_TargetAssemblyTypeName: FlyEnemyLooks, Assembly-CSharp
         m_MethodName: OnTriggerExit
         m_Mode: 0
@@ -577,66 +577,8 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: -8679921383154817045, guid: 8ac0fffb2ff12d14c8e5ad12aa25542e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1234489890036450873}
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 8ac0fffb2ff12d14c8e5ad12aa25542e, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1786890587297027791}
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 8ac0fffb2ff12d14c8e5ad12aa25542e, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 7971555027271374631}
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 8ac0fffb2ff12d14c8e5ad12aa25542e, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1276662442199421741}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 8ac0fffb2ff12d14c8e5ad12aa25542e, type: 3}
---- !u!1 &8512143542106582616 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 8ac0fffb2ff12d14c8e5ad12aa25542e, type: 3}
-  m_PrefabInstance: {fileID: 8854178719009919753}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &1786890587297027791
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8512143542106582616}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8fe420116018c254b8efbd907d7e423a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  target: {fileID: 0}
-  enemyDaed: {fileID: 0}
---- !u!114 &7971555027271374631
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8512143542106582616}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fa5784161e5597040858b390ae8b40b3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  bulletPoint: {fileID: 5962866093831206569}
-  bullet: {fileID: 1877806789679844970, guid: db7f14d806dc1ae49a069970642af97f, type: 3}
-  bulletCount: 20
-  Speed: 50
-  enemyDaed: {fileID: 0}
---- !u!114 &1276662442199421741
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8512143542106582616}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c5eaa66908f46ed4da1b8c717a2a55e7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  Dead: 0
 --- !u!4 &9037288349602526434 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 8ac0fffb2ff12d14c8e5ad12aa25542e, type: 3}

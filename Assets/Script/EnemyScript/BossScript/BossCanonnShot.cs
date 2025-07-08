@@ -1,115 +1,115 @@
-using UnityEngine;
 using System.Collections;
-using UnityEngine.AI;
+using UnityEngine;
 
-public class BossCanonnShot : MonoBehaviour
+public class BossShotBullet : MonoBehaviour
 {
-    // Playerの方向に向く変数
-    public Transform target;
-    // 弾の発射場所
+    // 弾の発射位置
     [SerializeField] private GameObject bulletPoint;
-    // 弾
+    // 弾のPrefab
     [SerializeField] private GameObject bullet;
-    // 大砲
-    [SerializeField] private GameObject taiho;
-    // 残弾数
-    public float bulletCount;
-    // 初期弾数
-    private float bulletAs;
-    // 弾の速さ
-    public float Speed;
-    // リロード
-    bool reloading = false;
-    // クールタイム
-    bool coolTime = false;
-    // 近接攻撃
-    bool meleeAttack = false;
-    // EnemyDaedアニメーション
-    public BossEnemyDead bossEnemyDead;
+    // マガジンの弾数
+    [SerializeField] private float bulletCount = 20f;
+    // 弾の発射間隔
+    [SerializeField] private float shotInterval = 1.5f;
+    // リロード時間
+    [SerializeField] private float reloadTime = 3.0f;
+    // 弾速
+    [SerializeField] private float speed = 20f;
+    // 撃ち始めるまでの待機時間
+    [SerializeField] private float shootingStartDelay = 1.0f;
+    // 敵の死亡状態
+    public BossEnemyDead enemyDaed;
 
-    public BossCannonMove bossCannonMove;
+    private float initialBulletCount;
+    private bool isPlayerInRange = false;
+    private bool isShooting = false;
+    private bool reloading = false;
+    private Transform targetPlayer;
 
     void Start()
     {
-        // 初期弾数の保存
-        bulletAs = bulletCount;
+        // 初期マガジンの弾数
+        initialBulletCount = bulletCount;
     }
 
-    void Update()
+    public void OnTriggerEnter(Collider other)
     {
-        Vector3 targetPos = target.position;
-
-        // 大砲がPlayerの方向に向く
-        taiho.transform.LookAt(targetPos);
-
-        if (!bossEnemyDead.BossDead)
+        if (other.CompareTag("Player") && !enemyDaed.BossDead)
         {
-            // 射撃
-            Shot();
+            isPlayerInRange = true;
+            targetPlayer = other.transform;
 
+            if (!isShooting)
+            {
+                StartCoroutine(StartShootingAfterDelay());
+            }
         }
     }
 
-    public void OnTriggerEnter(Collider collider)
+    public void OnTriggerExit(Collider other)
     {
-        // Playerが範囲内に入ったとき
-        if (collider.gameObject.tag == "Player")
+        if (other.CompareTag("Player"))
         {
-            meleeAttack = true;
+            isPlayerInRange = false;
         }
     }
 
-    public void OnLoseObject(Collider collider)
+    private IEnumerator StartShootingAfterDelay()
     {
-        // Playerが範囲外に出たとき
-        if (collider.gameObject.tag == "Player")
+        isShooting = true;
+        yield return new WaitForSeconds(shootingStartDelay);
+
+        // 範囲内にまだいて、敵が死んでいなければ射撃開始
+        if (isPlayerInRange && !enemyDaed.BossDead)
         {
-            meleeAttack = false;
-        }
-    }
-
-    public void Shot()
-    {
-        // Playerが範囲外にいるとき
-        if (!reloading && !coolTime && !meleeAttack)
-        {
-            // 弾の発射場所を取得
-            Vector3 bulletPosition = bulletPoint.transform.position;
-            // 弾のPrefabを作成
-            GameObject newBullet = Instantiate(bullet, bulletPosition, this.gameObject.transform.rotation);
-            // 弾の発射軸を取得（Z軸）
-            Vector3 direction = newBullet.transform.forward;
-            // 弾を発射（Z軸）
-            newBullet.GetComponent<Rigidbody>().AddForce(direction * Speed, ForceMode.Impulse);
-            // 残弾数を減らす
-            bulletCount = bulletCount - 1;
-            // リロード
-            StartCoroutine(ShotTime());
-        }
-    }
-
-    private IEnumerator ShotTime()
-    {
-        if (bulletCount <= 0)
-        {
-            reloading = true;
-            Debug.Log("リロード");
-
-            // リロード時間
-            yield return new WaitForSeconds(10);
-
-            bulletCount = bulletAs;
-            reloading = false;
+            StartCoroutine(ShootingLoop());
         }
         else
         {
-            coolTime = true;
-            Debug.Log("クールタイム");
-
-            // クールタイム
-            yield return new WaitForSeconds(3);
-
-            coolTime = false;
+            isShooting = false; // 撃つ必要がなくなった場合
         }
+    }
+
+    private IEnumerator ShootingLoop()
+    {
+        isShooting = true;
+
+        while (isPlayerInRange && !enemyDaed.BossDead)
+        {
+            if (bulletCount > 0 && !reloading)
+            {
+                ShootAtPlayer();
+                bulletCount--;
+            }
+            else if (!reloading)
+            {
+                yield return StartCoroutine(Reload());
+            }
+
+            yield return new WaitForSeconds(shotInterval);
+        }
+
+        isShooting = false;
+    }
+
+    private void ShootAtPlayer()
+    {
+        if (targetPlayer == null) return;
+
+        Vector3 bulletPosition = bulletPoint.transform.position;
+        Vector3 direction = (targetPlayer.position - bulletPosition).normalized;
+
+        GameObject newBullet = Instantiate(bullet, bulletPosition, Quaternion.LookRotation(direction));
+        newBullet.GetComponent<Rigidbody>().AddForce(direction * speed, ForceMode.Impulse);
+    }
+
+    private IEnumerator Reload()
+    {
+        reloading = true;
+        Debug.Log("リロード中...");
+        yield return new WaitForSeconds(reloadTime);
+        bulletCount = initialBulletCount;
+        reloading = false;
+        Debug.Log("リロード完了");
     }
 }

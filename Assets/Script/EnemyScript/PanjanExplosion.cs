@@ -12,7 +12,7 @@ public class PanjanExplosion : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        enemyDaed = GetComponent<EnemyDaed>();
+
     }
 
     // Update is called once per frame
@@ -36,5 +36,6 @@ public class PanjanExplosion : MonoBehaviour
     private IEnumerator ExplosDamage()
     {
         yield return new WaitForSeconds(0);
+        Destroy(gameObject);
     }
 }

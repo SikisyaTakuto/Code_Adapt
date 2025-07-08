@@ -30,7 +30,6 @@ public class CannonEnemyMove : MonoBehaviour
         // Å‰‚Ì–Ú“I’n
         navMeshAgent.SetDestination(waypointArray[currentWaypointIndex].position);
 
-        enemyDaed = GetComponent<EnemyDaed>();
     }
 
     void Update()

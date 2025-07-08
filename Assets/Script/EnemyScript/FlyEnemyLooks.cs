@@ -5,22 +5,21 @@ public class FlyEnemyLooks : MonoBehaviour
     // Playerの方向に向く変数
     public Transform target;
 
+    // 回転速度
+    public float rotationSpeed;
+
     // 死亡した場合のスクリプト
     public EnemyDaed enemyDaed;
 
     void Start()
     {
-        enemyDaed = GetComponent<EnemyDaed>();
+
     }
 
     // Update is called once per frame
     void Update()
     {
-        // 変数 targetPos を作成してターゲットオブジェクトの座標を格納
-        Vector3 targetPos = target.position;
-        // 自分自身のY座標を変数 target のY座標に格納
-        //（ターゲットオブジェクトのX、Z座標のみ参照）
-        targetPos.y = transform.position.y;
+        
     }
 
     public void OnDetectObject(Collider collider)
@@ -29,8 +28,12 @@ public class FlyEnemyLooks : MonoBehaviour
         if (collider.gameObject.tag == "Player" && !enemyDaed.Dead)
         {
             // Playerの方向に向く
-            transform.LookAt(target);
-
+            // 対象物と自分自身の座標からベクトルを算出して回転値を取得
+            Vector3 vector3 = target.transform.position - this.transform.position;
+            // 回転値を取得
+            Quaternion quaternion = Quaternion.LookRotation(vector3);
+            // 取得した回転値をこのゲームオブジェクトのrotationに代入
+            this.transform.rotation = Quaternion.Slerp(this.transform.rotation, quaternion, rotationSpeed);
         }
     }
 

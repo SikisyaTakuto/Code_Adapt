@@ -17,9 +17,6 @@ public class PanjanEnemyMove : MonoBehaviour
     {
         navMeshAgent = this.gameObject.GetComponent<NavMeshAgent>();
 
-        enemyDaed = GetComponent<EnemyDaed>();
-
-        explosion = GetComponent<PanjanExplosion>();
     }
 
     void Update()
