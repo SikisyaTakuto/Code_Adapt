@@ -355,8 +355,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 30270151}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -1, z: -0, w: 0}
-  m_LocalPosition: {x: -0.251, y: 0.714, z: 0.533}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.32, y: 0.714, z: 1.42}
   m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -3104,7 +3104,7 @@ Transform:
   m_GameObject: {fileID: 200155563}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -1, z: -0, w: 0}
-  m_LocalPosition: {x: 0.323, y: 0.714, z: 0.533}
+  m_LocalPosition: {x: 0.323, y: 0.714, z: 0.97}
   m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -9941,7 +9941,7 @@ GameObject:
   m_Component:
   - component: {fileID: 672198744}
   m_Layer: 0
-  m_Name: BeamPoint (1)
+  m_Name: BeamSaberPoit
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -44389,10 +44389,17 @@ MonoBehaviour:
   meleeAttackCooldown: 0.5
   maxMeleeCombo: 5
   comboResetTime: 1
-  beamAttackRange: 30
+  autoLockOnMeleeRange: 5
+  preferLockedMeleeTarget: 1
+  meleeDashSpeed: 20
+  meleeDashDistance: 2
+  meleeDashDuration: 0.1
+  beamAttackRange: 2.22
   beamCooldown: 0.5
   beamEffectPrefab: {fileID: 216633344060643235, guid: 56270433300f33343afbd555b1604b35, type: 3}
   beamSpawnPoint: {fileID: 30270152}
+  autoLockOnRange: 40
+  preferLockedTarget: 1
   primaryWeaponAttachPoint: {fileID: 30270152}
   secondaryWeaponAttachPoint: {fileID: 672198744}
 --- !u!143 &7833292609748845650

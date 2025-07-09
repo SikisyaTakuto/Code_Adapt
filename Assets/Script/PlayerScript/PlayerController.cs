@@ -76,7 +76,6 @@ public class PlayerController : MonoBehaviour
     // --- ビットのスポーン位置を複数設定 ---
     public List<Transform> bitSpawnPoints = new List<Transform>();
     public float bitArcHeight = 2.0f; // 上昇軌道のアーチの高さ
-
     // --- 近接攻撃関連の変数 ---
     [Header("Melee Attack Settings")]
     public float meleeAttackRadius = 1.0f; // 近接攻撃の有効半径 (SphereCast用)
@@ -86,6 +85,15 @@ public class PlayerController : MonoBehaviour
     public int maxMeleeCombo = 5; // 近接攻撃の最大コンボ段階
     public float comboResetTime = 1.0f; // コンボがリセットされるまでの時間
     private float lastMeleeInputTime; // 最後に近接攻撃入力があった時間
+    public float autoLockOnMeleeRange = 5.0f; // 近接攻撃の自動ロックオン範囲
+    public bool preferLockedMeleeTarget = true; // 近接攻撃時にロックオン可能な敵を優先するか
+    private Transform currentLockedMeleeTarget; // 現在ロックオンしている近接攻撃ターゲット
+
+    // ★追加: 近接攻撃時の突進速度と突進距離
+    public float meleeDashSpeed = 20.0f; // 近接攻撃時の突進速度
+    public float meleeDashDistance = 2.0f; // 近接攻撃時の突進距離 (meleeAttackRangeと同じか少し長めに設定すると良い)
+    public float meleeDashDuration = 0.1f; // 近接攻撃時の突進にかかる時間
+
 
     // --- ビーム攻撃関連の変数 ---
     [Header("Beam Attack Settings")]
@@ -94,6 +102,13 @@ public class PlayerController : MonoBehaviour
     private float lastBeamAttackTime = -Mathf.Infinity; // 最後にビーム攻撃をした時間
     public GameObject beamEffectPrefab; // ビームのエフェクトPrefab (任意)
     public Transform beamSpawnPoint; // ビームの開始位置 (例: プレイヤーの目の前など)
+
+    //自動ロックオンビーム関連の変数
+    [Header("Auto Lock-on Beam Settings")]
+    public float autoLockOnRange = 40.0f; // 自動ロックオンの最大距離
+    public bool preferLockedTarget = true; // ロックオン可能な敵がいる場合、そちらを優先するか
+    private Transform currentLockedBeamTarget; // 現在ロックオンしているビームターゲット
+
 
     // --- 装備中の武器Prefab ---
     private GameObject currentPrimaryWeaponInstance;
@@ -173,7 +188,7 @@ public class PlayerController : MonoBehaviour
         // 右クリックでビーム攻撃
         else if (Input.GetMouseButtonDown(1)) // 1は右クリック
         {
-            PerformBeamAttack();
+            PerformBeamAttack(); // ここで自動ロックオンのロジックを呼び出す
         }
 
         // コンボタイマーのリセット
@@ -287,7 +302,78 @@ public class PlayerController : MonoBehaviour
     }
 
     /// <summary>
-    /// 周囲の敵をロックオンする
+    /// 周囲の敵をロックオンする (ビーム用)
+    /// </summary>
+    /// <returns>ロックオンした敵のTransform。見つからなければnull。</returns>
+    Transform FindBeamTarget()
+    {
+        // プレイヤーのTransformのpositionを基準にSphereCast
+        Collider[] hitColliders = Physics.OverlapSphere(transform.position, autoLockOnRange, enemyLayer);
+
+        if (hitColliders.Length == 0)
+        {
+            return null; // 敵がいない
+        }
+
+        // 最も近い敵を見つける
+        Transform closestEnemy = null;
+        float minDistance = Mathf.Infinity;
+
+        foreach (Collider col in hitColliders)
+        {
+            if (col.transform != transform) // プレイヤー自身を除外
+            {
+                float distance = Vector3.Distance(transform.position, col.transform.position);
+                // カメラの視界に入っているか、または非常に近い敵を優先するなどのロジックを追加可能
+                // 現状は一番近い敵をターゲットにする
+                if (distance < minDistance)
+                {
+                    minDistance = distance;
+                    closestEnemy = col.transform;
+                }
+            }
+        }
+        return closestEnemy;
+    }
+
+    /// <summary>
+    /// 周囲の敵をロックオンする (近接攻撃用)
+    /// </summary>
+    /// <returns>ロックオンした敵のTransform。見つからなければnull。</returns>
+    Transform FindMeleeTarget()
+    {
+        // プレイヤーのTransformのpositionを基準にOverlapSphere
+        Collider[] hitColliders = Physics.OverlapSphere(transform.position, autoLockOnMeleeRange, enemyLayer);
+
+        if (hitColliders.Length == 0)
+        {
+            return null; // 敵がいない
+        }
+
+        // 最も近い敵を見つける
+        Transform closestEnemy = null;
+        float minDistance = Mathf.Infinity;
+
+        foreach (Collider col in hitColliders)
+        {
+            if (col.transform != transform) // プレイヤー自身を除外
+            {
+                float distance = Vector3.Distance(transform.position, col.transform.position);
+                // 近接攻撃なので、単に一番近い敵で良いことが多いが、
+                // 将来的にはプレイヤーの正面方向の敵を優先するなど、より複雑なロジックも検討可能
+                if (distance < minDistance)
+                {
+                    minDistance = distance;
+                    closestEnemy = col.transform;
+                }
+            }
+        }
+        return closestEnemy;
+    }
+
+
+    /// <summary>
+    /// 周囲の敵をロックオンする (ビット攻撃用)
     /// </summary>
     void LockOnEnemies()
     {
@@ -297,7 +383,7 @@ public class PlayerController : MonoBehaviour
 
         // 距離が近い順にソートして、maxLockedEnemiesの数までロックオン
         var sortedEnemies = hitColliders.OrderBy(col => Vector3.Distance(transform.position, col.transform.position))
-                                         .Take(maxLockedEnemies);
+                                        .Take(maxLockedEnemies);
 
         foreach (Collider col in sortedEnemies)
         {
@@ -385,6 +471,35 @@ public class PlayerController : MonoBehaviour
 
         isAttacking = true; // 攻撃中フラグを立てる
         attackTimer = 0.0f; // タイマーをリセット
+        attackFixedDuration = 0.3f; // 近接攻撃の固定時間を短めに設定 (アニメーションに合わせて調整)
+
+        currentLockedMeleeTarget = null; // ロックオンターゲットをリセット
+        if (preferLockedMeleeTarget)
+        {
+            currentLockedMeleeTarget = FindMeleeTarget();
+        }
+
+        // ★修正点1: ロックオンターゲットがいる場合、そちらの方を向く処理を優先
+        if (currentLockedMeleeTarget != null)
+        {
+            Vector3 lookAtTarget = currentLockedMeleeTarget.position;
+            lookAtTarget.y = transform.position.y; // Y軸は固定
+            transform.LookAt(lookAtTarget);
+            Debug.Log($"近接攻撃: ロックオンターゲット ({currentLockedMeleeTarget.name}) へ向かって攻撃！");
+
+            // ★追加: 敵に向かって突進するコルーチンを開始
+            StartCoroutine(MeleeDashToTarget(currentLockedMeleeTarget.position));
+        }
+        else
+        {
+            // ロックオンターゲットがいない場合、カメラの向きを維持
+            if (tpsCamController != null)
+            {
+                tpsCamController.RotatePlayerToCameraDirection();
+            }
+            // ★追加: ターゲットがいない場合、現在向いている方向へ短く突進
+            StartCoroutine(MeleeDashInCurrentDirection());
+        }
 
         // 近接攻撃の範囲内の敵を検出
         Vector3 attackOrigin = transform.position + transform.forward * meleeAttackRange * 0.5f; // プレイヤーの前方少し離れた位置から
@@ -392,7 +507,6 @@ public class PlayerController : MonoBehaviour
 
         foreach (Collider hitCollider in hitColliders)
         {
-            // 敵のHealthコンポーネントを探してダメージを与える
             EnemyHealth enemyHealth = hitCollider.GetComponent<EnemyHealth>();
             if (enemyHealth == null)
             {
@@ -401,7 +515,6 @@ public class PlayerController : MonoBehaviour
 
             if (enemyHealth != null)
             {
-                // コンボ段階と現在のmeleeDamageに基づいてダメージを計算
                 float damage = meleeDamage + (currentMeleeCombo - 1) * (meleeDamage * 0.5f); // 例: ベースダメージにコンボボーナスを加算
                 enemyHealth.TakeDamage(damage);
                 Debug.Log($"{hitCollider.name} に {damage} ダメージを与えました。(コンボ {currentMeleeCombo})");
@@ -411,6 +524,7 @@ public class PlayerController : MonoBehaviour
 
     /// <summary>
     /// ビーム攻撃を実行する
+    /// ロックオン可能な敵がいればそちらを優先し、なければカメラの方向へ発射
     /// </summary>
     void PerformBeamAttack()
     {
@@ -426,7 +540,13 @@ public class PlayerController : MonoBehaviour
 
         if (beamSpawnPoint == null)
         {
-            Debug.LogWarning("Beam Spawn Point is not assigned. Cannot perform beam attack.");
+            Debug.LogWarning("Beam Spawn Point is not assigned. Cannot perform beam attack without a valid origin for effect.");
+            return;
+        }
+
+        if (tpsCamController == null)
+        {
+            Debug.LogWarning("TPSCameraController is not assigned. Cannot perform camera-aligned beam attack.");
             return;
         }
 
@@ -436,21 +556,50 @@ public class PlayerController : MonoBehaviour
 
         Debug.Log("ビーム攻撃！");
 
-        // プレイヤーの向きをカメラの水平方向に合わせる
-        if (tpsCamController != null)
+        // ロックオンターゲットを検索
+        currentLockedBeamTarget = null; // ロックオンターゲットをリセット
+        if (preferLockedTarget)
         {
-            tpsCamController.RotatePlayerToCameraDirection();
+            currentLockedBeamTarget = FindBeamTarget();
         }
 
-        // ビームのRaycast開始位置と方向を決定
-        Vector3 rayOrigin = beamSpawnPoint.position;
-        Vector3 rayDirection = tpsCamController != null ? tpsCamController.transform.forward : transform.forward;
+        Vector3 rayOrigin;
+        Vector3 rayDirection;
 
+        if (currentLockedBeamTarget != null)
+        {
+            // ロックオンターゲットがいる場合、ターゲットの方向へビームを飛ばす
+            // プレイヤーの向きをターゲットの水平方向に向ける
+            Vector3 targetFlatPos = currentLockedBeamTarget.position;
+            targetFlatPos.y = transform.position.y;
+            transform.LookAt(targetFlatPos);
+
+            // beamSpawnPoint からターゲット方向へのRayを設定
+            rayOrigin = beamSpawnPoint.position;
+            rayDirection = (currentLockedBeamTarget.position - beamSpawnPoint.position).normalized;
+
+            Debug.Log($"ビーム: ロックオンターゲット ({currentLockedBeamTarget.name}) へ発射！");
+        }
+        else
+        {
+            // ロックオンターゲットがいない場合、カメラの方向へビームを飛ばす（既存の動作）
+            // プレイヤーの向きをカメラの水平方向に合わせる
+            tpsCamController.RotatePlayerToCameraDirection();
+
+            // カメラからRayを取得し、そのRayの方向でRaycastを行う
+            Ray cameraRay = tpsCamController.GetCameraRay();
+            rayOrigin = cameraRay.origin;
+            rayDirection = cameraRay.direction;
+
+            Debug.Log("ビーム: カメラの方向へ発射！");
+        }
+
+        GameObject beamInstance = null; // ビームエフェクトのインスタンスを保持する変数
         RaycastHit hit;
+
         // Raycastで敵を検出
         if (Physics.Raycast(rayOrigin, rayDirection, out hit, beamAttackRange, enemyLayer))
         {
-            // ヒットした敵にダメージ
             EnemyHealth enemyHealth = hit.collider.GetComponent<EnemyHealth>();
             if (enemyHealth == null)
             {
@@ -463,27 +612,30 @@ public class PlayerController : MonoBehaviour
                 Debug.Log($"{hit.collider.name} にビームで {beamDamage} ダメージを与えました。");
             }
 
-            // ヒット位置にビームエフェクトを生成 (もしあれば)
+            // ビームエフェクトをbeamSpawnPointから発射し、Rayの進行方向を向かせる
             if (beamEffectPrefab != null)
             {
-                // ビームの開始点からヒット点までの間にエフェクトを調整することも可能
-                Instantiate(beamEffectPrefab, hit.point, Quaternion.LookRotation(hit.normal));
+                beamInstance = Instantiate(beamEffectPrefab, beamSpawnPoint.position, Quaternion.LookRotation(rayDirection));
             }
         }
         else
         {
-            // 何もヒットしなかった場合でも、ビームの終点にエフェクトを生成するなどの処理
+            // 何もヒットしなかった場合、ビームエフェクトをbeamSpawnPointから発射し、Rayの進行方向を向かせる
             if (beamEffectPrefab != null)
             {
-                Instantiate(beamEffectPrefab, rayOrigin + rayDirection * beamAttackRange, Quaternion.identity);
+                beamInstance = Instantiate(beamEffectPrefab, beamSpawnPoint.position, Quaternion.LookRotation(rayDirection));
             }
+        }
+
+        // 生成したビームエフェクトを一定時間後に破棄する
+        if (beamInstance != null)
+        {
+            Destroy(beamInstance, 0.5f); // 例: 0.5秒後に消滅
         }
 
         // ビーム攻撃中は一時的にプレイヤーの動きを固定
         isAttacking = true;
         attackTimer = 0.0f;
-        // ビーム攻撃のアニメーションやエフェクトが続く時間に合わせてattackFixedDurationを調整
-        // ただし、ビームは瞬間的な攻撃なので、ここでは短めに設定
         attackFixedDuration = 0.2f; // 例: ビーム発射のアニメーション時間
     }
 
@@ -493,18 +645,42 @@ public class PlayerController : MonoBehaviour
     void HandleAttackState()
     {
         // 攻撃アニメーションやエフェクトの再生中にプレイヤーの動きを固定
-        // ビット攻撃中はロックオンした敵に向ける (bitAttackEnergyCostがベースから変更されている場合はビット攻撃とみなす)
-        if (canUseSwordBitAttack && Input.GetMouseButtonDown(2) && lockedEnemies.Count > 0 && lockedEnemies[0] != null) // ビット攻撃中の場合
+        // ビット攻撃中はロックオンした敵に向ける
+        if (canUseSwordBitAttack && Input.GetMouseButtonDown(2) && lockedEnemies.Count > 0 && lockedEnemies[0] != null)
         {
             Vector3 lookAtTarget = lockedEnemies[0].position;
             lookAtTarget.y = transform.position.y;
             Quaternion targetRotation = Quaternion.LookRotation(lookAtTarget - transform.position);
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 10f);
         }
-        // ビーム攻撃中はカメラの向きを維持
-        else if (Input.GetMouseButtonDown(1) && tpsCamController != null) // ビーム攻撃中の場合
+        // 近接攻撃中は、ロックオンしている敵がいればそちらを向き、いなければカメラの向きを維持
+        else if (Input.GetMouseButtonDown(0)) // 近接攻撃中の場合
         {
-            tpsCamController.RotatePlayerToCameraDirection(); // 再度プレイヤーをカメラ方向に強制
+            if (currentLockedMeleeTarget != null)
+            {
+                // ロックオンターゲットが存在する場合、Y軸固定でターゲットの方を向く
+                Vector3 lookAtTarget = currentLockedMeleeTarget.position;
+                lookAtTarget.y = transform.position.y;
+                Quaternion targetRotation = Quaternion.LookRotation(lookAtTarget - transform.position);
+                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 10f);
+            }
+            // else: ロックオンしていなければ、Updateで常にカメラ方向を向いているので特別処理は不要
+        }
+        // ビーム攻撃中は、ロックオンしている敵がいればそちらを向き、いなければカメラの向きを維持
+        else if (Input.GetMouseButtonDown(1)) // ビーム攻撃中の場合
+        {
+            if (currentLockedBeamTarget != null)
+            {
+                // ロックオンターゲットが存在する場合、Y軸固定でターゲットの方を向く
+                Vector3 lookAtTarget = currentLockedBeamTarget.position;
+                lookAtTarget.y = transform.position.y;
+                Quaternion targetRotation = Quaternion.LookRotation(lookAtTarget - transform.position);
+                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 10f);
+            }
+            else if (tpsCamController != null)
+            {
+                tpsCamController.RotatePlayerToCameraDirection(); // ロックオンしていなければカメラ方向に強制
+            }
         }
 
 
@@ -512,14 +688,16 @@ public class PlayerController : MonoBehaviour
         if (attackTimer >= attackFixedDuration)
         {
             isAttacking = false;
-            // ロックオンした敵が破壊された可能性があるため、クリーンアップ
-            lockedEnemies.RemoveAll(t => t == null);
-            // ロックオン解除のUI表示など、必要な処理を追加
+            // 各攻撃のロックオンターゲットをクリア
+            lockedEnemies.RemoveAll(t => t == null); // ビット攻撃用
+            currentLockedBeamTarget = null; // ビーム攻撃用
+            currentLockedMeleeTarget = null; // 近接攻撃用
+            
             Debug.Log("Attack sequence finished.");
-            // attackFixedDuration をデフォルトに戻すか、各攻撃のメソッド内で設定する
             attackFixedDuration = 0.8f; // ここでデフォルトに戻す例
         }
     }
+
 
     /// <summary>
     /// ビットを射出し、敵に向かって飛ばすコルーチン
@@ -583,19 +761,96 @@ public class PlayerController : MonoBehaviour
     {
         // 近接攻撃の範囲を視覚化
         Gizmos.color = Color.red;
+        // 近接攻撃の自動ロックオン範囲
+        Gizmos.DrawWireSphere(transform.position, autoLockOnMeleeRange);
+        // 通常の近接攻撃判定範囲
         Gizmos.DrawWireSphere(transform.position + transform.forward * meleeAttackRange * 0.5f, meleeAttackRadius);
 
-        // ビーム攻撃の射程を視覚化
+
+        // ビーム攻撃の射程を、ロックオンターゲットが存在すればそちらへ、なければカメラのRayに基づいて視覚化
         Gizmos.color = Color.blue;
-        if (beamSpawnPoint != null)
+        if (tpsCamController != null)
         {
-            Gizmos.DrawRay(beamSpawnPoint.position, tpsCamController != null ? tpsCamController.transform.forward * beamAttackRange : transform.forward * beamAttackRange);
-            Gizmos.DrawSphere(beamSpawnPoint.position + (tpsCamController != null ? tpsCamController.transform.forward : transform.forward) * beamAttackRange, 0.5f); // 終点に球
+            Vector3 gizmoRayOrigin;
+            Vector3 gizmoRayDirection;
+
+            if (currentLockedBeamTarget != null) // ロックオンターゲットが存在する場合
+            {
+                gizmoRayOrigin = beamSpawnPoint != null ? beamSpawnPoint.position : transform.position;
+                gizmoRayDirection = (currentLockedBeamTarget.position - gizmoRayOrigin).normalized;
+            }
+            else // ロックオンターゲットが存在しない場合（カメラのRayを使用）
+            {
+                Ray cameraRay = tpsCamController.GetCameraRay();
+                gizmoRayOrigin = cameraRay.origin;
+                gizmoRayDirection = cameraRay.direction;
+            }
+
+            Gizmos.DrawRay(gizmoRayOrigin, gizmoRayDirection * beamAttackRange);
+            Gizmos.DrawSphere(gizmoRayOrigin + gizmoRayDirection * beamAttackRange, 0.5f); // 終点に球
+
+            // 自動ロックオン範囲の表示
+            Gizmos.color = Color.cyan;
+            Gizmos.DrawWireSphere(transform.position, autoLockOnRange);
         }
-        else
+        else if (beamSpawnPoint != null) // TPSCameraControllerがない場合のフォールバック
+        {
+            Gizmos.DrawRay(beamSpawnPoint.position, beamSpawnPoint.forward * beamAttackRange);
+            Gizmos.DrawSphere(beamSpawnPoint.position + beamSpawnPoint.forward * beamAttackRange, 0.5f);
+        }
+        else // beamSpawnPointも設定されていない場合のフォールバック
         {
             Gizmos.DrawRay(transform.position, transform.forward * beamAttackRange);
             Gizmos.DrawSphere(transform.position + transform.forward * beamAttackRange, 0.5f);
         }
+    }
+
+    /// <summary>
+    /// 近接攻撃時にターゲットに向かって突進するコルーチン
+    /// </summary>
+    /// <param name="targetPosition">突進目標地点</param>
+    private System.Collections.IEnumerator MeleeDashToTarget(Vector3 targetPosition)
+    {
+        Vector3 startPosition = transform.position;
+        // ターゲットまでの距離を計算し、meleeDashDistanceを超えないようにする
+        Vector3 direction = (targetPosition - startPosition).normalized;
+        Vector3 endPosition = startPosition + direction * Mathf.Min(Vector3.Distance(startPosition, targetPosition) - meleeAttackRange * 0.5f, meleeDashDistance);
+        // meleeAttackRange * 0.5f は、敵の「中心」に突進するのではなく、攻撃範囲の届く手前で止まるように調整
+
+        float elapsedTime = 0f;
+
+        while (elapsedTime < meleeDashDuration)
+        {
+            // CharacterController.Move を使って移動
+            // CharacterController はコリジョンに自動的に反応するため、単に移動ベクトルを与える
+            Vector3 currentMove = Vector3.Lerp(startPosition, endPosition, elapsedTime / meleeDashDuration) - transform.position;
+            controller.Move(currentMove);
+
+            elapsedTime += Time.deltaTime;
+            yield return null;
+        }
+        // 突進終了時に最終的な位置に確実に到達させる（CharacterController.Move の特性上、完全に一致しない場合があるため）
+        controller.Move(endPosition - transform.position);
+    }
+
+    /// <summary>
+    /// 近接攻撃時に現在向いている方向へ短く突進するコルーチン（ターゲットがいない場合）
+    /// </summary>
+    private System.Collections.IEnumerator MeleeDashInCurrentDirection()
+    {
+        Vector3 startPosition = transform.position;
+        Vector3 endPosition = startPosition + transform.forward * meleeDashDistance;
+
+        float elapsedTime = 0f;
+
+        while (elapsedTime < meleeDashDuration)
+        {
+            Vector3 currentMove = Vector3.Lerp(startPosition, endPosition, elapsedTime / meleeDashDuration) - transform.position;
+            controller.Move(currentMove);
+
+            elapsedTime += Time.deltaTime;
+            yield return null;
+        }
+        controller.Move(endPosition - transform.position);
     }
 }

@@ -70,4 +70,33 @@ public class TPSCameraController : MonoBehaviour
         Quaternion playerRotation = Quaternion.Euler(0, yaw, 0);
         target.rotation = Quaternion.Slerp(target.rotation, playerRotation, Time.deltaTime * smoothSpeed);
     }
+
+    public Vector3 GetCameraCenterPoint()
+    {
+        // メインカメラを取得
+        Camera mainCam = Camera.main;
+        if (mainCam == null)
+        {
+            Debug.LogError("Main Camera not found! Make sure your camera is tagged 'MainCamera'.");
+            return transform.position; // fallback to controller position
+        }
+
+        // カメラのビューポートの中心からRayを飛ばす
+        Ray ray = mainCam.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
+        return ray.origin;
+    }
+
+    public Ray GetCameraRay()
+    {
+        // メインカメラを取得
+        Camera mainCam = Camera.main;
+        if (mainCam == null)
+        {
+            Debug.LogError("Main Camera not found! Make sure your camera is tagged 'MainCamera'.");
+            return new Ray(transform.position, transform.forward); // Fallback ray
+        }
+
+        // カメラのビューポートの中心からRayを飛ばす
+        return mainCam.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
+    }
 }

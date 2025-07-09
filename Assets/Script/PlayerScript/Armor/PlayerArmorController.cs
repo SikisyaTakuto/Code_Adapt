@@ -49,7 +49,7 @@ public class PlayerArmorController : MonoBehaviour
         }
         else
         {
-            Debug.LogError("PlayerArmorController: ArmorManagerから選択されたアーマーデータがありません。");
+            Debug.LogError("PlayerArmorController: ArmorManagerから選択されたアーマーデータがありません。"); 
             // デバッグ用に、全アーマーから適当に3つ選ぶなど、フォールバック処理を実装しても良い
             if (ArmorManager.Instance != null && ArmorManager.Instance.allAvailableArmors.Count >= 3)
             {
