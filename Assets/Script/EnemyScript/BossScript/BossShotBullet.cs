@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using static UnityEngine.InputSystem.InputSettings;
 
 public class BossShotBullet : MonoBehaviour
 {
@@ -17,8 +18,11 @@ public class BossShotBullet : MonoBehaviour
     [SerializeField] private float speed = 20f;
     // 撃ち始めるまでの待機時間
     [SerializeField] private float shootingStartDelay = 1.0f;
+    // Inspectorでセットする用
+    [SerializeField] private LookBossCanonn lookScript; 
+
     // 敵の死亡状態
-    public BossEnemyDead enemyDaed;
+    public BossEnemyDead bossEnemyDaed;
 
     private float initialBulletCount;
     private bool isPlayerInRange = false;
@@ -34,7 +38,7 @@ public class BossShotBullet : MonoBehaviour
 
     public void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Player") && !enemyDaed.BossDead)
+        if (other.CompareTag("Player") && !bossEnemyDaed.BossDead)
         {
             isPlayerInRange = true;
             targetPlayer = other.transform;
@@ -59,14 +63,15 @@ public class BossShotBullet : MonoBehaviour
         isShooting = true;
         yield return new WaitForSeconds(shootingStartDelay);
 
-        // 範囲内にまだいて、敵が死んでいなければ射撃開始
-        if (isPlayerInRange && !enemyDaed.BossDead)
+        // 範囲外にPlayerがいて、死んでいなければ射撃開始
+        if (!isPlayerInRange && !bossEnemyDaed.BossDead)
         {
             StartCoroutine(ShootingLoop());
         }
         else
         {
-            isShooting = false; // 撃つ必要がなくなった場合
+            // 撃つ必要がなくなった場合
+            isShooting = false; 
         }
     }
 
@@ -74,10 +79,15 @@ public class BossShotBullet : MonoBehaviour
     {
         isShooting = true;
 
-        while (isPlayerInRange && !enemyDaed.BossDead)
+        while (!isPlayerInRange && !bossEnemyDaed.BossDead)
         {
             if (bulletCount > 0 && !reloading)
             {
+                // 弾を撃つ前にLookを止める
+                DisableLookTemporarily();
+                // 発射の直前に少し待つ
+                yield return new WaitForSeconds(0.5f);
+
                 ShootAtPlayer();
                 bulletCount--;
             }
@@ -92,17 +102,31 @@ public class BossShotBullet : MonoBehaviour
         isShooting = false;
     }
 
+
+    // 射撃
     private void ShootAtPlayer()
     {
         if (targetPlayer == null) return;
 
+        // Look停止
+        lookScript.TemporarilyDisableLook();
+
         Vector3 bulletPosition = bulletPoint.transform.position;
-        Vector3 direction = (targetPlayer.position - bulletPosition).normalized;
+        Vector3 direction = bulletPoint.transform.forward;
 
         GameObject newBullet = Instantiate(bullet, bulletPosition, Quaternion.LookRotation(direction));
         newBullet.GetComponent<Rigidbody>().AddForce(direction * speed, ForceMode.Impulse);
     }
 
+    private void DisableLookTemporarily()
+    {
+        if (lookScript != null)
+        {
+            lookScript.TemporarilyDisableLook();
+        }
+    }
+
+    // リロード
     private IEnumerator Reload()
     {
         reloading = true;
