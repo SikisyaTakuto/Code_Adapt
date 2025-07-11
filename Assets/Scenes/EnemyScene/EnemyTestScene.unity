@@ -292,7 +292,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0f217ce87cc535949b977af7c08855ff, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 93.68
+      value: 93.48
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0f217ce87cc535949b977af7c08855ff, type: 3}
       propertyPath: m_LocalPosition.y
@@ -300,7 +300,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0f217ce87cc535949b977af7c08855ff, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 111.51
+      value: 111.67
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0f217ce87cc535949b977af7c08855ff, type: 3}
       propertyPath: m_LocalRotation.w
@@ -7060,14 +7060,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   bulletPoint: {fileID: 1123762359}
-  bullet: {fileID: 1877806789679844970, guid: 4b58e66d44c5e66408f91609aab1bad4, type: 3}
+  bullet: {fileID: 491820027181847738, guid: 5bba0624f9d98ab43a2db33c0a3401e4, type: 3}
   bulletCount: 100
-  shotInterval: 1.5
+  shotInterval: 1
   reloadTime: 6
-  speed: 50
-  shootingStartDelay: 2
+  speed: 200
+  shootingStartDelay: 0.5
   lookScript: {fileID: 6854104890495117271}
-  bossEnemyDaed: {fileID: 919132147614145144}
+  bossEnemyDead: {fileID: 919132147614145144}
 --- !u!114 &6854104890495117271
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7084,7 +7084,7 @@ MonoBehaviour:
   rotationSpeed: 3.75
   bossEnemyDaed: {fileID: 919132147614145144}
   bossShotBullet: {fileID: 6854104890495117270}
-  disableLookDuration: 0.5
+  disableLookDuration: 0
 --- !u!1 &6929554730109693606
 GameObject:
   m_ObjectHideFlags: 0

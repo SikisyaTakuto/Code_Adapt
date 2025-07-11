@@ -5,7 +5,7 @@ public class EnemyStatus : MonoBehaviour
     // 仮組ステータス
     // Playerの攻撃力=10(仮)
 
-    public float e_hp;
+    public float e_hp = 100f;
 
     public float e_attack;
 

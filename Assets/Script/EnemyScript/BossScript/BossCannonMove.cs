@@ -13,7 +13,7 @@ public class BossCannonMove : MonoBehaviour
 
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.K))
+        if (Input.GetKeyDown(KeyCode.J))
         {
             // ジャンプ
             Debug.Log("ジャンプ");

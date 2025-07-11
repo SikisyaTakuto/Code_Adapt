@@ -22,7 +22,7 @@ public class BossEnemyDead : MonoBehaviour
     private IEnumerator DaedDestroy()
     {
         // JƒL[‚ğ‰Ÿ‚µ‚½‚Æ‚«(HP‚ª0‚É‚È‚Á‚½‚Æ‚«)
-        if (Input.GetKeyDown(KeyCode.J))
+        if (Input.GetKeyDown(KeyCode.K))
         {
             Debug.Log("Death");
             BossDead = true;

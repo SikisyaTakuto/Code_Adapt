@@ -22,7 +22,7 @@ public class BossShotBullet : MonoBehaviour
     [SerializeField] private LookBossCanonn lookScript; 
 
     // “G‚ÌŽ€–Só‘Ô
-    public BossEnemyDead bossEnemyDaed;
+    public BossEnemyDead bossEnemyDead;
 
     private float initialBulletCount;
     private bool isPlayerInRange = false;
@@ -38,7 +38,7 @@ public class BossShotBullet : MonoBehaviour
 
     public void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Player") && !bossEnemyDaed.BossDead)
+        if (other.CompareTag("Player") && !bossEnemyDead.BossDead)
         {
             isPlayerInRange = true;
             targetPlayer = other.transform;
@@ -64,7 +64,7 @@ public class BossShotBullet : MonoBehaviour
         yield return new WaitForSeconds(shootingStartDelay);
 
         // ”ÍˆÍŠO‚ÉPlayer‚ª‚¢‚ÄAŽ€‚ñ‚Å‚¢‚È‚¯‚ê‚ÎŽËŒ‚ŠJŽn
-        if (!isPlayerInRange && !bossEnemyDaed.BossDead)
+        if (!isPlayerInRange && !bossEnemyDead.BossDead)
         {
             StartCoroutine(ShootingLoop());
         }
@@ -79,7 +79,7 @@ public class BossShotBullet : MonoBehaviour
     {
         isShooting = true;
 
-        while (!isPlayerInRange && !bossEnemyDaed.BossDead)
+        while (!isPlayerInRange && !bossEnemyDead.BossDead)
         {
             if (bulletCount > 0 && !reloading)
             {
