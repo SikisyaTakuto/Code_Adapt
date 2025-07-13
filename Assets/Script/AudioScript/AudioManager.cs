@@ -1,33 +1,42 @@
 ﻿using UnityEngine;
-using UnityEngine.Audio;   // Audio Mixerを使うために必要
-using UnityEngine.UI;      // UIスライダーを使うために必要
+using UnityEngine.Audio;
+using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 public class AudioManager : MonoBehaviour
 {
-    [SerializeField] private AudioMixer mainMixer;       // インスペクターからAudioMixerを割り当てる
-    [SerializeField] private AudioSource bgmAudioSource; // インスペクターからBGMのAudioSourceを割り当てる
-    [SerializeField] private AudioSource seAudioSource;  // インスペクターからSEのAudioSourceを割り当てる
-    [SerializeField] private AudioClip buttonClickClip;  // ボタンクリック時のSE
+    [SerializeField] private AudioMixer mainMixer;
+    [SerializeField] private AudioSource bgmAudioSource;
+    [SerializeField] private AudioSource seAudioSource;
+    [SerializeField] private AudioClip buttonClickClip; // ボタンクリック時のSE
 
-    // スライダーの参照を追加
-    [SerializeField] private Slider bgmSlider; // インスペクターからBGMのスライダーを割り当てる
-    [SerializeField] private Slider seSlider;  // インスペクターからSEのスライダーを割り当てる
+    [SerializeField] private Slider bgmSlider;
+    [SerializeField] private Slider seSlider;
 
-    private const string BGM_VOLUME_PARAM = "BGMVolume"; // AudioMixerで設定したBGMのパラメータ名
-    private const string SE_VOLUME_PARAM = "SEVolume";   // AudioMixerで設定したSEのパラメータ名
+    private const string BGM_VOLUME_PARAM = "BGMVolume";
+    private const string SE_VOLUME_PARAM = "SEVolume";
+
+    public static AudioManager Instance { get; private set; }
+
+    void Awake()
+    {
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject); // シーンをまたいで存在させる
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
+    }
 
     void Start()
     {
-        // BGMを再生
         if (bgmAudioSource != null && !bgmAudioSource.isPlaying)
         {
             bgmAudioSource.Play();
         }
-
-        // スライダーの初期値をAudioMixerの現在の値に合わせる
-        // スライダーのMin/Max値とAudioMixerのdB値を合わせる必要があるため、計算が必要です。
-        // AudioMixerのFloatパラメータは通常-80dB (ほぼ無音) から0dB (原音) の範囲で設定します。
-        // スライダーも同様にMin -80, Max 0 に設定します。
 
         float currentBGMVolume;
         if (mainMixer.GetFloat(BGM_VOLUME_PARAM, out currentBGMVolume))
@@ -48,31 +57,33 @@ public class AudioManager : MonoBehaviour
         }
     }
 
-    // BGMスライダーの値が変更されたときに呼び出されるメソッド
     public void SetBGMVolume(float volume)
     {
-        // スライダーの値（-80f〜0f）をAudioMixerのパラメータに設定
         mainMixer.SetFloat(BGM_VOLUME_PARAM, volume);
         Debug.Log($"BGM Volume: {volume} dB");
     }
 
-    // SEスライダーの値が変更されたときに呼び出されるメソッド
     public void SetSEVolume(float volume)
     {
-        // スライダーの値（-80f〜0f）をAudioMixerのパラメータに設定
         mainMixer.SetFloat(SE_VOLUME_PARAM, volume);
         Debug.Log($"SE Volume: {volume} dB");
+        PlaySE(buttonClickClip); // スライダーを動かしたときに効果音を鳴らす（元からある機能）
+    }
 
-        // SEスライダーを動かしたときに効果音を鳴らす（オプション）
+    public void PlayButtonClickSE()
+    {
         PlaySE(buttonClickClip);
     }
 
-    // SEを再生する汎用メソッド (既存のまま)
     public void PlaySE(AudioClip clip)
     {
         if (seAudioSource != null && clip != null)
         {
             seAudioSource.PlayOneShot(clip);
+        }
+        else
+        {
+            Debug.LogWarning("SE AudioSource or AudioClip is null. Cannot play SE.");
         }
     }
 }

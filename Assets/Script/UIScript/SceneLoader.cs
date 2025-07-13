@@ -1,12 +1,35 @@
 using UnityEngine;
-using UnityEngine.SceneManagement; // シーン管理のために必要
+using UnityEngine.SceneManagement;
+using System.Collections; // Coroutineのために必要
 
 public class SceneLoader : MonoBehaviour
 {
-    // このメソッドをボタンのOnClickイベントに設定します
+    // シーン切り替え時のSEの再生時間（SEの長さによる）
+    [SerializeField] private float sePlayDuration = 0.5f;
+
     public void LoadStageSelectScene()
     {
+        // まずSEを再生
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlayButtonClickSE();
+            // SEが再生されるのを待ってからシーンをロードするコルーチンを開始
+            StartCoroutine(LoadSceneAfterSE("StageSelectScene"));
+        }
+        else
+        {
+            Debug.LogError("AudioManager.Instance is null. Cannot play button click SE.");
+            // AudioManagerがない場合でもシーンはロードする
+            SceneManager.LoadScene("StageSelectScene");
+        }
+    }
+
+    private IEnumerator LoadSceneAfterSE(string sceneName)
+    {
+        // SEの再生を待つ
+        yield return new WaitForSeconds(sePlayDuration);
+
         Debug.Log("ゲームスタートボタンが押されました。ステージセレクト画面に移行します。");
-        SceneManager.LoadScene("StageSelectScene"); // StageSelectSceneのシーン名を指定
+        SceneManager.LoadScene(sceneName);
     }
 }

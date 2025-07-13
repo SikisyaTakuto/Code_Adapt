@@ -7,17 +7,29 @@ public class GameManager : MonoBehaviour
 
     private string _selectedStageName; // 選択されたステージのシーン名
 
+    // 前のシーンで選択されたステージ名などを保持することも可能
+    // public string selectedStageName;
+
     private void Awake()
     {
         if (Instance == null)
         {
             Instance = this;
-            DontDestroyOnLoad(gameObject); // シーン遷移後もこのオブジェクトを破棄しない
+            DontDestroyOnLoad(gameObject);
         }
         else
         {
-            Destroy(gameObject); // 既にインスタンスが存在する場合は、重複オブジェクトを破棄
+            Destroy(gameObject);
         }
+    }
+
+    /// <summary>
+    /// 指定されたシーン名にロードします。
+    /// </summary>
+    public void LoadScene(string sceneName)
+    {
+        Debug.Log($"シーン '{sceneName}' をロードします。");
+        SceneManager.LoadScene(sceneName);
     }
 
     /// <summary>

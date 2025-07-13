@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems; // マウスイベントを扱うために必要
+using System.Collections;       // Coroutineのために必要
 
 public class StageCard : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler
 {
@@ -14,6 +15,8 @@ public class StageCard : MonoBehaviour, IPointerEnterHandler, IPointerExitHandle
 
     private const float HOVER_SCALE_FACTOR = 1.1f; // マウスオーバー時の拡大率
     private const float ANIMATION_DURATION = 0.15f; // アニメーション時間
+    [SerializeField, Tooltip("SE再生が完了するまでの待機時間（秒）")]
+    private float sePlayDuration = 0.3f; // SEの長さに応じて調整
 
     private void Awake()
     {
@@ -39,35 +42,57 @@ public class StageCard : MonoBehaviour, IPointerEnterHandler, IPointerExitHandle
     public void OnPointerExit(PointerEventData eventData)
     {
         // Debug.Log($"{gameObject.name} からマウスが出た！");
-        // 元の並び順に戻す (ただし、最前面になったままの場合は調整が必要になることも)
-        // 例えば、他のカードにマウスが当たってない場合のみ元の位置に戻すなど
-        // 今回は、マウスが離れたら元のスケールに戻すことに注力
         LeanTween.scale(gameObject, originalScale, ANIMATION_DURATION).setEaseInSine();
-
-        // 元の並び順に戻す処理は、他のカードが手前になったときに自動で後ろに行くため、
-        // 必ずしも必要ではないが、視覚的な一貫性を保つためには検討する余地あり
-        // transform.SetSiblingIndex(originalSiblingIndex); 
     }
 
     // カードがクリックされた時
     public void OnPointerClick(PointerEventData eventData)
     {
         // Debug.Log($"{gameObject.name} がクリックされた！");
-        // GameManagerを通して選択されたステージ情報を保存し、ArmorSelectSceneへ遷移
+
         if (!string.IsNullOrEmpty(stageSceneName))
         {
-            if (StageSelectManager.Instance != null)
+            // まずボタンクリックSEを再生
+            if (AudioManager.Instance != null)
             {
-                StageSelectManager.Instance.SelectStage(stageSceneName);
+                AudioManager.Instance.PlayButtonClickSE();
+                // SE再生が終わるのを待ってからシーンをロードするコルーチンを開始
+                StartCoroutine(LoadSceneAfterSE(stageSceneName));
             }
             else
             {
-                Debug.LogError("StageSelectManager が見つかりません。");
+                Debug.LogError("AudioManager.Instance が見つかりません。SEを再生せずにシーンをロードします。");
+                // AudioManagerがない場合でもシーンはロードする
+                if (StageSelectManager.Instance != null)
+                {
+                    StageSelectManager.Instance.SelectStage(stageSceneName);
+                }
             }
         }
         else
         {
             Debug.LogWarning($"{gameObject.name} の Stage Scene Name が設定されていません。");
+        }
+    }
+
+    /// <summary>
+    /// SE再生を待ってからシーンをロードするコルーチン
+    /// </summary>
+    private IEnumerator LoadSceneAfterSE(string sceneToLoad)
+    {
+        // SEが再生し終わるまで待機
+        yield return new WaitForSeconds(sePlayDuration);
+
+        // StageSelectManagerを通して選択されたステージ情報を保存し、次のシーンへ遷移
+        if (StageSelectManager.Instance != null)
+        {
+            StageSelectManager.Instance.SelectStage(sceneToLoad);
+        }
+        else
+        {
+            Debug.LogError("StageSelectManager が見つかりません。シーンロードを直接実行します。");
+            // 緊急回避として直接シーンロード
+            // SceneManager.LoadScene(sceneToLoad); // 必要に応じてコメント解除
         }
     }
 }

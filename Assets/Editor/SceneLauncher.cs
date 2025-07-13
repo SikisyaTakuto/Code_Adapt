@@ -10,7 +10,7 @@ public class SceneLauncher
     // メニューに「Launcher/Enemy Scene」という項目を追加
     // クリックするとEnemy Test Sceneが開かれる
     [MenuItem("Launcher/Enemy Scene", priority = 0)]
-    public static void OpenGameScene()
+    public static void OpenEnemyScene()
     {
         OpenSceneWithSaveCheck("Assets/Scenes/EnemyScene/EnemyTestScene.unity");
     }
@@ -18,10 +18,55 @@ public class SceneLauncher
     // メニューに「Launcher/PlayerScene」という項目を追加
     // クリックするとPlayerSceneが開かれる
     [MenuItem("Launcher/PlayerScene", priority = 0)]
-    public static void OpenSampleScene()
+    public static void OpenPlayerScene()
     {
         OpenSceneWithSaveCheck("Assets/Scenes/PlayerScene/PlayerScene.unity");
     }
+
+    [MenuItem("Launcher/GameScene", priority = 0)]
+    public static void OpenGameScene()
+    {
+        OpenSceneWithSaveCheck("Assets/Scenes/GameScene/GameScene.unity");
+    }
+
+
+    [MenuItem("Launcher/GameScene1", priority = 0)]
+    public static void OpenGameScene1()
+    {
+        OpenSceneWithSaveCheck("Assets/Scenes/GameScene/GameScene1.unity");
+    }
+
+
+    [MenuItem("Launcher/GameScene2", priority = 0)]
+    public static void OpenGameScene2()
+    {
+        OpenSceneWithSaveCheck("Assets/Scenes/GameScene/GameScene2.unity");
+    }
+
+    [MenuItem("Launcher/ArmorSelectScene", priority = 0)]
+    public static void OpenArmorSelectScene()
+    {
+        OpenSceneWithSaveCheck("Assets/Scenes/GameScene/ArmorSelectScene.unity");
+    }
+
+    [MenuItem("Launcher/TitleScene", priority = 0)]
+    public static void OpenTitleScene()
+    {
+        OpenSceneWithSaveCheck("Assets/Scenes/GameScene/TitleScene.unity");
+    }
+
+    [MenuItem("Launcher/StageSelectScene", priority = 0)]
+    public static void OpenStageSelectScene()
+    {
+        OpenSceneWithSaveCheck("Assets/Scenes/GameScene/StageSelectScene.unity");
+    }
+
+    [MenuItem("Launcher/ClearScene", priority = 0)]
+    public static void OpenSampleScene()
+    {
+        OpenSceneWithSaveCheck("Assets/Scenes/GameScene/ClearScene.unity");
+    }
+
 
     /// <summary>
     /// シーンを開く前に、現在のシーンに未保存の変更がある場合は保存を促し、
