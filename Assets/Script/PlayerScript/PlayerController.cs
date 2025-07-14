@@ -1,8 +1,8 @@
-// PlayerController.cs
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;
 using System.Linq; // OrderByを使うために追加
+using System; // Actionを使うために追加
 
 public class PlayerController : MonoBehaviour
 {
@@ -116,6 +116,23 @@ public class PlayerController : MonoBehaviour
     public Transform primaryWeaponAttachPoint; // 主武器を取り付けるTransform
     public Transform secondaryWeaponAttachPoint; // 副武器を取り付けるTransform
 
+    // ★追加: チュートリアル用
+    public bool canReceiveInput = true; // プレイヤーが入力できるかどうかのフラグ
+    public Action onWASDMoveCompleted; // WASD移動完了時に発火するイベント
+    public Action onJumpCompleted; // ジャンプ完了時に発火するイベント
+    public Action onDescendCompleted; // 降下完了時に発火するイベント
+    public Action onMeleeAttackPerformed; // 近接攻撃実行時に発火するイベント
+    public Action onBeamAttackPerformed; // ビーム攻撃実行時に発火するイベント
+    public Action onBitAttackPerformed; // 特殊攻撃実行時に発火するイベント
+    public Action<int> onArmorModeChanged; // アーマーモード変更時に発火するイベント (引数はモード番号)
+
+    private float _wasdMoveTimer = 0f;
+    private float _jumpTimer = 0f;
+    private float _descendTimer = 0f;
+    private bool _hasMovedWASD = false; // WASDが一度でも入力されたか
+    private bool _hasJumped = false; // スペースキーが一度でも押されたか
+    private bool _hasDescended = false; // Altキーが一度でも押されたか
+
 
     void Start()
     {
@@ -161,6 +178,16 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
+        if (!canReceiveInput) // ★追加: 入力受付が無効なら処理をスキップ
+        {
+            // 攻撃中固定時間のタイマーは進める
+            if (isAttacking)
+            {
+                HandleAttackState();
+            }
+            return;
+        }
+
         // 攻撃中はプレイヤーの動きを固定
         if (isAttacking)
         {
@@ -179,17 +206,34 @@ public class PlayerController : MonoBehaviour
         if (Input.GetMouseButtonDown(0)) // 0は左クリック
         {
             PerformMeleeAttack();
+            onMeleeAttackPerformed?.Invoke(); // ★追加: イベント発火
         }
         // ホイール押込みでビット攻撃 (バランスアーマーのみ)
         else if (Input.GetMouseButtonDown(2) && canUseSwordBitAttack) // 2はホイール押込み
         {
             PerformBitAttack();
+            onBitAttackPerformed?.Invoke(); // ★追加: イベント発火
         }
         // 右クリックでビーム攻撃
         else if (Input.GetMouseButtonDown(1)) // 1は右クリック
         {
             PerformBeamAttack(); // ここで自動ロックオンのロジックを呼び出す
+            onBeamAttackPerformed?.Invoke(); // ★追加: イベント発火
         }
+        // ★追加: アーマーモード切り替え
+        else if (Input.GetKeyDown(KeyCode.Alpha1))
+        {
+            onArmorModeChanged?.Invoke(1);
+        }
+        else if (Input.GetKeyDown(KeyCode.Alpha2))
+        {
+            onArmorModeChanged?.Invoke(2);
+        }
+        else if (Input.GetKeyDown(KeyCode.Alpha3))
+        {
+            onArmorModeChanged?.Invoke(3);
+        }
+
 
         // コンボタイマーのリセット
         if (Time.time - lastMeleeInputTime > comboResetTime)
@@ -230,6 +274,17 @@ public class PlayerController : MonoBehaviour
         }
         moveDirection *= currentSpeed;
 
+        // ★追加: WASD入力の監視
+        if (Mathf.Abs(horizontalInput) > 0.1f || Mathf.Abs(verticalInput) > 0.1f)
+        {
+            _wasdMoveTimer += Time.deltaTime;
+            _hasMovedWASD = true;
+        }
+        else
+        {
+            _wasdMoveTimer = 0f; // 入力が途切れたらリセット
+        }
+
         // 飛行機能が有効な場合のみスペース/Altでの上昇下降を許可
         if (canFly)
         {
@@ -238,16 +293,23 @@ public class PlayerController : MonoBehaviour
                 velocity.y = verticalSpeed;
                 currentEnergy -= energyConsumptionRate * Time.deltaTime;
                 isConsumingEnergy = true;
+                _jumpTimer += Time.deltaTime; // ★追加: ジャンプタイマー更新
+                _hasJumped = true;
             }
             else if ((Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt)) && currentEnergy > 0)
             {
                 velocity.y = -verticalSpeed;
                 currentEnergy -= energyConsumptionRate * Time.deltaTime;
                 isConsumingEnergy = true;
+                _descendTimer += Time.deltaTime; // ★追加: 降下タイマー更新
+                _hasDescended = true;
             }
             else if (!isGrounded)
             {
                 velocity.y += gravity * Time.deltaTime;
+                // ★追加: スペース/Altが離されたらタイマーをリセット
+                _jumpTimer = 0f;
+                _descendTimer = 0f;
             }
         }
         else // 飛行機能が無効な場合は重力の影響を常に受ける
@@ -261,7 +323,6 @@ public class PlayerController : MonoBehaviour
                 velocity.y = -2f; // 地面に着地したらY速度をリセット
             }
         }
-
 
         if (currentEnergy <= 0)
         {
@@ -289,6 +350,25 @@ public class PlayerController : MonoBehaviour
         Vector3 finalMove = moveDirection + new Vector3(0, velocity.y, 0);
         controller.Move(finalMove * Time.deltaTime);
     }
+
+    // ★追加: チュートリアルマネージャーがタイマーをチェックするためのプロパティ
+    public float WASDMoveTimer => _wasdMoveTimer;
+    public float JumpTimer => _jumpTimer;
+    public float DescendTimer => _descendTimer;
+    public bool HasMovedWASD => _hasMovedWASD;
+    public bool HasJumped => _hasJumped;
+    public bool HasDescended => _hasDescended;
+
+    public void ResetInputTracking()
+    {
+        _wasdMoveTimer = 0f;
+        _jumpTimer = 0f;
+        _descendTimer = 0f;
+        _hasMovedWASD = false;
+        _hasJumped = false;
+        _hasDescended = false;
+    }
+
 
     /// <summary>
     /// UIのエネルギーゲージ（Slider）を更新するメソッド
@@ -692,7 +772,7 @@ public class PlayerController : MonoBehaviour
             lockedEnemies.RemoveAll(t => t == null); // ビット攻撃用
             currentLockedBeamTarget = null; // ビーム攻撃用
             currentLockedMeleeTarget = null; // 近接攻撃用
-            
+
             Debug.Log("Attack sequence finished.");
             attackFixedDuration = 0.8f; // ここでデフォルトに戻す例
         }
