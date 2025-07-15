@@ -1,12 +1,12 @@
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;
-using System.Linq; // OrderBy‚ğg‚¤‚½‚ß‚É’Ç‰Á
-using System; // Action‚ğg‚¤‚½‚ß‚É’Ç‰Á
+using System.Linq; // OrderByã‚’ä½¿ã†ãŸã‚ã«è¿½åŠ 
+using System; // Actionã‚’ä½¿ã†ãŸã‚ã«è¿½åŠ 
 
 public class PlayerController : MonoBehaviour
 {
-    // --- ƒx[ƒX‚Æ‚È‚é”\—Í’l (•ÏX•s‰Â) ---
+    // --- ãƒ™ãƒ¼ã‚¹ã¨ãªã‚‹èƒ½åŠ›å€¤ (å¤‰æ›´ä¸å¯) ---
     [Header("Base Stats")]
     public float baseMoveSpeed = 15.0f;
     public float baseBoostMultiplier = 2.0f;
@@ -14,12 +14,12 @@ public class PlayerController : MonoBehaviour
     public float baseEnergyConsumptionRate = 15.0f;
     public float baseEnergyRecoveryRate = 10.0f;
     public float baseMeleeAttackRange = 2.0f;
-    public float baseMeleeDamage = 10.0f; // Šî–{‚Ì‹ßÚƒ_ƒ[ƒW
-    public float baseBeamDamage = 50.0f; // Šî–{‚Ìƒr[ƒ€ƒ_ƒ[ƒW
-    public float baseBitAttackEnergyCost = 20.0f; // Šî–{‚ÌƒrƒbƒgUŒ‚ƒGƒlƒ‹ƒM[Á”ï
-    public float baseBeamAttackEnergyCost = 30.0f; // š’Ç‰ÁFŠî–{‚Ìƒr[ƒ€UŒ‚ƒGƒlƒ‹ƒM[Á”ï
+    public float baseMeleeDamage = 10.0f; // åŸºæœ¬ã®è¿‘æ¥ãƒ€ãƒ¡ãƒ¼ã‚¸
+    public float baseBeamDamage = 50.0f; // åŸºæœ¬ã®ãƒ“ãƒ¼ãƒ ãƒ€ãƒ¡ãƒ¼ã‚¸
+    public float baseBitAttackEnergyCost = 20.0f; // åŸºæœ¬ã®ãƒ“ãƒƒãƒˆæ”»æ’ƒã‚¨ãƒãƒ«ã‚®ãƒ¼æ¶ˆè²»
+    public float baseBeamAttackEnergyCost = 30.0f; // â˜…è¿½åŠ ï¼šåŸºæœ¬ã®ãƒ“ãƒ¼ãƒ æ”»æ’ƒã‚¨ãƒãƒ«ã‚®ãƒ¼æ¶ˆè²»
 
-    // --- Œ»İ‚Ì”\—Í’l (ArmorController‚É‚æ‚Á‚Ä•ÏX‚³‚ê‚é) ---
+    // --- ç¾åœ¨ã®èƒ½åŠ›å€¤ (ArmorControllerã«ã‚ˆã£ã¦å¤‰æ›´ã•ã‚Œã‚‹) ---
     [Header("Current Stats (Modified by Armor)")]
     public float moveSpeed;
     public float boostMultiplier;
@@ -30,108 +30,109 @@ public class PlayerController : MonoBehaviour
     public float meleeDamage;
     public float beamDamage;
     public float bitAttackEnergyCost;
-    public float beamAttackEnergyCost; // š’Ç‰ÁFŒ»İ‚Ìƒr[ƒ€UŒ‚ƒGƒlƒ‹ƒM[Á”ï
+    public float beamAttackEnergyCost; // â˜…è¿½åŠ ï¼šç¾åœ¨ã®ãƒ“ãƒ¼ãƒ æ”»æ’ƒã‚¨ãƒãƒ«ã‚®ãƒ¼æ¶ˆè²»
 
-    // ”òs‹@”\‚Ì—LŒø/–³Œø
+    // é£›è¡Œæ©Ÿèƒ½ã®æœ‰åŠ¹/ç„¡åŠ¹
     public bool canFly = true;
-    // ƒ\[ƒhƒrƒbƒgUŒ‚‚Ì—LŒø/–³Œø
+    // ã‚½ãƒ¼ãƒ‰ãƒ“ãƒƒãƒˆæ”»æ’ƒã®æœ‰åŠ¹/ç„¡åŠ¹
     public bool canUseSwordBitAttack = false;
 
 
-    // d—Í‚Ì‹­‚³
+    // é‡åŠ›ã®å¼·ã•
     public float gravity = -9.81f;
-    // ’n–Ê”»’è‚ÌƒŒƒCƒ„[ƒ}ƒXƒN
+    // åœ°é¢åˆ¤å®šã®ãƒ¬ã‚¤ãƒ¤ãƒ¼ãƒã‚¹ã‚¯
     public LayerMask groundLayer;
 
-    // --- ƒGƒlƒ‹ƒM[ƒQ[ƒWŠÖ˜A‚Ì•Ï” ---
+    // --- ã‚¨ãƒãƒ«ã‚®ãƒ¼ã‚²ãƒ¼ã‚¸é–¢é€£ã®å¤‰æ•° ---
     public float maxEnergy = 100.0f;
     public float currentEnergy;
     public float recoveryDelay = 1.0f;
     private float lastEnergyConsumptionTime;
 
-    // UI‚ÌSlider‚Ö‚ÌQÆ (”CˆÓ: ƒGƒlƒ‹ƒM[ƒQ[ƒW‚Ì•\¦—p)
+    // UIã®Sliderã¸ã®å‚ç…§ (ä»»æ„: ã‚¨ãƒãƒ«ã‚®ãƒ¼ã‚²ãƒ¼ã‚¸ã®è¡¨ç¤ºç”¨)
     public Slider energySlider;
 
     private CharacterController controller;
-    private Vector3 velocity; // Y²•ûŒü‚Ì‘¬“x‚ğŠÇ—‚·‚é‚½‚ß‚Ì•Ï”
+    private Vector3 velocity; // Yè»¸æ–¹å‘ã®é€Ÿåº¦ã‚’ç®¡ç†ã™ã‚‹ãŸã‚ã®å¤‰æ•°
 
-    // TPSƒJƒƒ‰ƒRƒ“ƒgƒ[ƒ‰[‚Ö‚ÌQÆ
+    // TPSã‚«ãƒ¡ãƒ©ã‚³ãƒ³ãƒˆãƒ­ãƒ¼ãƒ©ãƒ¼ã¸ã®å‚ç…§
     private TPSCameraController tpsCamController;
 
-    // --- ƒrƒbƒgUŒ‚ŠÖ˜A‚Ì•Ï” ---
+    // --- ãƒ“ãƒƒãƒˆæ”»æ’ƒé–¢é€£ã®å¤‰æ•° ---
     [Header("Bit Attack Settings")]
-    public GameObject bitPrefab; // Ëo‚·‚éƒrƒbƒg‚ÌPrefab
-    public float bitLaunchHeight = 5.0f; // ƒrƒbƒg‚ªƒvƒŒƒCƒ„[‚ÌŒã‚ë‚©‚çã¸‚·‚é‚‚³
-    public float bitLaunchDuration = 0.5f; // ƒrƒbƒg‚ªã¸‚·‚é‚Ü‚Å‚ÌŠÔ
-    public float bitAttackSpeed = 20.0f; // ƒrƒbƒg‚ª“G‚ÉŒü‚©‚Á‚Ä”ò‚Ô‘¬“x
-    public float lockOnRange = 30.0f; // “G‚ğƒƒbƒNƒIƒ“‚Å‚«‚éÅ‘å‹——£
-    public LayerMask enemyLayer; // “G‚ÌƒŒƒCƒ„[
-    public int maxLockedEnemies = 6; // ƒƒbƒN‚Å‚«‚é“G‚ÌÅ‘å”
+    public GameObject bitPrefab; // å°„å‡ºã™ã‚‹ãƒ“ãƒƒãƒˆã®Prefab
+    public float bitLaunchHeight = 5.0f; // ãƒ“ãƒƒãƒˆãŒãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®å¾Œã‚ã‹ã‚‰ä¸Šæ˜‡ã™ã‚‹é«˜ã•
+    public float bitLaunchDuration = 0.5f; // ãƒ“ãƒƒãƒˆãŒä¸Šæ˜‡ã™ã‚‹ã¾ã§ã®æ™‚é–“
+    public float bitAttackSpeed = 20.0f; // ãƒ“ãƒƒãƒˆãŒæ•µã«å‘ã‹ã£ã¦é£›ã¶é€Ÿåº¦
+    public float lockOnRange = 30.0f; // æ•µã‚’ãƒ­ãƒƒã‚¯ã‚ªãƒ³ã§ãã‚‹æœ€å¤§è·é›¢
+    public LayerMask enemyLayer; // æ•µã®ãƒ¬ã‚¤ãƒ¤ãƒ¼
+    public int maxLockedEnemies = 6; // ãƒ­ãƒƒã‚¯ã§ãã‚‹æ•µã®æœ€å¤§æ•°
+    public float bitDamage = 25.0f; // ãƒ“ãƒƒãƒˆæ”»æ’ƒã®ãƒ€ãƒ¡ãƒ¼ã‚¸ // è¿½åŠ : ãƒ“ãƒƒãƒˆæ”»æ’ƒã®ãƒ€ãƒ¡ãƒ¼ã‚¸
 
-    private List<Transform> lockedEnemies = new List<Transform>(); // ƒƒbƒN‚³‚ê‚½“G‚ÌƒŠƒXƒg
-    private bool isAttacking = false; // UŒ‚’†ƒtƒ‰ƒO (ƒvƒŒƒCƒ„[‚Ì“®‚«‚ğŒÅ’è‚·‚é‚½‚ß)
-    private float attackTimer = 0.0f; // UŒ‚ƒAƒjƒ[ƒVƒ‡ƒ“‚âó‘Ô‚ÌŒp‘±ŠÔƒ^ƒCƒ}[ (•K—v‚É‰‚¶‚Ä)
-    public float attackFixedDuration = 0.8f; // UŒ‚’†‚ÉƒvƒŒƒCƒ„[‚ªŒÅ’è‚³‚ê‚éŠÔ
+    private List<Transform> lockedEnemies = new List<Transform>(); // ãƒ­ãƒƒã‚¯ã•ã‚ŒãŸæ•µã®ãƒªã‚¹ãƒˆ
+    private bool isAttacking = false; // æ”»æ’ƒä¸­ãƒ•ãƒ©ã‚° (ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®å‹•ãã‚’å›ºå®šã™ã‚‹ãŸã‚)
+    private float attackTimer = 0.0f; // æ”»æ’ƒã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ã‚„çŠ¶æ…‹ã®ç¶™ç¶šæ™‚é–“ã‚¿ã‚¤ãƒãƒ¼ (å¿…è¦ã«å¿œã˜ã¦)
+    public float attackFixedDuration = 0.8f; // æ”»æ’ƒä¸­ã«ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ãŒå›ºå®šã•ã‚Œã‚‹æ™‚é–“
 
-    // --- ƒrƒbƒg‚ÌƒXƒ|[ƒ“ˆÊ’u‚ğ•¡”İ’è ---
+    // --- ãƒ“ãƒƒãƒˆã®ã‚¹ãƒãƒ¼ãƒ³ä½ç½®ã‚’è¤‡æ•°è¨­å®š ---
     public List<Transform> bitSpawnPoints = new List<Transform>();
-    public float bitArcHeight = 2.0f; // ã¸‹O“¹‚ÌƒA[ƒ`‚Ì‚‚³
-    // --- ‹ßÚUŒ‚ŠÖ˜A‚Ì•Ï” ---
+    public float bitArcHeight = 2.0f; // ä¸Šæ˜‡è»Œé“ã®ã‚¢ãƒ¼ãƒã®é«˜ã•
+    // --- è¿‘æ¥æ”»æ’ƒé–¢é€£ã®å¤‰æ•° ---
     [Header("Melee Attack Settings")]
-    public float meleeAttackRadius = 1.0f; // ‹ßÚUŒ‚‚Ì—LŒø”¼Œa (SphereCast—p)
-    public float meleeAttackCooldown = 0.5f; // ‹ßÚUŒ‚‚ÌƒN[ƒ‹ƒ_ƒEƒ“ŠÔ
-    private float lastMeleeAttackTime = -Mathf.Infinity; // ÅŒã‚É‹ßÚUŒ‚‚ğ‚µ‚½ŠÔ
-    private int currentMeleeCombo = 0; // Œ»İ‚Ì‹ßÚUŒ‚ƒRƒ“ƒ{’iŠK
-    public int maxMeleeCombo = 5; // ‹ßÚUŒ‚‚ÌÅ‘åƒRƒ“ƒ{’iŠK
-    public float comboResetTime = 1.0f; // ƒRƒ“ƒ{‚ªƒŠƒZƒbƒg‚³‚ê‚é‚Ü‚Å‚ÌŠÔ
-    private float lastMeleeInputTime; // ÅŒã‚É‹ßÚUŒ‚“ü—Í‚ª‚ ‚Á‚½ŠÔ
-    public float autoLockOnMeleeRange = 5.0f; // ‹ßÚUŒ‚‚Ì©“®ƒƒbƒNƒIƒ“”ÍˆÍ
-    public bool preferLockedMeleeTarget = true; // ‹ßÚUŒ‚‚ÉƒƒbƒNƒIƒ“‰Â”\‚È“G‚ğ—Dæ‚·‚é‚©
-    private Transform currentLockedMeleeTarget; // Œ»İƒƒbƒNƒIƒ“‚µ‚Ä‚¢‚é‹ßÚUŒ‚ƒ^[ƒQƒbƒg
+    public float meleeAttackRadius = 1.0f; // è¿‘æ¥æ”»æ’ƒã®æœ‰åŠ¹åŠå¾„ (SphereCastç”¨)
+    public float meleeAttackCooldown = 0.5f; // è¿‘æ¥æ”»æ’ƒã®ã‚¯ãƒ¼ãƒ«ãƒ€ã‚¦ãƒ³æ™‚é–“
+    private float lastMeleeAttackTime = -Mathf.Infinity; // æœ€å¾Œã«è¿‘æ¥æ”»æ’ƒã‚’ã—ãŸæ™‚é–“
+    private int currentMeleeCombo = 0; // ç¾åœ¨ã®è¿‘æ¥æ”»æ’ƒã‚³ãƒ³ãƒœæ®µéš
+    public int maxMeleeCombo = 5; // è¿‘æ¥æ”»æ’ƒã®æœ€å¤§ã‚³ãƒ³ãƒœæ®µéš
+    public float comboResetTime = 1.0f; // ã‚³ãƒ³ãƒœãŒãƒªã‚»ãƒƒãƒˆã•ã‚Œã‚‹ã¾ã§ã®æ™‚é–“
+    private float lastMeleeInputTime; // æœ€å¾Œã«è¿‘æ¥æ”»æ’ƒå…¥åŠ›ãŒã‚ã£ãŸæ™‚é–“
+    public float autoLockOnMeleeRange = 5.0f; // è¿‘æ¥æ”»æ’ƒã®è‡ªå‹•ãƒ­ãƒƒã‚¯ã‚ªãƒ³ç¯„å›²
+    public bool preferLockedMeleeTarget = true; // è¿‘æ¥æ”»æ’ƒæ™‚ã«ãƒ­ãƒƒã‚¯ã‚ªãƒ³å¯èƒ½ãªæ•µã‚’å„ªå…ˆã™ã‚‹ã‹
+    private Transform currentLockedMeleeTarget; // ç¾åœ¨ãƒ­ãƒƒã‚¯ã‚ªãƒ³ã—ã¦ã„ã‚‹è¿‘æ¥æ”»æ’ƒã‚¿ãƒ¼ã‚²ãƒƒãƒˆ
 
-    // š’Ç‰Á: ‹ßÚUŒ‚‚Ì“Ëi‘¬“x‚Æ“Ëi‹——£
-    public float meleeDashSpeed = 20.0f; // ‹ßÚUŒ‚‚Ì“Ëi‘¬“x
-    public float meleeDashDistance = 2.0f; // ‹ßÚUŒ‚‚Ì“Ëi‹——£ (meleeAttackRange‚Æ“¯‚¶‚©­‚µ’·‚ß‚Éİ’è‚·‚é‚Æ—Ç‚¢)
-    public float meleeDashDuration = 0.1f; // ‹ßÚUŒ‚‚Ì“Ëi‚É‚©‚©‚éŠÔ
+    // â˜…è¿½åŠ : è¿‘æ¥æ”»æ’ƒæ™‚ã®çªé€²é€Ÿåº¦ã¨çªé€²è·é›¢
+    public float meleeDashSpeed = 20.0f; // è¿‘æ¥æ”»æ’ƒæ™‚ã®çªé€²é€Ÿåº¦
+    public float meleeDashDistance = 2.0f; // è¿‘æ¥æ”»æ’ƒæ™‚ã®çªé€²è·é›¢ (meleeAttackRangeã¨åŒã˜ã‹å°‘ã—é•·ã‚ã«è¨­å®šã™ã‚‹ã¨è‰¯ã„)
+    public float meleeDashDuration = 0.1f; // è¿‘æ¥æ”»æ’ƒæ™‚ã®çªé€²ã«ã‹ã‹ã‚‹æ™‚é–“
 
 
-    // --- ƒr[ƒ€UŒ‚ŠÖ˜A‚Ì•Ï” ---
+    // --- ãƒ“ãƒ¼ãƒ æ”»æ’ƒé–¢é€£ã®å¤‰æ•° ---
     [Header("Beam Attack Settings")]
-    public float beamAttackRange = 50.0f; // ƒr[ƒ€‚ÌÅ‘åË’ö‹——£
-    public float beamCooldown = 0.5f; // ƒr[ƒ€UŒ‚‚ÌƒN[ƒ‹ƒ_ƒEƒ“ŠÔ
-    private float lastBeamAttackTime = -Mathf.Infinity; // ÅŒã‚Éƒr[ƒ€UŒ‚‚ğ‚µ‚½ŠÔ
-    public GameObject beamEffectPrefab; // ƒr[ƒ€‚ÌƒGƒtƒFƒNƒgPrefab (”CˆÓ)
-    public Transform beamSpawnPoint; // ƒr[ƒ€‚ÌŠJnˆÊ’u (—á: ƒvƒŒƒCƒ„[‚Ì–Ú‚Ì‘O‚È‚Ç)
+    public float beamAttackRange = 50.0f; // ãƒ“ãƒ¼ãƒ ã®æœ€å¤§å°„ç¨‹è·é›¢
+    public float beamCooldown = 0.5f; // ãƒ“ãƒ¼ãƒ æ”»æ’ƒã®ã‚¯ãƒ¼ãƒ«ãƒ€ã‚¦ãƒ³æ™‚é–“
+    private float lastBeamAttackTime = -Mathf.Infinity; // æœ€å¾Œã«ãƒ“ãƒ¼ãƒ æ”»æ’ƒã‚’ã—ãŸæ™‚é–“
+    public GameObject beamEffectPrefab; // ãƒ“ãƒ¼ãƒ ã®ã‚¨ãƒ•ã‚§ã‚¯ãƒˆPrefab (ä»»æ„)
+    public Transform beamSpawnPoint; // ãƒ“ãƒ¼ãƒ ã®é–‹å§‹ä½ç½® (ä¾‹: ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®ç›®ã®å‰ãªã©)
 
-    //©“®ƒƒbƒNƒIƒ“ƒr[ƒ€ŠÖ˜A‚Ì•Ï”
+    //è‡ªå‹•ãƒ­ãƒƒã‚¯ã‚ªãƒ³ãƒ“ãƒ¼ãƒ é–¢é€£ã®å¤‰æ•°
     [Header("Auto Lock-on Beam Settings")]
-    public float autoLockOnRange = 40.0f; // ©“®ƒƒbƒNƒIƒ“‚ÌÅ‘å‹——£
-    public bool preferLockedTarget = true; // ƒƒbƒNƒIƒ“‰Â”\‚È“G‚ª‚¢‚éê‡A‚»‚¿‚ç‚ğ—Dæ‚·‚é‚©
-    private Transform currentLockedBeamTarget; // Œ»İƒƒbƒNƒIƒ“‚µ‚Ä‚¢‚éƒr[ƒ€ƒ^[ƒQƒbƒg
+    public float autoLockOnRange = 40.0f; // è‡ªå‹•ãƒ­ãƒƒã‚¯ã‚ªãƒ³ã®æœ€å¤§è·é›¢
+    public bool preferLockedTarget = true; // ãƒ­ãƒƒã‚¯ã‚ªãƒ³å¯èƒ½ãªæ•µãŒã„ã‚‹å ´åˆã€ãã¡ã‚‰ã‚’å„ªå…ˆã™ã‚‹ã‹
+    private Transform currentLockedBeamTarget; // ç¾åœ¨ãƒ­ãƒƒã‚¯ã‚ªãƒ³ã—ã¦ã„ã‚‹ãƒ“ãƒ¼ãƒ ã‚¿ãƒ¼ã‚²ãƒƒãƒˆ
 
 
-    // --- ‘•”õ’†‚Ì•ŠíPrefab ---
+    // --- è£…å‚™ä¸­ã®æ­¦å™¨Prefab ---
     private GameObject currentPrimaryWeaponInstance;
     private GameObject currentSecondaryWeaponInstance;
-    public Transform primaryWeaponAttachPoint; // å•Ší‚ğæ‚è•t‚¯‚éTransform
-    public Transform secondaryWeaponAttachPoint; // •›•Ší‚ğæ‚è•t‚¯‚éTransform
+    public Transform primaryWeaponAttachPoint; // ä¸»æ­¦å™¨ã‚’å–ã‚Šä»˜ã‘ã‚‹Transform
+    public Transform secondaryWeaponAttachPoint; // å‰¯æ­¦å™¨ã‚’å–ã‚Šä»˜ã‘ã‚‹Transform
 
-    // š’Ç‰Á: ƒ`ƒ…[ƒgƒŠƒAƒ‹—p
-    public bool canReceiveInput = true; // ƒvƒŒƒCƒ„[‚ª“ü—Í‚Å‚«‚é‚©‚Ç‚¤‚©‚Ìƒtƒ‰ƒO
-    public Action onWASDMoveCompleted; // WASDˆÚ“®Š®—¹‚É”­‰Î‚·‚éƒCƒxƒ“ƒg
-    public Action onJumpCompleted; // ƒWƒƒƒ“ƒvŠ®—¹‚É”­‰Î‚·‚éƒCƒxƒ“ƒg
-    public Action onDescendCompleted; // ~‰ºŠ®—¹‚É”­‰Î‚·‚éƒCƒxƒ“ƒg
-    public Action onMeleeAttackPerformed; // ‹ßÚUŒ‚Às‚É”­‰Î‚·‚éƒCƒxƒ“ƒg
-    public Action onBeamAttackPerformed; // ƒr[ƒ€UŒ‚Às‚É”­‰Î‚·‚éƒCƒxƒ“ƒg
-    public Action onBitAttackPerformed; // “ÁêUŒ‚Às‚É”­‰Î‚·‚éƒCƒxƒ“ƒg
-    public Action<int> onArmorModeChanged; // ƒA[ƒ}[ƒ‚[ƒh•ÏX‚É”­‰Î‚·‚éƒCƒxƒ“ƒg (ˆø”‚Íƒ‚[ƒh”Ô†)
+    // â˜…è¿½åŠ : ãƒãƒ¥ãƒ¼ãƒˆãƒªã‚¢ãƒ«ç”¨
+    public bool canReceiveInput = true; // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ãŒå…¥åŠ›ã§ãã‚‹ã‹ã©ã†ã‹ã®ãƒ•ãƒ©ã‚°
+    public Action onWASDMoveCompleted; // WASDç§»å‹•å®Œäº†æ™‚ã«ç™ºç«ã™ã‚‹ã‚¤ãƒ™ãƒ³ãƒˆ
+    public Action onJumpCompleted; // ã‚¸ãƒ£ãƒ³ãƒ—å®Œäº†æ™‚ã«ç™ºç«ã™ã‚‹ã‚¤ãƒ™ãƒ³ãƒˆ
+    public Action onDescendCompleted; // é™ä¸‹å®Œäº†æ™‚ã«ç™ºç«ã™ã‚‹ã‚¤ãƒ™ãƒ³ãƒˆ
+    public Action onMeleeAttackPerformed; // è¿‘æ¥æ”»æ’ƒå®Ÿè¡Œæ™‚ã«ç™ºç«ã™ã‚‹ã‚¤ãƒ™ãƒ³ãƒˆ
+    public Action onBeamAttackPerformed; // ãƒ“ãƒ¼ãƒ æ”»æ’ƒå®Ÿè¡Œæ™‚ã«ç™ºç«ã™ã‚‹ã‚¤ãƒ™ãƒ³ãƒˆ
+    public Action onBitAttackPerformed; // ç‰¹æ®Šæ”»æ’ƒå®Ÿè¡Œæ™‚ã«ç™ºç«ã™ã‚‹ã‚¤ãƒ™ãƒ³ãƒˆ
+    public Action<int> onArmorModeChanged; // ã‚¢ãƒ¼ãƒãƒ¼ãƒ¢ãƒ¼ãƒ‰å¤‰æ›´æ™‚ã«ç™ºç«ã™ã‚‹ã‚¤ãƒ™ãƒ³ãƒˆ (å¼•æ•°ã¯ãƒ¢ãƒ¼ãƒ‰ç•ªå·)
 
     private float _wasdMoveTimer = 0f;
     private float _jumpTimer = 0f;
     private float _descendTimer = 0f;
-    private bool _hasMovedWASD = false; // WASD‚ªˆê“x‚Å‚à“ü—Í‚³‚ê‚½‚©
-    private bool _hasJumped = false; // ƒXƒy[ƒXƒL[‚ªˆê“x‚Å‚à‰Ÿ‚³‚ê‚½‚©
-    private bool _hasDescended = false; // AltƒL[‚ªˆê“x‚Å‚à‰Ÿ‚³‚ê‚½‚©
+    private bool _hasMovedWASD = false; // WASDãŒä¸€åº¦ã§ã‚‚å…¥åŠ›ã•ã‚ŒãŸã‹
+    private bool _hasJumped = false; // ã‚¹ãƒšãƒ¼ã‚¹ã‚­ãƒ¼ãŒä¸€åº¦ã§ã‚‚æŠ¼ã•ã‚ŒãŸã‹
+    private bool _hasDescended = false; // Altã‚­ãƒ¼ãŒä¸€åº¦ã§ã‚‚æŠ¼ã•ã‚ŒãŸã‹
 
 
     void Start()
@@ -139,14 +140,14 @@ public class PlayerController : MonoBehaviour
         controller = GetComponent<CharacterController>();
         if (controller == null)
         {
-            Debug.LogError("PlayerController: CharacterController‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB‚±‚ÌƒXƒNƒŠƒvƒg‚ÍCharacterController‚ª•K—v‚Å‚·B");
+            Debug.LogError("PlayerController: CharacterControllerãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚ã“ã®ã‚¹ã‚¯ãƒªãƒ—ãƒˆã¯CharacterControllerãŒå¿…è¦ã§ã™ã€‚");
             enabled = false;
         }
 
         tpsCamController = FindObjectOfType<TPSCameraController>();
         if (tpsCamController == null)
         {
-            Debug.LogError("PlayerController: TPSCameraController‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñBƒJƒƒ‰ƒRƒ“ƒgƒ[ƒ‰‚ªƒV[ƒ“‚É‘¶İ‚·‚é‚©A³‚µ‚­ƒAƒ^ƒbƒ`‚³‚ê‚Ä‚¢‚é‚©Šm”F‚µ‚Ä‚­‚¾‚³‚¢B");
+            Debug.LogError("PlayerController: TPSCameraControllerãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚ã‚«ãƒ¡ãƒ©ã‚³ãƒ³ãƒˆãƒ­ãƒ¼ãƒ©ãŒã‚·ãƒ¼ãƒ³ã«å­˜åœ¨ã™ã‚‹ã‹ã€æ­£ã—ãã‚¢ã‚¿ãƒƒãƒã•ã‚Œã¦ã„ã‚‹ã‹ç¢ºèªã—ã¦ãã ã•ã„ã€‚");
         }
 
         currentEnergy = maxEnergy;
@@ -154,14 +155,14 @@ public class PlayerController : MonoBehaviour
 
         if (bitSpawnPoints.Count == 0)
         {
-            Debug.LogWarning("PlayerController: bitSpawnPoints‚ªİ’è‚³‚ê‚Ä‚¢‚Ü‚¹‚ñBHierarchy‚É‹ó‚ÌƒQ[ƒ€ƒIƒuƒWƒFƒNƒg‚ğì¬‚µA‚±‚ÌƒŠƒXƒg‚Éƒhƒ‰ƒbƒO•ƒhƒƒbƒv‚µ‚Ä‚­‚¾‚³‚¢B");
+            Debug.LogWarning("PlayerController: bitSpawnPointsãŒè¨­å®šã•ã‚Œã¦ã„ã¾ã›ã‚“ã€‚Hierarchyã«ç©ºã®ã‚²ãƒ¼ãƒ ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã‚’ä½œæˆã—ã€ã“ã®ãƒªã‚¹ãƒˆã«ãƒ‰ãƒ©ãƒƒã‚°ï¼†ãƒ‰ãƒ­ãƒƒãƒ—ã—ã¦ãã ã•ã„ã€‚");
         }
         if (beamSpawnPoint == null)
         {
-            Debug.LogWarning("PlayerController: Beam Spawn Point‚ªİ’è‚³‚ê‚Ä‚¢‚Ü‚¹‚ñBHierarchy‚É‹ó‚ÌƒQ[ƒ€ƒIƒuƒWƒFƒNƒg‚ğì¬‚µA‚±‚ÌƒtƒB[ƒ‹ƒh‚Éƒhƒ‰ƒbƒO•ƒhƒƒbƒv‚µ‚Ä‚­‚¾‚³‚¢B");
+            Debug.LogWarning("PlayerController: Beam Spawn PointãŒè¨­å®šã•ã‚Œã¦ã„ã¾ã›ã‚“ã€‚Hierarchyã«ç©ºã®ã‚²ãƒ¼ãƒ ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã‚’ä½œæˆã—ã€ã“ã®ãƒ•ã‚£ãƒ¼ãƒ«ãƒ‰ã«ãƒ‰ãƒ©ãƒƒã‚°ï¼†ãƒ‰ãƒ­ãƒƒãƒ—ã—ã¦ãã ã•ã„ã€‚");
         }
 
-        // ‰Šú”\—Í’l‚ğŒ»İ‚Ì”\—Í’l‚Éİ’è
+        // åˆæœŸèƒ½åŠ›å€¤ã‚’ç¾åœ¨ã®èƒ½åŠ›å€¤ã«è¨­å®š
         moveSpeed = baseMoveSpeed;
         boostMultiplier = baseBoostMultiplier;
         verticalSpeed = baseVerticalSpeed;
@@ -171,16 +172,17 @@ public class PlayerController : MonoBehaviour
         meleeDamage = baseMeleeDamage;
         beamDamage = baseBeamDamage;
         bitAttackEnergyCost = baseBitAttackEnergyCost;
-        beamAttackEnergyCost = baseBeamAttackEnergyCost; // š’Ç‰ÁF‰Šú’l‚ğİ’è
+        beamAttackEnergyCost = baseBeamAttackEnergyCost; // â˜…è¿½åŠ ï¼šåˆæœŸå€¤ã‚’è¨­å®š
+        bitDamage = baseBitAttackEnergyCost; // ãƒ“ãƒƒãƒˆãƒ€ãƒ¡ãƒ¼ã‚¸ã‚‚åˆæœŸåŒ–
 
-        // PlayerArmorController‚©‚ç‰Šú‰»‚³‚ê‚é‚½‚ßA‚±‚±‚Å‚ÍƒfƒtƒHƒ‹ƒg‚Ì•Ší‚Í‘•”õ‚µ‚È‚¢
+        // PlayerArmorControllerã‹ã‚‰åˆæœŸåŒ–ã•ã‚Œã‚‹ãŸã‚ã€ã“ã“ã§ã¯ãƒ‡ãƒ•ã‚©ãƒ«ãƒˆã®æ­¦å™¨ã¯è£…å‚™ã—ãªã„
     }
 
     void Update()
     {
-        if (!canReceiveInput) // š’Ç‰Á: “ü—Íó•t‚ª–³Œø‚È‚çˆ—‚ğƒXƒLƒbƒv
+        if (!canReceiveInput) // â˜…è¿½åŠ : å…¥åŠ›å—ä»˜ãŒç„¡åŠ¹ãªã‚‰å‡¦ç†ã‚’ã‚¹ã‚­ãƒƒãƒ—
         {
-            // UŒ‚’†ŒÅ’èŠÔ‚Ìƒ^ƒCƒ}[‚Íi‚ß‚é
+            // æ”»æ’ƒä¸­å›ºå®šæ™‚é–“ã®ã‚¿ã‚¤ãƒãƒ¼ã¯é€²ã‚ã‚‹
             if (isAttacking)
             {
                 HandleAttackState();
@@ -188,39 +190,39 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        // UŒ‚’†‚ÍƒvƒŒƒCƒ„[‚Ì“®‚«‚ğŒÅ’è
+        // æ”»æ’ƒä¸­ã¯ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®å‹•ãã‚’å›ºå®š
         if (isAttacking)
         {
-            HandleAttackState(); // UŒ‚’†‚ÌƒvƒŒƒCƒ„[‚Ìó‘Ô‚ğˆ—
-            return; // UŒ‚’†‚Í‘¼‚ÌˆÚ“®ˆ—‚ğƒXƒLƒbƒv
+            HandleAttackState(); // æ”»æ’ƒä¸­ã®ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®çŠ¶æ…‹ã‚’å‡¦ç†
+            return; // æ”»æ’ƒä¸­ã¯ä»–ã®ç§»å‹•å‡¦ç†ã‚’ã‚¹ã‚­ãƒƒãƒ—
         }
 
-        // ƒJƒƒ‰‚Ì…•½•ûŒü‚É‡‚í‚¹‚ÄƒvƒŒƒCƒ„[‚ÌŒü‚«‚ğ’²® (UŒ‚’†ˆÈŠO)
+        // ã‚«ãƒ¡ãƒ©ã®æ°´å¹³æ–¹å‘ã«åˆã‚ã›ã¦ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®å‘ãã‚’èª¿æ•´ (æ”»æ’ƒä¸­ä»¥å¤–)
         if (tpsCamController != null)
         {
             tpsCamController.RotatePlayerToCameraDirection();
         }
 
-        // --- UŒ‚“ü—Íˆ— ---
-        // ¶ƒNƒŠƒbƒN‚Å‹ßÚUŒ‚
-        if (Input.GetMouseButtonDown(0)) // 0‚Í¶ƒNƒŠƒbƒN
+        // --- æ”»æ’ƒå…¥åŠ›å‡¦ç† ---
+        // å·¦ã‚¯ãƒªãƒƒã‚¯ã§è¿‘æ¥æ”»æ’ƒ
+        if (Input.GetMouseButtonDown(0)) // 0ã¯å·¦ã‚¯ãƒªãƒƒã‚¯
         {
             PerformMeleeAttack();
-            onMeleeAttackPerformed?.Invoke(); // š’Ç‰Á: ƒCƒxƒ“ƒg”­‰Î
+            onMeleeAttackPerformed?.Invoke(); // â˜…è¿½åŠ : ã‚¤ãƒ™ãƒ³ãƒˆç™ºç«
         }
-        // ƒzƒC[ƒ‹‰Ÿ‚İ‚ÅƒrƒbƒgUŒ‚ (ƒoƒ‰ƒ“ƒXƒA[ƒ}[‚Ì‚İ)
-        else if (Input.GetMouseButtonDown(2) && canUseSwordBitAttack) // 2‚ÍƒzƒC[ƒ‹‰Ÿ‚İ
+        // ãƒ›ã‚¤ãƒ¼ãƒ«æŠ¼è¾¼ã¿ã§ãƒ“ãƒƒãƒˆæ”»æ’ƒ (ãƒãƒ©ãƒ³ã‚¹ã‚¢ãƒ¼ãƒãƒ¼ã®ã¿)
+        else if (Input.GetMouseButtonDown(2) && canUseSwordBitAttack) // 2ã¯ãƒ›ã‚¤ãƒ¼ãƒ«æŠ¼è¾¼ã¿
         {
             PerformBitAttack();
-            onBitAttackPerformed?.Invoke(); // š’Ç‰Á: ƒCƒxƒ“ƒg”­‰Î
+            onBitAttackPerformed?.Invoke(); // â˜…è¿½åŠ : ã‚¤ãƒ™ãƒ³ãƒˆç™ºç«
         }
-        // ‰EƒNƒŠƒbƒN‚Åƒr[ƒ€UŒ‚
-        else if (Input.GetMouseButtonDown(1)) // 1‚Í‰EƒNƒŠƒbƒN
+        // å³ã‚¯ãƒªãƒƒã‚¯ã§ãƒ“ãƒ¼ãƒ æ”»æ’ƒ
+        else if (Input.GetMouseButtonDown(1)) // 1ã¯å³ã‚¯ãƒªãƒƒã‚¯
         {
-            PerformBeamAttack(); // ‚±‚±‚Å©“®ƒƒbƒNƒIƒ“‚ÌƒƒWƒbƒN‚ğŒÄ‚Ño‚·
-            onBeamAttackPerformed?.Invoke(); // š’Ç‰Á: ƒCƒxƒ“ƒg”­‰Î
+            PerformBeamAttack(); // ã“ã“ã§è‡ªå‹•ãƒ­ãƒƒã‚¯ã‚ªãƒ³ã®ãƒ­ã‚¸ãƒƒã‚¯ã‚’å‘¼ã³å‡ºã™
+            onBeamAttackPerformed?.Invoke(); // â˜…è¿½åŠ : ã‚¤ãƒ™ãƒ³ãƒˆç™ºç«
         }
-        // š’Ç‰Á: ƒA[ƒ}[ƒ‚[ƒhØ‚è‘Ö‚¦
+        // â˜…è¿½åŠ : ã‚¢ãƒ¼ãƒãƒ¼ãƒ¢ãƒ¼ãƒ‰åˆ‡ã‚Šæ›¿ãˆ
         else if (Input.GetKeyDown(KeyCode.Alpha1))
         {
             onArmorModeChanged?.Invoke(1);
@@ -235,7 +237,7 @@ public class PlayerController : MonoBehaviour
         }
 
 
-        // ƒRƒ“ƒ{ƒ^ƒCƒ}[‚ÌƒŠƒZƒbƒg
+        // ã‚³ãƒ³ãƒœã‚¿ã‚¤ãƒãƒ¼ã®ãƒªã‚»ãƒƒãƒˆ
         if (Time.time - lastMeleeInputTime > comboResetTime)
         {
             currentMeleeCombo = 0;
@@ -274,7 +276,7 @@ public class PlayerController : MonoBehaviour
         }
         moveDirection *= currentSpeed;
 
-        // š’Ç‰Á: WASD“ü—Í‚ÌŠÄ‹
+        // â˜…è¿½åŠ : WASDå…¥åŠ›ã®ç›£è¦–
         if (Mathf.Abs(horizontalInput) > 0.1f || Mathf.Abs(verticalInput) > 0.1f)
         {
             _wasdMoveTimer += Time.deltaTime;
@@ -282,10 +284,10 @@ public class PlayerController : MonoBehaviour
         }
         else
         {
-            _wasdMoveTimer = 0f; // “ü—Í‚ª“rØ‚ê‚½‚çƒŠƒZƒbƒg
+            _wasdMoveTimer = 0f; // å…¥åŠ›ãŒé€”åˆ‡ã‚ŒãŸã‚‰ãƒªã‚»ãƒƒãƒˆ
         }
 
-        // ”òs‹@”\‚ª—LŒø‚Èê‡‚Ì‚İƒXƒy[ƒX/Alt‚Å‚Ìã¸‰º~‚ğ‹–‰Â
+        // é£›è¡Œæ©Ÿèƒ½ãŒæœ‰åŠ¹ãªå ´åˆã®ã¿ã‚¹ãƒšãƒ¼ã‚¹/Altã§ã®ä¸Šæ˜‡ä¸‹é™ã‚’è¨±å¯
         if (canFly)
         {
             if (Input.GetKey(KeyCode.Space) && currentEnergy > 0)
@@ -293,7 +295,7 @@ public class PlayerController : MonoBehaviour
                 velocity.y = verticalSpeed;
                 currentEnergy -= energyConsumptionRate * Time.deltaTime;
                 isConsumingEnergy = true;
-                _jumpTimer += Time.deltaTime; // š’Ç‰Á: ƒWƒƒƒ“ƒvƒ^ƒCƒ}[XV
+                _jumpTimer += Time.deltaTime; // â˜…è¿½åŠ : ã‚¸ãƒ£ãƒ³ãƒ—ã‚¿ã‚¤ãƒãƒ¼æ›´æ–°
                 _hasJumped = true;
             }
             else if ((Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt)) && currentEnergy > 0)
@@ -301,18 +303,18 @@ public class PlayerController : MonoBehaviour
                 velocity.y = -verticalSpeed;
                 currentEnergy -= energyConsumptionRate * Time.deltaTime;
                 isConsumingEnergy = true;
-                _descendTimer += Time.deltaTime; // š’Ç‰Á: ~‰ºƒ^ƒCƒ}[XV
+                _descendTimer += Time.deltaTime; // â˜…è¿½åŠ : é™ä¸‹ã‚¿ã‚¤ãƒãƒ¼æ›´æ–°
                 _hasDescended = true;
             }
             else if (!isGrounded)
             {
                 velocity.y += gravity * Time.deltaTime;
-                // š’Ç‰Á: ƒXƒy[ƒX/Alt‚ª—£‚³‚ê‚½‚çƒ^ƒCƒ}[‚ğƒŠƒZƒbƒg
+                // â˜…è¿½åŠ : ã‚¹ãƒšãƒ¼ã‚¹/AltãŒé›¢ã•ã‚ŒãŸã‚‰ã‚¿ã‚¤ãƒãƒ¼ã‚’ãƒªã‚»ãƒƒãƒˆ
                 _jumpTimer = 0f;
                 _descendTimer = 0f;
             }
         }
-        else // ”òs‹@”\‚ª–³Œø‚Èê‡‚Íd—Í‚Ì‰e‹¿‚ğí‚Éó‚¯‚é
+        else // é£›è¡Œæ©Ÿèƒ½ãŒç„¡åŠ¹ãªå ´åˆã¯é‡åŠ›ã®å½±éŸ¿ã‚’å¸¸ã«å—ã‘ã‚‹
         {
             if (!isGrounded)
             {
@@ -320,7 +322,7 @@ public class PlayerController : MonoBehaviour
             }
             else
             {
-                velocity.y = -2f; // ’n–Ê‚É’…’n‚µ‚½‚çY‘¬“x‚ğƒŠƒZƒbƒg
+                velocity.y = -2f; // åœ°é¢ã«ç€åœ°ã—ãŸã‚‰Yé€Ÿåº¦ã‚’ãƒªã‚»ãƒƒãƒˆ
             }
         }
 
@@ -351,7 +353,7 @@ public class PlayerController : MonoBehaviour
         controller.Move(finalMove * Time.deltaTime);
     }
 
-    // š’Ç‰Á: ƒ`ƒ…[ƒgƒŠƒAƒ‹ƒ}ƒl[ƒWƒƒ[‚ªƒ^ƒCƒ}[‚ğƒ`ƒFƒbƒN‚·‚é‚½‚ß‚ÌƒvƒƒpƒeƒB
+    // â˜…è¿½åŠ : ãƒãƒ¥ãƒ¼ãƒˆãƒªã‚¢ãƒ«ãƒãƒãƒ¼ã‚¸ãƒ£ãƒ¼ãŒã‚¿ã‚¤ãƒãƒ¼ã‚’ãƒã‚§ãƒƒã‚¯ã™ã‚‹ãŸã‚ã®ãƒ—ãƒ­ãƒ‘ãƒ†ã‚£
     public float WASDMoveTimer => _wasdMoveTimer;
     public float JumpTimer => _jumpTimer;
     public float DescendTimer => _descendTimer;
@@ -371,7 +373,7 @@ public class PlayerController : MonoBehaviour
 
 
     /// <summary>
-    /// UI‚ÌƒGƒlƒ‹ƒM[ƒQ[ƒWiSliderj‚ğXV‚·‚éƒƒ\ƒbƒh
+    /// UIã®ã‚¨ãƒãƒ«ã‚®ãƒ¼ã‚²ãƒ¼ã‚¸ï¼ˆSliderï¼‰ã‚’æ›´æ–°ã™ã‚‹ãƒ¡ã‚½ãƒƒãƒ‰
     /// </summary>
     void UpdateEnergyUI()
     {
@@ -382,30 +384,30 @@ public class PlayerController : MonoBehaviour
     }
 
     /// <summary>
-    /// üˆÍ‚Ì“G‚ğƒƒbƒNƒIƒ“‚·‚é (ƒr[ƒ€—p)
+    /// å‘¨å›²ã®æ•µã‚’ãƒ­ãƒƒã‚¯ã‚ªãƒ³ã™ã‚‹ (ãƒ“ãƒ¼ãƒ ç”¨)
     /// </summary>
-    /// <returns>ƒƒbƒNƒIƒ“‚µ‚½“G‚ÌTransformBŒ©‚Â‚©‚ç‚È‚¯‚ê‚ÎnullB</returns>
+    /// <returns>ãƒ­ãƒƒã‚¯ã‚ªãƒ³ã—ãŸæ•µã®Transformã€‚è¦‹ã¤ã‹ã‚‰ãªã‘ã‚Œã°nullã€‚</returns>
     Transform FindBeamTarget()
     {
-        // ƒvƒŒƒCƒ„[‚ÌTransform‚Ìposition‚ğŠî€‚ÉSphereCast
+        // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®Transformã®positionã‚’åŸºæº–ã«SphereCast
         Collider[] hitColliders = Physics.OverlapSphere(transform.position, autoLockOnRange, enemyLayer);
 
         if (hitColliders.Length == 0)
         {
-            return null; // “G‚ª‚¢‚È‚¢
+            return null; // æ•µãŒã„ãªã„
         }
 
-        // Å‚à‹ß‚¢“G‚ğŒ©‚Â‚¯‚é
+        // æœ€ã‚‚è¿‘ã„æ•µã‚’è¦‹ã¤ã‘ã‚‹
         Transform closestEnemy = null;
         float minDistance = Mathf.Infinity;
 
         foreach (Collider col in hitColliders)
         {
-            if (col.transform != transform) // ƒvƒŒƒCƒ„[©g‚ğœŠO
+            if (col.transform != transform) // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼è‡ªèº«ã‚’é™¤å¤–
             {
                 float distance = Vector3.Distance(transform.position, col.transform.position);
-                // ƒJƒƒ‰‚Ì‹ŠE‚É“ü‚Á‚Ä‚¢‚é‚©A‚Ü‚½‚Í”ñí‚É‹ß‚¢“G‚ğ—Dæ‚·‚é‚È‚Ç‚ÌƒƒWƒbƒN‚ğ’Ç‰Á‰Â”\
-                // Œ»ó‚Íˆê”Ô‹ß‚¢“G‚ğƒ^[ƒQƒbƒg‚É‚·‚é
+                // ã‚«ãƒ¡ãƒ©ã®è¦–ç•Œã«å…¥ã£ã¦ã„ã‚‹ã‹ã€ã¾ãŸã¯éå¸¸ã«è¿‘ã„æ•µã‚’å„ªå…ˆã™ã‚‹ãªã©ã®ãƒ­ã‚¸ãƒƒã‚¯ã‚’è¿½åŠ å¯èƒ½
+                // ç¾çŠ¶ã¯ä¸€ç•ªè¿‘ã„æ•µã‚’ã‚¿ãƒ¼ã‚²ãƒƒãƒˆã«ã™ã‚‹
                 if (distance < minDistance)
                 {
                     minDistance = distance;
@@ -417,30 +419,30 @@ public class PlayerController : MonoBehaviour
     }
 
     /// <summary>
-    /// üˆÍ‚Ì“G‚ğƒƒbƒNƒIƒ“‚·‚é (‹ßÚUŒ‚—p)
+    /// å‘¨å›²ã®æ•µã‚’ãƒ­ãƒƒã‚¯ã‚ªãƒ³ã™ã‚‹ (è¿‘æ¥æ”»æ’ƒç”¨)
     /// </summary>
-    /// <returns>ƒƒbƒNƒIƒ“‚µ‚½“G‚ÌTransformBŒ©‚Â‚©‚ç‚È‚¯‚ê‚ÎnullB</returns>
+    /// <returns>ãƒ­ãƒƒã‚¯ã‚ªãƒ³ã—ãŸæ•µã®Transformã€‚è¦‹ã¤ã‹ã‚‰ãªã‘ã‚Œã°nullã€‚</returns>
     Transform FindMeleeTarget()
     {
-        // ƒvƒŒƒCƒ„[‚ÌTransform‚Ìposition‚ğŠî€‚ÉOverlapSphere
+        // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®Transformã®positionã‚’åŸºæº–ã«OverlapSphere
         Collider[] hitColliders = Physics.OverlapSphere(transform.position, autoLockOnMeleeRange, enemyLayer);
 
         if (hitColliders.Length == 0)
         {
-            return null; // “G‚ª‚¢‚È‚¢
+            return null; // æ•µãŒã„ãªã„
         }
 
-        // Å‚à‹ß‚¢“G‚ğŒ©‚Â‚¯‚é
+        // æœ€ã‚‚è¿‘ã„æ•µã‚’è¦‹ã¤ã‘ã‚‹
         Transform closestEnemy = null;
         float minDistance = Mathf.Infinity;
 
         foreach (Collider col in hitColliders)
         {
-            if (col.transform != transform) // ƒvƒŒƒCƒ„[©g‚ğœŠO
+            if (col.transform != transform) // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼è‡ªèº«ã‚’é™¤å¤–
             {
                 float distance = Vector3.Distance(transform.position, col.transform.position);
-                // ‹ßÚUŒ‚‚È‚Ì‚ÅA’P‚Éˆê”Ô‹ß‚¢“G‚Å—Ç‚¢‚±‚Æ‚ª‘½‚¢‚ªA
-                // «—ˆ“I‚É‚ÍƒvƒŒƒCƒ„[‚Ì³–Ê•ûŒü‚Ì“G‚ğ—Dæ‚·‚é‚È‚ÇA‚æ‚è•¡G‚ÈƒƒWƒbƒN‚àŒŸ“¢‰Â”\
+                // è¿‘æ¥æ”»æ’ƒãªã®ã§ã€å˜ã«ä¸€ç•ªè¿‘ã„æ•µã§è‰¯ã„ã“ã¨ãŒå¤šã„ãŒã€
+                // å°†æ¥çš„ã«ã¯ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®æ­£é¢æ–¹å‘ã®æ•µã‚’å„ªå…ˆã™ã‚‹ãªã©ã€ã‚ˆã‚Šè¤‡é›‘ãªãƒ­ã‚¸ãƒƒã‚¯ã‚‚æ¤œè¨å¯èƒ½
                 if (distance < minDistance)
                 {
                     minDistance = distance;
@@ -453,21 +455,21 @@ public class PlayerController : MonoBehaviour
 
 
     /// <summary>
-    /// üˆÍ‚Ì“G‚ğƒƒbƒNƒIƒ“‚·‚é (ƒrƒbƒgUŒ‚—p)
+    /// å‘¨å›²ã®æ•µã‚’ãƒ­ãƒƒã‚¯ã‚ªãƒ³ã™ã‚‹ (ãƒ“ãƒƒãƒˆæ”»æ’ƒç”¨)
     /// </summary>
     void LockOnEnemies()
     {
-        lockedEnemies.Clear(); // ƒƒbƒNƒIƒ“ƒŠƒXƒg‚ğƒNƒŠƒA
+        lockedEnemies.Clear(); // ãƒ­ãƒƒã‚¯ã‚ªãƒ³ãƒªã‚¹ãƒˆã‚’ã‚¯ãƒªã‚¢
 
         Collider[] hitColliders = Physics.OverlapSphere(transform.position, lockOnRange, enemyLayer);
 
-        // ‹——£‚ª‹ß‚¢‡‚Éƒ\[ƒg‚µ‚ÄAmaxLockedEnemies‚Ì”‚Ü‚ÅƒƒbƒNƒIƒ“
+        // è·é›¢ãŒè¿‘ã„é †ã«ã‚½ãƒ¼ãƒˆã—ã¦ã€maxLockedEnemiesã®æ•°ã¾ã§ãƒ­ãƒƒã‚¯ã‚ªãƒ³
         var sortedEnemies = hitColliders.OrderBy(col => Vector3.Distance(transform.position, col.transform.position))
                                         .Take(maxLockedEnemies);
 
         foreach (Collider col in sortedEnemies)
         {
-            if (col.transform != transform) // ƒvƒŒƒCƒ„[©g‚ğƒƒbƒNƒIƒ“‚µ‚È‚¢‚æ‚¤‚É
+            if (col.transform != transform) // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼è‡ªèº«ã‚’ãƒ­ãƒƒã‚¯ã‚ªãƒ³ã—ãªã„ã‚ˆã†ã«
             {
                 lockedEnemies.Add(col.transform);
                 Debug.Log($"Locked on: {col.name}");
@@ -476,33 +478,33 @@ public class PlayerController : MonoBehaviour
 
         if (lockedEnemies.Count > 0)
         {
-            // ƒvƒŒƒCƒ„[‚ÌŒü‚«‚ğˆê”Ô‹ß‚¢ƒƒbƒNƒIƒ““G‚Ì•ûŒü‚É‹­§“I‚ÉŒü‚¯‚é
+            // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®å‘ãã‚’ä¸€ç•ªè¿‘ã„ãƒ­ãƒƒã‚¯ã‚ªãƒ³æ•µã®æ–¹å‘ã«å¼·åˆ¶çš„ã«å‘ã‘ã‚‹
             Vector3 lookAtTarget = lockedEnemies[0].position;
-            lookAtTarget.y = transform.position.y; // Y²‚ÍŒÅ’è
+            lookAtTarget.y = transform.position.y; // Yè»¸ã¯å›ºå®š
             transform.LookAt(lookAtTarget);
         }
     }
 
     /// <summary>
-    /// ƒrƒbƒgUŒ‚‚ğÀs‚·‚é
+    /// ãƒ“ãƒƒãƒˆæ”»æ’ƒã‚’å®Ÿè¡Œã™ã‚‹
     /// </summary>
     void PerformBitAttack()
     {
-        // bitSpawnPoints‚ªİ’è‚³‚ê‚Ä‚¢‚È‚¢ê‡‚ÍUŒ‚‚ğ’†~
+        // bitSpawnPointsãŒè¨­å®šã•ã‚Œã¦ã„ãªã„å ´åˆã¯æ”»æ’ƒã‚’ä¸­æ­¢
         if (bitSpawnPoints.Count == 0)
         {
             Debug.LogWarning("Bit spawn points are not set up in the Inspector. Cannot perform bit attack.");
             return;
         }
 
-        // ƒƒbƒN‚Å‚«‚é“G‚Ì”imaxLockedEnemiesj•ª‚ÌƒGƒlƒ‹ƒM[‚ª•K—v‚É‚È‚é‚æ‚¤‚É’²®
-        if (currentEnergy < bitAttackEnergyCost * maxLockedEnemies) // •Ï”–¼•ÏX
+        // ãƒ­ãƒƒã‚¯ã§ãã‚‹æ•µã®æ•°ï¼ˆmaxLockedEnemiesï¼‰åˆ†ã®ã‚¨ãƒãƒ«ã‚®ãƒ¼ãŒå¿…è¦ã«ãªã‚‹ã‚ˆã†ã«èª¿æ•´
+        if (currentEnergy < bitAttackEnergyCost * maxLockedEnemies) // å¤‰æ•°åå¤‰æ›´
         {
             Debug.Log($"Not enough energy for Bit Attack! Need {bitAttackEnergyCost * maxLockedEnemies} energy.");
             return;
         }
 
-        LockOnEnemies(); // UŒ‚‘O‚É“G‚ğƒƒbƒNƒIƒ“
+        LockOnEnemies(); // æ”»æ’ƒå‰ã«æ•µã‚’ãƒ­ãƒƒã‚¯ã‚ªãƒ³
 
         if (lockedEnemies.Count == 0)
         {
@@ -510,79 +512,81 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        currentEnergy -= bitAttackEnergyCost * lockedEnemies.Count; // ƒƒbƒN‚µ‚½“G‚Ì”‚É‰‚¶‚ÄƒGƒlƒ‹ƒM[Á”ï (•Ï”–¼•ÏX)
+        currentEnergy -= bitAttackEnergyCost * lockedEnemies.Count; // ãƒ­ãƒƒã‚¯ã—ãŸæ•µã®æ•°ã«å¿œã˜ã¦ã‚¨ãƒãƒ«ã‚®ãƒ¼æ¶ˆè²» (å¤‰æ•°åå¤‰æ›´)
         UpdateEnergyUI();
 
-        isAttacking = true; // UŒ‚’†ƒtƒ‰ƒO‚ğ—§‚Ä‚é
-        attackTimer = 0.0f; // ƒ^ƒCƒ}[‚ğƒŠƒZƒbƒg
+        isAttacking = true; // æ”»æ’ƒä¸­ãƒ•ãƒ©ã‚°ã‚’ç«‹ã¦ã‚‹
+        attackTimer = 0.0f; // ã‚¿ã‚¤ãƒãƒ¼ã‚’ãƒªã‚»ãƒƒãƒˆ
 
-        // ƒƒbƒN‚µ‚½“G‚Ì”A‚Ü‚½‚ÍbitSpawnPoints‚Ì”‚Ü‚Åƒrƒbƒg‚ğËoi­‚È‚¢•û‚É‡‚í‚¹‚éj
+        // ãƒ­ãƒƒã‚¯ã—ãŸæ•µã®æ•°ã€ã¾ãŸã¯bitSpawnPointsã®æ•°ã¾ã§ãƒ“ãƒƒãƒˆã‚’å°„å‡ºï¼ˆå°‘ãªã„æ–¹ã«åˆã‚ã›ã‚‹ï¼‰
         int bitsToSpawn = Mathf.Min(lockedEnemies.Count, bitSpawnPoints.Count);
 
         for (int i = 0; i < bitsToSpawn; i++)
         {
-            // Šeƒrƒbƒg‚ÌƒXƒ|[ƒ“ˆÊ’u‚ğbitSpawnPoints‚©‚çæ“¾
+            // å„ãƒ“ãƒƒãƒˆã®ã‚¹ãƒãƒ¼ãƒ³ä½ç½®ã‚’bitSpawnPointsã‹ã‚‰å–å¾—
             Transform spawnPoint = bitSpawnPoints[i];
 
-            // i”Ô–Ú‚Ìƒrƒbƒg‚ği”Ô–Ú‚ÌƒƒbƒNƒIƒ““G‚É•R•t‚¯‚é (“G‚ª­‚È‚¢ê‡‚Íƒ‹[ƒv‚Ìè—]‚ğg—p‚È‚Ç)
+            // iç•ªç›®ã®ãƒ“ãƒƒãƒˆã‚’iç•ªç›®ã®ãƒ­ãƒƒã‚¯ã‚ªãƒ³æ•µã«ç´ä»˜ã‘ã‚‹ (æ•µãŒå°‘ãªã„å ´åˆã¯ãƒ«ãƒ¼ãƒ—ã®å‰°ä½™ã‚’ä½¿ç”¨ãªã©)
             Transform targetEnemy = lockedEnemies[i % lockedEnemies.Count];
 
-            StartCoroutine(LaunchBit(spawnPoint.position, targetEnemy)); // Transform‚Ìposition‚ğ“n‚·
+            // LaunchBitã«bitDamageã‚’æ¸¡ã™
+            StartCoroutine(LaunchBit(spawnPoint.position, targetEnemy, bitDamage)); // Transformã®positionã¨ãƒ€ãƒ¡ãƒ¼ã‚¸å€¤ã‚’æ¸¡ã™
         }
     }
 
     /// <summary>
-    /// ‹ßÚUŒ‚‚ğÀs‚·‚é (5’iŠKƒRƒ“ƒ{)
+    /// è¿‘æ¥æ”»æ’ƒã‚’å®Ÿè¡Œã™ã‚‹ (5æ®µéšã‚³ãƒ³ãƒœ)
     /// </summary>
     void PerformMeleeAttack()
     {
-        // ƒN[ƒ‹ƒ_ƒEƒ“’†‚Ü‚½‚ÍŠù‚ÉUŒ‚’†‚Ìê‡‚ÍÀs‚µ‚È‚¢
+        // ã‚¯ãƒ¼ãƒ«ãƒ€ã‚¦ãƒ³ä¸­ã¾ãŸã¯æ—¢ã«æ”»æ’ƒä¸­ã®å ´åˆã¯å®Ÿè¡Œã—ãªã„
         if (Time.time < lastMeleeAttackTime + meleeAttackCooldown || isAttacking)
         {
             return;
         }
 
-        // ƒRƒ“ƒ{’iŠK‚ği‚ß‚é
+        // ã‚³ãƒ³ãƒœæ®µéšã‚’é€²ã‚ã‚‹
         currentMeleeCombo = (currentMeleeCombo % maxMeleeCombo) + 1;
-        Debug.Log($"‹ßÚUŒ‚IƒRƒ“ƒ{’iŠK: {currentMeleeCombo}");
+        Debug.Log($"è¿‘æ¥æ”»æ’ƒï¼ã‚³ãƒ³ãƒœæ®µéš: {currentMeleeCombo}");
 
         lastMeleeAttackTime = Time.time;
-        lastMeleeInputTime = Time.time; // ƒRƒ“ƒ{ƒŠƒZƒbƒgƒ^ƒCƒ}[‚ğXV
+        lastMeleeInputTime = Time.time; // ã‚³ãƒ³ãƒœãƒªã‚»ãƒƒãƒˆã‚¿ã‚¤ãƒãƒ¼ã‚’æ›´æ–°
 
-        isAttacking = true; // UŒ‚’†ƒtƒ‰ƒO‚ğ—§‚Ä‚é
-        attackTimer = 0.0f; // ƒ^ƒCƒ}[‚ğƒŠƒZƒbƒg
-        attackFixedDuration = 0.3f; // ‹ßÚUŒ‚‚ÌŒÅ’èŠÔ‚ğ’Z‚ß‚Éİ’è (ƒAƒjƒ[ƒVƒ‡ƒ“‚É‡‚í‚¹‚Ä’²®)
+        isAttacking = true; // æ”»æ’ƒä¸­ãƒ•ãƒ©ã‚°ã‚’ç«‹ã¦ã‚‹
+        attackTimer = 0.0f; // ã‚¿ã‚¤ãƒãƒ¼ã‚’ãƒªã‚»ãƒƒãƒˆ
+        attackFixedDuration = 0.3f; // è¿‘æ¥æ”»æ’ƒã®å›ºå®šæ™‚é–“ã‚’çŸ­ã‚ã«è¨­å®š (ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ã«åˆã‚ã›ã¦èª¿æ•´)
 
-        currentLockedMeleeTarget = null; // ƒƒbƒNƒIƒ“ƒ^[ƒQƒbƒg‚ğƒŠƒZƒbƒg
+        currentLockedMeleeTarget = null; // ãƒ­ãƒƒã‚¯ã‚ªãƒ³ã‚¿ãƒ¼ã‚²ãƒƒãƒˆã‚’ãƒªã‚»ãƒƒãƒˆ
         if (preferLockedMeleeTarget)
         {
             currentLockedMeleeTarget = FindMeleeTarget();
         }
 
-        // šC³“_1: ƒƒbƒNƒIƒ“ƒ^[ƒQƒbƒg‚ª‚¢‚éê‡A‚»‚¿‚ç‚Ì•û‚ğŒü‚­ˆ—‚ğ—Dæ
+        // â˜…ä¿®æ­£ç‚¹1: ãƒ­ãƒƒã‚¯ã‚ªãƒ³ã‚¿ãƒ¼ã‚²ãƒƒãƒˆãŒã„ã‚‹å ´åˆã€ãã¡ã‚‰ã®æ–¹ã‚’å‘ãå‡¦ç†ã‚’å„ªå…ˆ
         if (currentLockedMeleeTarget != null)
         {
             Vector3 lookAtTarget = currentLockedMeleeTarget.position;
-            lookAtTarget.y = transform.position.y; // Y²‚ÍŒÅ’è
+            lookAtTarget.y = transform.position.y; // Yè»¸ã¯å›ºå®š
             transform.LookAt(lookAtTarget);
-            Debug.Log($"‹ßÚUŒ‚: ƒƒbƒNƒIƒ“ƒ^[ƒQƒbƒg ({currentLockedMeleeTarget.name}) ‚ÖŒü‚©‚Á‚ÄUŒ‚I");
+            Debug.Log($"è¿‘æ¥æ”»æ’ƒ: ãƒ­ãƒƒã‚¯ã‚ªãƒ³ã‚¿ãƒ¼ã‚²ãƒƒãƒˆ ({currentLockedMeleeTarget.name}) ã¸å‘ã‹ã£ã¦æ”»æ’ƒï¼");
 
-            // š’Ç‰Á: “G‚ÉŒü‚©‚Á‚Ä“Ëi‚·‚éƒRƒ‹[ƒ`ƒ“‚ğŠJn
+            // â˜…è¿½åŠ : æ•µã«å‘ã‹ã£ã¦çªé€²ã™ã‚‹ã‚³ãƒ«ãƒ¼ãƒãƒ³ã‚’é–‹å§‹
             StartCoroutine(MeleeDashToTarget(currentLockedMeleeTarget.position));
         }
         else
         {
-            // ƒƒbƒNƒIƒ“ƒ^[ƒQƒbƒg‚ª‚¢‚È‚¢ê‡AƒJƒƒ‰‚ÌŒü‚«‚ğˆÛ
+            // ãƒ­ãƒƒã‚¯ã‚ªãƒ³ã‚¿ãƒ¼ã‚²ãƒƒãƒˆãŒã„ãªã„å ´åˆã€ã‚«ãƒ¡ãƒ©ã®å‘ãã‚’ç¶­æŒ
             if (tpsCamController != null)
             {
                 tpsCamController.RotatePlayerToCameraDirection();
             }
-            // š’Ç‰Á: ƒ^[ƒQƒbƒg‚ª‚¢‚È‚¢ê‡AŒ»İŒü‚¢‚Ä‚¢‚é•ûŒü‚Ö’Z‚­“Ëi
+            // â˜…è¿½åŠ : ã‚¿ãƒ¼ã‚²ãƒƒãƒˆãŒã„ãªã„å ´åˆã€ç¾åœ¨å‘ã„ã¦ã„ã‚‹æ–¹å‘ã¸çŸ­ãçªé€²
             StartCoroutine(MeleeDashInCurrentDirection());
         }
 
-        // ‹ßÚUŒ‚‚Ì”ÍˆÍ“à‚Ì“G‚ğŒŸo
-        Vector3 attackOrigin = transform.position + transform.forward * meleeAttackRange * 0.5f; // ƒvƒŒƒCƒ„[‚Ì‘O•û­‚µ—£‚ê‚½ˆÊ’u‚©‚ç
+        // --- ã“ã“ã‹ã‚‰ãŒè¿‘æ¥æ”»æ’ƒã®ãƒ€ãƒ¡ãƒ¼ã‚¸å‡¦ç† ---
+        // è¿‘æ¥æ”»æ’ƒã®ç¯„å›²å†…ã®æ•µã‚’æ¤œå‡º
+        Vector3 attackOrigin = transform.position + transform.forward * meleeAttackRange * 0.5f; // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®å‰æ–¹å°‘ã—é›¢ã‚ŒãŸä½ç½®ã‹ã‚‰
         Collider[] hitColliders = Physics.OverlapSphere(attackOrigin, meleeAttackRadius, enemyLayer);
 
         foreach (Collider hitCollider in hitColliders)
@@ -590,25 +594,28 @@ public class PlayerController : MonoBehaviour
             EnemyHealth enemyHealth = hitCollider.GetComponent<EnemyHealth>();
             if (enemyHealth == null)
             {
+                // ã‚‚ã—EnemyHealthãŒç›´æ¥ã‚³ãƒ©ã‚¤ãƒ€ãƒ¼ã«ã‚¢ã‚¿ãƒƒãƒã•ã‚Œã¦ã„ãªã„å ´åˆã€è¦ªã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã‚’æ¢ã™
                 enemyHealth = hitCollider.GetComponentInParent<EnemyHealth>();
             }
 
             if (enemyHealth != null)
             {
-                float damage = meleeDamage + (currentMeleeCombo - 1) * (meleeDamage * 0.5f); // —á: ƒx[ƒXƒ_ƒ[ƒW‚ÉƒRƒ“ƒ{ƒ{[ƒiƒX‚ğ‰ÁZ
+                // æ•µã®Healthã‚¹ã‚¯ãƒªãƒ—ãƒˆã«ãƒ€ãƒ¡ãƒ¼ã‚¸ã‚’ä¸ãˆã‚‹
+                float damage = meleeDamage + (currentMeleeCombo - 1) * (meleeDamage * 0.5f); // ä¾‹: ãƒ™ãƒ¼ã‚¹ãƒ€ãƒ¡ãƒ¼ã‚¸ã«ã‚³ãƒ³ãƒœãƒœãƒ¼ãƒŠã‚¹ã‚’åŠ ç®—
                 enemyHealth.TakeDamage(damage);
-                Debug.Log($"{hitCollider.name} ‚É {damage} ƒ_ƒ[ƒW‚ğ—^‚¦‚Ü‚µ‚½B(ƒRƒ“ƒ{ {currentMeleeCombo})");
+                Debug.Log($"{hitCollider.name} ã« {damage} ãƒ€ãƒ¡ãƒ¼ã‚¸ã‚’ä¸ãˆã¾ã—ãŸã€‚(ã‚³ãƒ³ãƒœ {currentMeleeCombo})");
             }
         }
+        // --- è¿‘æ¥æ”»æ’ƒã®ãƒ€ãƒ¡ãƒ¼ã‚¸å‡¦ç†ã“ã“ã¾ã§ ---
     }
 
     /// <summary>
-    /// ƒr[ƒ€UŒ‚‚ğÀs‚·‚é
-    /// ƒƒbƒNƒIƒ“‰Â”\‚È“G‚ª‚¢‚ê‚Î‚»‚¿‚ç‚ğ—Dæ‚µA‚È‚¯‚ê‚ÎƒJƒƒ‰‚Ì•ûŒü‚Ö”­Ë
+    /// ãƒ“ãƒ¼ãƒ æ”»æ’ƒã‚’å®Ÿè¡Œã™ã‚‹
+    /// ãƒ­ãƒƒã‚¯ã‚ªãƒ³å¯èƒ½ãªæ•µãŒã„ã‚Œã°ãã¡ã‚‰ã‚’å„ªå…ˆã—ã€ãªã‘ã‚Œã°ã‚«ãƒ¡ãƒ©ã®æ–¹å‘ã¸ç™ºå°„
     /// </summary>
     void PerformBeamAttack()
     {
-        // ƒN[ƒ‹ƒ_ƒEƒ“’†A‚Ü‚½‚ÍƒGƒlƒ‹ƒM[•s‘«A‚Ü‚½‚ÍŠù‚ÉUŒ‚’†‚Ìê‡‚ÍÀs‚µ‚È‚¢
+        // ã‚¯ãƒ¼ãƒ«ãƒ€ã‚¦ãƒ³ä¸­ã€ã¾ãŸã¯ã‚¨ãƒãƒ«ã‚®ãƒ¼ä¸è¶³ã€ã¾ãŸã¯æ—¢ã«æ”»æ’ƒä¸­ã®å ´åˆã¯å®Ÿè¡Œã—ãªã„
         if (Time.time < lastBeamAttackTime + beamCooldown || currentEnergy < beamAttackEnergyCost || isAttacking)
         {
             if (currentEnergy < beamAttackEnergyCost)
@@ -634,10 +641,10 @@ public class PlayerController : MonoBehaviour
         UpdateEnergyUI();
         lastBeamAttackTime = Time.time;
 
-        Debug.Log("ƒr[ƒ€UŒ‚I");
+        Debug.Log("ãƒ“ãƒ¼ãƒ æ”»æ’ƒï¼");
 
-        // ƒƒbƒNƒIƒ“ƒ^[ƒQƒbƒg‚ğŒŸõ
-        currentLockedBeamTarget = null; // ƒƒbƒNƒIƒ“ƒ^[ƒQƒbƒg‚ğƒŠƒZƒbƒg
+        // ãƒ­ãƒƒã‚¯ã‚ªãƒ³ã‚¿ãƒ¼ã‚²ãƒƒãƒˆã‚’æ¤œç´¢
+        currentLockedBeamTarget = null; // ãƒ­ãƒƒã‚¯ã‚ªãƒ³ã‚¿ãƒ¼ã‚²ãƒƒãƒˆã‚’ãƒªã‚»ãƒƒãƒˆ
         if (preferLockedTarget)
         {
             currentLockedBeamTarget = FindBeamTarget();
@@ -648,51 +655,54 @@ public class PlayerController : MonoBehaviour
 
         if (currentLockedBeamTarget != null)
         {
-            // ƒƒbƒNƒIƒ“ƒ^[ƒQƒbƒg‚ª‚¢‚éê‡Aƒ^[ƒQƒbƒg‚Ì•ûŒü‚Öƒr[ƒ€‚ğ”ò‚Î‚·
-            // ƒvƒŒƒCƒ„[‚ÌŒü‚«‚ğƒ^[ƒQƒbƒg‚Ì…•½•ûŒü‚ÉŒü‚¯‚é
+            // ãƒ­ãƒƒã‚¯ã‚ªãƒ³ã‚¿ãƒ¼ã‚²ãƒƒãƒˆãŒã„ã‚‹å ´åˆã€ã‚¿ãƒ¼ã‚²ãƒƒãƒˆã®æ–¹å‘ã¸ãƒ“ãƒ¼ãƒ ã‚’é£›ã°ã™
+            // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®å‘ãã‚’ã‚¿ãƒ¼ã‚²ãƒƒãƒˆã®æ°´å¹³æ–¹å‘ã«å‘ã‘ã‚‹
             Vector3 targetFlatPos = currentLockedBeamTarget.position;
             targetFlatPos.y = transform.position.y;
             transform.LookAt(targetFlatPos);
 
-            // beamSpawnPoint ‚©‚çƒ^[ƒQƒbƒg•ûŒü‚Ö‚ÌRay‚ğİ’è
+            // beamSpawnPoint ã‹ã‚‰ã‚¿ãƒ¼ã‚²ãƒƒãƒˆæ–¹å‘ã¸ã®Rayã‚’è¨­å®š
             rayOrigin = beamSpawnPoint.position;
             rayDirection = (currentLockedBeamTarget.position - beamSpawnPoint.position).normalized;
 
-            Debug.Log($"ƒr[ƒ€: ƒƒbƒNƒIƒ“ƒ^[ƒQƒbƒg ({currentLockedBeamTarget.name}) ‚Ö”­ËI");
+            Debug.Log($"ãƒ“ãƒ¼ãƒ : ãƒ­ãƒƒã‚¯ã‚ªãƒ³ã‚¿ãƒ¼ã‚²ãƒƒãƒˆ ({currentLockedBeamTarget.name}) ã¸ç™ºå°„ï¼");
         }
         else
         {
-            // ƒƒbƒNƒIƒ“ƒ^[ƒQƒbƒg‚ª‚¢‚È‚¢ê‡AƒJƒƒ‰‚Ì•ûŒü‚Öƒr[ƒ€‚ğ”ò‚Î‚·iŠù‘¶‚Ì“®ìj
-            // ƒvƒŒƒCƒ„[‚ÌŒü‚«‚ğƒJƒƒ‰‚Ì…•½•ûŒü‚É‡‚í‚¹‚é
+            // ãƒ­ãƒƒã‚¯ã‚ªãƒ³ã‚¿ãƒ¼ã‚²ãƒƒãƒˆãŒã„ãªã„å ´åˆã€ã‚«ãƒ¡ãƒ©ã®æ–¹å‘ã¸ãƒ“ãƒ¼ãƒ ã‚’é£›ã°ã™ï¼ˆæ—¢å­˜ã®å‹•ä½œï¼‰
+            // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®å‘ãã‚’ã‚«ãƒ¡ãƒ©ã®æ°´å¹³æ–¹å‘ã«åˆã‚ã›ã‚‹
             tpsCamController.RotatePlayerToCameraDirection();
 
-            // ƒJƒƒ‰‚©‚çRay‚ğæ“¾‚µA‚»‚ÌRay‚Ì•ûŒü‚ÅRaycast‚ğs‚¤
+            // ã‚«ãƒ¡ãƒ©ã‹ã‚‰Rayã‚’å–å¾—ã—ã€ãã®Rayã®æ–¹å‘ã§Raycastã‚’è¡Œã†
             Ray cameraRay = tpsCamController.GetCameraRay();
             rayOrigin = cameraRay.origin;
             rayDirection = cameraRay.direction;
 
-            Debug.Log("ƒr[ƒ€: ƒJƒƒ‰‚Ì•ûŒü‚Ö”­ËI");
+            Debug.Log("ãƒ“ãƒ¼ãƒ : ã‚«ãƒ¡ãƒ©ã®æ–¹å‘ã¸ç™ºå°„ï¼");
         }
 
-        GameObject beamInstance = null; // ƒr[ƒ€ƒGƒtƒFƒNƒg‚ÌƒCƒ“ƒXƒ^ƒ“ƒX‚ğ•Û‚·‚é•Ï”
+        GameObject beamInstance = null; // ãƒ“ãƒ¼ãƒ ã‚¨ãƒ•ã‚§ã‚¯ãƒˆã®ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ã‚’ä¿æŒã™ã‚‹å¤‰æ•°
         RaycastHit hit;
 
-        // Raycast‚Å“G‚ğŒŸo
+        // --- ã“ã“ã‹ã‚‰ãŒãƒ“ãƒ¼ãƒ æ”»æ’ƒã®ãƒ€ãƒ¡ãƒ¼ã‚¸å‡¦ç† ---
+        // Raycastã§æ•µã‚’æ¤œå‡º
         if (Physics.Raycast(rayOrigin, rayDirection, out hit, beamAttackRange, enemyLayer))
         {
             EnemyHealth enemyHealth = hit.collider.GetComponent<EnemyHealth>();
             if (enemyHealth == null)
             {
+                // ã‚‚ã—EnemyHealthãŒç›´æ¥ã‚³ãƒ©ã‚¤ãƒ€ãƒ¼ã«ã‚¢ã‚¿ãƒƒãƒã•ã‚Œã¦ã„ãªã„å ´åˆã€è¦ªã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã‚’æ¢ã™
                 enemyHealth = hit.collider.GetComponentInParent<EnemyHealth>();
             }
 
             if (enemyHealth != null)
             {
+                // æ•µã®Healthã‚¹ã‚¯ãƒªãƒ—ãƒˆã«ãƒ€ãƒ¡ãƒ¼ã‚¸ã‚’ä¸ãˆã‚‹
                 enemyHealth.TakeDamage(beamDamage);
-                Debug.Log($"{hit.collider.name} ‚Éƒr[ƒ€‚Å {beamDamage} ƒ_ƒ[ƒW‚ğ—^‚¦‚Ü‚µ‚½B");
+                Debug.Log($"{hit.collider.name} ã«ãƒ“ãƒ¼ãƒ ã§ {beamDamage} ãƒ€ãƒ¡ãƒ¼ã‚¸ã‚’ä¸ãˆã¾ã—ãŸã€‚");
             }
 
-            // ƒr[ƒ€ƒGƒtƒFƒNƒg‚ğbeamSpawnPoint‚©‚ç”­Ë‚µARay‚Ìis•ûŒü‚ğŒü‚©‚¹‚é
+            // ãƒ“ãƒ¼ãƒ ã‚¨ãƒ•ã‚§ã‚¯ãƒˆã‚’beamSpawnPointã‹ã‚‰ç™ºå°„ã—ã€Rayã®é€²è¡Œæ–¹å‘ã‚’å‘ã‹ã›ã‚‹
             if (beamEffectPrefab != null)
             {
                 beamInstance = Instantiate(beamEffectPrefab, beamSpawnPoint.position, Quaternion.LookRotation(rayDirection));
@@ -700,32 +710,33 @@ public class PlayerController : MonoBehaviour
         }
         else
         {
-            // ‰½‚àƒqƒbƒg‚µ‚È‚©‚Á‚½ê‡Aƒr[ƒ€ƒGƒtƒFƒNƒg‚ğbeamSpawnPoint‚©‚ç”­Ë‚µARay‚Ìis•ûŒü‚ğŒü‚©‚¹‚é
+            // ä½•ã‚‚ãƒ’ãƒƒãƒˆã—ãªã‹ã£ãŸå ´åˆã€ãƒ“ãƒ¼ãƒ ã‚¨ãƒ•ã‚§ã‚¯ãƒˆã‚’beamSpawnPointã‹ã‚‰ç™ºå°„ã—ã€Rayã®é€²è¡Œæ–¹å‘ã‚’å‘ã‹ã›ã‚‹
             if (beamEffectPrefab != null)
             {
                 beamInstance = Instantiate(beamEffectPrefab, beamSpawnPoint.position, Quaternion.LookRotation(rayDirection));
             }
         }
+        // --- ãƒ“ãƒ¼ãƒ æ”»æ’ƒã®ãƒ€ãƒ¡ãƒ¼ã‚¸å‡¦ç†ã“ã“ã¾ã§ ---
 
-        // ¶¬‚µ‚½ƒr[ƒ€ƒGƒtƒFƒNƒg‚ğˆê’èŠÔŒã‚É”jŠü‚·‚é
+        // ç”Ÿæˆã—ãŸãƒ“ãƒ¼ãƒ ã‚¨ãƒ•ã‚§ã‚¯ãƒˆã‚’ä¸€å®šæ™‚é–“å¾Œã«ç ´æ£„ã™ã‚‹
         if (beamInstance != null)
         {
-            Destroy(beamInstance, 0.5f); // —á: 0.5•bŒã‚ÉÁ–Å
+            Destroy(beamInstance, 0.5f); // ä¾‹: 0.5ç§’å¾Œã«æ¶ˆæ»…
         }
 
-        // ƒr[ƒ€UŒ‚’†‚Íˆê“I‚ÉƒvƒŒƒCƒ„[‚Ì“®‚«‚ğŒÅ’è
+        // ãƒ“ãƒ¼ãƒ æ”»æ’ƒä¸­ã¯ä¸€æ™‚çš„ã«ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®å‹•ãã‚’å›ºå®š
         isAttacking = true;
         attackTimer = 0.0f;
-        attackFixedDuration = 0.2f; // —á: ƒr[ƒ€”­Ë‚ÌƒAƒjƒ[ƒVƒ‡ƒ“ŠÔ
+        attackFixedDuration = 0.2f; // ä¾‹: ãƒ“ãƒ¼ãƒ ç™ºå°„ã®ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³æ™‚é–“
     }
 
     /// <summary>
-    /// UŒ‚’†‚ÌƒvƒŒƒCƒ„[‚Ìó‘Ô‚ğˆ—i“®‚«ŒÅ’èAŒü‚«‚ÌˆÛ‚È‚Çj
+    /// æ”»æ’ƒä¸­ã®ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®çŠ¶æ…‹ã‚’å‡¦ç†ï¼ˆå‹•ãå›ºå®šã€å‘ãã®ç¶­æŒãªã©ï¼‰
     /// </summary>
     void HandleAttackState()
     {
-        // UŒ‚ƒAƒjƒ[ƒVƒ‡ƒ“‚âƒGƒtƒFƒNƒg‚ÌÄ¶’†‚ÉƒvƒŒƒCƒ„[‚Ì“®‚«‚ğŒÅ’è
-        // ƒrƒbƒgUŒ‚’†‚ÍƒƒbƒNƒIƒ“‚µ‚½“G‚ÉŒü‚¯‚é
+        // æ”»æ’ƒã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ã‚„ã‚¨ãƒ•ã‚§ã‚¯ãƒˆã®å†ç”Ÿä¸­ã«ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®å‹•ãã‚’å›ºå®š
+        // ãƒ“ãƒƒãƒˆæ”»æ’ƒä¸­ã¯ãƒ­ãƒƒã‚¯ã‚ªãƒ³ã—ãŸæ•µã«å‘ã‘ã‚‹
         if (canUseSwordBitAttack && Input.GetMouseButtonDown(2) && lockedEnemies.Count > 0 && lockedEnemies[0] != null)
         {
             Vector3 lookAtTarget = lockedEnemies[0].position;
@@ -733,25 +744,25 @@ public class PlayerController : MonoBehaviour
             Quaternion targetRotation = Quaternion.LookRotation(lookAtTarget - transform.position);
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 10f);
         }
-        // ‹ßÚUŒ‚’†‚ÍAƒƒbƒNƒIƒ“‚µ‚Ä‚¢‚é“G‚ª‚¢‚ê‚Î‚»‚¿‚ç‚ğŒü‚«A‚¢‚È‚¯‚ê‚ÎƒJƒƒ‰‚ÌŒü‚«‚ğˆÛ
-        else if (Input.GetMouseButtonDown(0)) // ‹ßÚUŒ‚’†‚Ìê‡
+        // è¿‘æ¥æ”»æ’ƒä¸­ã¯ã€ãƒ­ãƒƒã‚¯ã‚ªãƒ³ã—ã¦ã„ã‚‹æ•µãŒã„ã‚Œã°ãã¡ã‚‰ã‚’å‘ãã€ã„ãªã‘ã‚Œã°ã‚«ãƒ¡ãƒ©ã®å‘ãã‚’ç¶­æŒ
+        else if (Input.GetMouseButtonDown(0)) // è¿‘æ¥æ”»æ’ƒä¸­ã®å ´åˆ
         {
             if (currentLockedMeleeTarget != null)
             {
-                // ƒƒbƒNƒIƒ“ƒ^[ƒQƒbƒg‚ª‘¶İ‚·‚éê‡AY²ŒÅ’è‚Åƒ^[ƒQƒbƒg‚Ì•û‚ğŒü‚­
+                // ãƒ­ãƒƒã‚¯ã‚ªãƒ³ã‚¿ãƒ¼ã‚²ãƒƒãƒˆãŒå­˜åœ¨ã™ã‚‹å ´åˆã€Yè»¸å›ºå®šã§ã‚¿ãƒ¼ã‚²ãƒƒãƒˆã®æ–¹ã‚’å‘ã
                 Vector3 lookAtTarget = currentLockedMeleeTarget.position;
                 lookAtTarget.y = transform.position.y;
                 Quaternion targetRotation = Quaternion.LookRotation(lookAtTarget - transform.position);
                 transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 10f);
             }
-            // else: ƒƒbƒNƒIƒ“‚µ‚Ä‚¢‚È‚¯‚ê‚ÎAUpdate‚Åí‚ÉƒJƒƒ‰•ûŒü‚ğŒü‚¢‚Ä‚¢‚é‚Ì‚Å“Á•Êˆ—‚Í•s—v
+            // else: ãƒ­ãƒƒã‚¯ã‚ªãƒ³ã—ã¦ã„ãªã‘ã‚Œã°ã€Updateã§å¸¸ã«ã‚«ãƒ¡ãƒ©æ–¹å‘ã‚’å‘ã„ã¦ã„ã‚‹ã®ã§ç‰¹åˆ¥å‡¦ç†ã¯ä¸è¦
         }
-        // ƒr[ƒ€UŒ‚’†‚ÍAƒƒbƒNƒIƒ“‚µ‚Ä‚¢‚é“G‚ª‚¢‚ê‚Î‚»‚¿‚ç‚ğŒü‚«A‚¢‚È‚¯‚ê‚ÎƒJƒƒ‰‚ÌŒü‚«‚ğˆÛ
-        else if (Input.GetMouseButtonDown(1)) // ƒr[ƒ€UŒ‚’†‚Ìê‡
+        // ãƒ“ãƒ¼ãƒ æ”»æ’ƒä¸­ã¯ã€ãƒ­ãƒƒã‚¯ã‚ªãƒ³ã—ã¦ã„ã‚‹æ•µãŒã„ã‚Œã°ãã¡ã‚‰ã‚’å‘ãã€ã„ãªã‘ã‚Œã°ã‚«ãƒ¡ãƒ©ã®å‘ãã‚’ç¶­æŒ
+        else if (Input.GetMouseButtonDown(1)) // ãƒ“ãƒ¼ãƒ æ”»æ’ƒä¸­ã®å ´åˆ
         {
             if (currentLockedBeamTarget != null)
             {
-                // ƒƒbƒNƒIƒ“ƒ^[ƒQƒbƒg‚ª‘¶İ‚·‚éê‡AY²ŒÅ’è‚Åƒ^[ƒQƒbƒg‚Ì•û‚ğŒü‚­
+                // ãƒ­ãƒƒã‚¯ã‚ªãƒ³ã‚¿ãƒ¼ã‚²ãƒƒãƒˆãŒå­˜åœ¨ã™ã‚‹å ´åˆã€Yè»¸å›ºå®šã§ã‚¿ãƒ¼ã‚²ãƒƒãƒˆã®æ–¹ã‚’å‘ã
                 Vector3 lookAtTarget = currentLockedBeamTarget.position;
                 lookAtTarget.y = transform.position.y;
                 Quaternion targetRotation = Quaternion.LookRotation(lookAtTarget - transform.position);
@@ -759,7 +770,7 @@ public class PlayerController : MonoBehaviour
             }
             else if (tpsCamController != null)
             {
-                tpsCamController.RotatePlayerToCameraDirection(); // ƒƒbƒNƒIƒ“‚µ‚Ä‚¢‚È‚¯‚ê‚ÎƒJƒƒ‰•ûŒü‚É‹­§
+                tpsCamController.RotatePlayerToCameraDirection(); // ãƒ­ãƒƒã‚¯ã‚ªãƒ³ã—ã¦ã„ãªã‘ã‚Œã°ã‚«ãƒ¡ãƒ©æ–¹å‘ã«å¼·åˆ¶
             }
         }
 
@@ -768,23 +779,24 @@ public class PlayerController : MonoBehaviour
         if (attackTimer >= attackFixedDuration)
         {
             isAttacking = false;
-            // ŠeUŒ‚‚ÌƒƒbƒNƒIƒ“ƒ^[ƒQƒbƒg‚ğƒNƒŠƒA
-            lockedEnemies.RemoveAll(t => t == null); // ƒrƒbƒgUŒ‚—p
-            currentLockedBeamTarget = null; // ƒr[ƒ€UŒ‚—p
-            currentLockedMeleeTarget = null; // ‹ßÚUŒ‚—p
+            // å„æ”»æ’ƒã®ãƒ­ãƒƒã‚¯ã‚ªãƒ³ã‚¿ãƒ¼ã‚²ãƒƒãƒˆã‚’ã‚¯ãƒªã‚¢
+            lockedEnemies.RemoveAll(t => t == null); // ãƒ“ãƒƒãƒˆæ”»æ’ƒç”¨
+            currentLockedBeamTarget = null; // ãƒ“ãƒ¼ãƒ æ”»æ’ƒç”¨
+            currentLockedMeleeTarget = null; // è¿‘æ¥æ”»æ’ƒç”¨
 
             Debug.Log("Attack sequence finished.");
-            attackFixedDuration = 0.8f; // ‚±‚±‚ÅƒfƒtƒHƒ‹ƒg‚É–ß‚·—á
+            attackFixedDuration = 0.8f; // ã“ã“ã§ãƒ‡ãƒ•ã‚©ãƒ«ãƒˆã«æˆ»ã™ä¾‹
         }
     }
 
 
     /// <summary>
-    /// ƒrƒbƒg‚ğËo‚µA“G‚ÉŒü‚©‚Á‚Ä”ò‚Î‚·ƒRƒ‹[ƒ`ƒ“
+    /// ãƒ“ãƒƒãƒˆã‚’å°„å‡ºã—ã€æ•µã«å‘ã‹ã£ã¦é£›ã°ã™ã‚³ãƒ«ãƒ¼ãƒãƒ³
     /// </summary>
-    /// <param name="initialSpawnPosition">ƒrƒbƒg‚Ì‰ŠúƒXƒ|[ƒ“ˆÊ’uiƒ[ƒ‹ƒhÀ•Wj</param>
-    /// <param name="target">ƒrƒbƒg‚ªŒü‚©‚¤ƒ^[ƒQƒbƒg</param>
-    System.Collections.IEnumerator LaunchBit(Vector3 initialSpawnPosition, Transform target)
+    /// <param name="initialSpawnPosition">ãƒ“ãƒƒãƒˆã®åˆæœŸã‚¹ãƒãƒ¼ãƒ³ä½ç½®ï¼ˆãƒ¯ãƒ¼ãƒ«ãƒ‰åº§æ¨™ï¼‰</param>
+    /// <param name="target">ãƒ“ãƒƒãƒˆãŒå‘ã‹ã†ã‚¿ãƒ¼ã‚²ãƒƒãƒˆ</param>
+    /// <param name="damage">ãƒ“ãƒƒãƒˆãŒä¸ãˆã‚‹ãƒ€ãƒ¡ãƒ¼ã‚¸</param> // è¿½åŠ : ãƒ€ãƒ¡ãƒ¼ã‚¸å¼•æ•°
+    System.Collections.IEnumerator LaunchBit(Vector3 initialSpawnPosition, Transform target, float damage)
     {
         if (bitPrefab != null)
         {
@@ -793,7 +805,8 @@ public class PlayerController : MonoBehaviour
 
             if (bitScript != null)
             {
-                bitScript.InitializeBit(initialSpawnPosition, target, bitLaunchHeight, bitLaunchDuration, bitAttackSpeed, bitArcHeight, enemyLayer);
+                // InitializeBitã«ãƒ€ãƒ¡ãƒ¼ã‚¸å€¤ã‚’æ¸¡ã™
+                bitScript.InitializeBit(initialSpawnPosition, target, bitLaunchHeight, bitLaunchDuration, bitAttackSpeed, bitArcHeight, enemyLayer, damage);
             }
             else
             {
@@ -804,19 +817,19 @@ public class PlayerController : MonoBehaviour
         {
             Debug.LogError("Bit Prefab is not assigned!");
         }
-        yield return null; // ƒRƒ‹[ƒ`ƒ“‚Æ‚µ‚Ä‹@”\‚³‚¹‚é‚½‚ß‚ÉÅ’á1ƒtƒŒ[ƒ€‘Ò‚Â
+        yield return null; // ã‚³ãƒ«ãƒ¼ãƒãƒ³ã¨ã—ã¦æ©Ÿèƒ½ã•ã›ã‚‹ãŸã‚ã«æœ€ä½1ãƒ•ãƒ¬ãƒ¼ãƒ å¾…ã¤
     }
 
     /// <summary>
-    /// •Ší‚ğ‘•”õ‚·‚é
+    /// æ­¦å™¨ã‚’è£…å‚™ã™ã‚‹
     /// </summary>
     public void EquipWeapons(WeaponData primaryWeaponData, WeaponData secondaryWeaponData)
     {
-        // Šù‘¶‚Ì•Ší‚ğ”jŠü
+        // æ—¢å­˜ã®æ­¦å™¨ã‚’ç ´æ£„
         if (currentPrimaryWeaponInstance != null) Destroy(currentPrimaryWeaponInstance);
         if (currentSecondaryWeaponInstance != null) Destroy(currentSecondaryWeaponInstance);
 
-        // å•Ší‚Ì‘•”õ
+        // ä¸»æ­¦å™¨ã®è£…å‚™
         if (primaryWeaponData != null && primaryWeaponData.weaponPrefab != null && primaryWeaponAttachPoint != null)
         {
             currentPrimaryWeaponInstance = Instantiate(primaryWeaponData.weaponPrefab, primaryWeaponAttachPoint);
@@ -825,7 +838,7 @@ public class PlayerController : MonoBehaviour
             Debug.Log($"Primary Weapon Equipped: {primaryWeaponData.weaponName}");
         }
 
-        // •›•Ší‚Ì‘•”õ
+        // å‰¯æ­¦å™¨ã®è£…å‚™
         if (secondaryWeaponData != null && secondaryWeaponData.weaponPrefab != null && secondaryWeaponAttachPoint != null)
         {
             currentSecondaryWeaponInstance = Instantiate(secondaryWeaponData.weaponPrefab, secondaryWeaponAttachPoint);
@@ -836,30 +849,30 @@ public class PlayerController : MonoBehaviour
     }
 
 
-    // ƒfƒoƒbƒO•\¦—p (Gizmos)
+    // ãƒ‡ãƒãƒƒã‚°è¡¨ç¤ºç”¨ (Gizmos)
     void OnDrawGizmosSelected()
     {
-        // ‹ßÚUŒ‚‚Ì”ÍˆÍ‚ğ‹Šo‰»
+        // è¿‘æ¥æ”»æ’ƒã®ç¯„å›²ã‚’è¦–è¦šåŒ–
         Gizmos.color = Color.red;
-        // ‹ßÚUŒ‚‚Ì©“®ƒƒbƒNƒIƒ“”ÍˆÍ
+        // è¿‘æ¥æ”»æ’ƒã®è‡ªå‹•ãƒ­ãƒƒã‚¯ã‚ªãƒ³ç¯„å›²
         Gizmos.DrawWireSphere(transform.position, autoLockOnMeleeRange);
-        // ’Êí‚Ì‹ßÚUŒ‚”»’è”ÍˆÍ
+        // é€šå¸¸ã®è¿‘æ¥æ”»æ’ƒåˆ¤å®šç¯„å›²
         Gizmos.DrawWireSphere(transform.position + transform.forward * meleeAttackRange * 0.5f, meleeAttackRadius);
 
 
-        // ƒr[ƒ€UŒ‚‚ÌË’ö‚ğAƒƒbƒNƒIƒ“ƒ^[ƒQƒbƒg‚ª‘¶İ‚·‚ê‚Î‚»‚¿‚ç‚ÖA‚È‚¯‚ê‚ÎƒJƒƒ‰‚ÌRay‚ÉŠî‚Ã‚¢‚Ä‹Šo‰»
+        // ãƒ“ãƒ¼ãƒ æ”»æ’ƒã®å°„ç¨‹ã‚’ã€ãƒ­ãƒƒã‚¯ã‚ªãƒ³ã‚¿ãƒ¼ã‚²ãƒƒãƒˆãŒå­˜åœ¨ã™ã‚Œã°ãã¡ã‚‰ã¸ã€ãªã‘ã‚Œã°ã‚«ãƒ¡ãƒ©ã®Rayã«åŸºã¥ã„ã¦è¦–è¦šåŒ–
         Gizmos.color = Color.blue;
         if (tpsCamController != null)
         {
             Vector3 gizmoRayOrigin;
             Vector3 gizmoRayDirection;
 
-            if (currentLockedBeamTarget != null) // ƒƒbƒNƒIƒ“ƒ^[ƒQƒbƒg‚ª‘¶İ‚·‚éê‡
+            if (currentLockedBeamTarget != null) // ãƒ­ãƒƒã‚¯ã‚ªãƒ³ã‚¿ãƒ¼ã‚²ãƒƒãƒˆãŒå­˜åœ¨ã™ã‚‹å ´åˆ
             {
                 gizmoRayOrigin = beamSpawnPoint != null ? beamSpawnPoint.position : transform.position;
                 gizmoRayDirection = (currentLockedBeamTarget.position - gizmoRayOrigin).normalized;
             }
-            else // ƒƒbƒNƒIƒ“ƒ^[ƒQƒbƒg‚ª‘¶İ‚µ‚È‚¢ê‡iƒJƒƒ‰‚ÌRay‚ğg—pj
+            else // ãƒ­ãƒƒã‚¯ã‚ªãƒ³ã‚¿ãƒ¼ã‚²ãƒƒãƒˆãŒå­˜åœ¨ã—ãªã„å ´åˆï¼ˆã‚«ãƒ¡ãƒ©ã®Rayã‚’ä½¿ç”¨ï¼‰
             {
                 Ray cameraRay = tpsCamController.GetCameraRay();
                 gizmoRayOrigin = cameraRay.origin;
@@ -867,18 +880,18 @@ public class PlayerController : MonoBehaviour
             }
 
             Gizmos.DrawRay(gizmoRayOrigin, gizmoRayDirection * beamAttackRange);
-            Gizmos.DrawSphere(gizmoRayOrigin + gizmoRayDirection * beamAttackRange, 0.5f); // I“_‚É‹…
+            Gizmos.DrawSphere(gizmoRayOrigin + gizmoRayDirection * beamAttackRange, 0.5f); // çµ‚ç‚¹ã«çƒ
 
-            // ©“®ƒƒbƒNƒIƒ“”ÍˆÍ‚Ì•\¦
+            // è‡ªå‹•ãƒ­ãƒƒã‚¯ã‚ªãƒ³ç¯„å›²ã®è¡¨ç¤º
             Gizmos.color = Color.cyan;
             Gizmos.DrawWireSphere(transform.position, autoLockOnRange);
         }
-        else if (beamSpawnPoint != null) // TPSCameraController‚ª‚È‚¢ê‡‚ÌƒtƒH[ƒ‹ƒoƒbƒN
+        else if (beamSpawnPoint != null) // TPSCameraControllerãŒãªã„å ´åˆã®ãƒ•ã‚©ãƒ¼ãƒ«ãƒãƒƒã‚¯
         {
             Gizmos.DrawRay(beamSpawnPoint.position, beamSpawnPoint.forward * beamAttackRange);
             Gizmos.DrawSphere(beamSpawnPoint.position + beamSpawnPoint.forward * beamAttackRange, 0.5f);
         }
-        else // beamSpawnPoint‚àİ’è‚³‚ê‚Ä‚¢‚È‚¢ê‡‚ÌƒtƒH[ƒ‹ƒoƒbƒN
+        else // beamSpawnPointã‚‚è¨­å®šã•ã‚Œã¦ã„ãªã„å ´åˆã®ãƒ•ã‚©ãƒ¼ãƒ«ãƒãƒƒã‚¯
         {
             Gizmos.DrawRay(transform.position, transform.forward * beamAttackRange);
             Gizmos.DrawSphere(transform.position + transform.forward * beamAttackRange, 0.5f);
@@ -886,35 +899,35 @@ public class PlayerController : MonoBehaviour
     }
 
     /// <summary>
-    /// ‹ßÚUŒ‚‚Éƒ^[ƒQƒbƒg‚ÉŒü‚©‚Á‚Ä“Ëi‚·‚éƒRƒ‹[ƒ`ƒ“
+    /// è¿‘æ¥æ”»æ’ƒæ™‚ã«ã‚¿ãƒ¼ã‚²ãƒƒãƒˆã«å‘ã‹ã£ã¦çªé€²ã™ã‚‹ã‚³ãƒ«ãƒ¼ãƒãƒ³
     /// </summary>
-    /// <param name="targetPosition">“Ëi–Ú•W’n“_</param>
+    /// <param name="targetPosition">çªé€²ç›®æ¨™åœ°ç‚¹</param>
     private System.Collections.IEnumerator MeleeDashToTarget(Vector3 targetPosition)
     {
         Vector3 startPosition = transform.position;
-        // ƒ^[ƒQƒbƒg‚Ü‚Å‚Ì‹——£‚ğŒvZ‚µAmeleeDashDistance‚ğ’´‚¦‚È‚¢‚æ‚¤‚É‚·‚é
+        // ã‚¿ãƒ¼ã‚²ãƒƒãƒˆã¾ã§ã®è·é›¢ã‚’è¨ˆç®—ã—ã€meleeDashDistanceã‚’è¶…ãˆãªã„ã‚ˆã†ã«ã™ã‚‹
         Vector3 direction = (targetPosition - startPosition).normalized;
         Vector3 endPosition = startPosition + direction * Mathf.Min(Vector3.Distance(startPosition, targetPosition) - meleeAttackRange * 0.5f, meleeDashDistance);
-        // meleeAttackRange * 0.5f ‚ÍA“G‚Ìu’†Sv‚É“Ëi‚·‚é‚Ì‚Å‚Í‚È‚­AUŒ‚”ÍˆÍ‚Ì“Í‚­è‘O‚Å~‚Ü‚é‚æ‚¤‚É’²®
+        // meleeAttackRange * 0.5f ã¯ã€æ•µã®ã€Œä¸­å¿ƒã€ã«çªé€²ã™ã‚‹ã®ã§ã¯ãªãã€æ”»æ’ƒç¯„å›²ã®å±Šãæ‰‹å‰ã§æ­¢ã¾ã‚‹ã‚ˆã†ã«èª¿æ•´
 
         float elapsedTime = 0f;
 
         while (elapsedTime < meleeDashDuration)
         {
-            // CharacterController.Move ‚ğg‚Á‚ÄˆÚ“®
-            // CharacterController ‚ÍƒRƒŠƒWƒ‡ƒ“‚É©“®“I‚É”½‰‚·‚é‚½‚ßA’P‚ÉˆÚ“®ƒxƒNƒgƒ‹‚ğ—^‚¦‚é
+            // CharacterController.Move ã‚’ä½¿ã£ã¦ç§»å‹•
+            // CharacterController ã¯ã‚³ãƒªã‚¸ãƒ§ãƒ³ã«è‡ªå‹•çš„ã«åå¿œã™ã‚‹ãŸã‚ã€å˜ã«ç§»å‹•ãƒ™ã‚¯ãƒˆãƒ«ã‚’ä¸ãˆã‚‹
             Vector3 currentMove = Vector3.Lerp(startPosition, endPosition, elapsedTime / meleeDashDuration) - transform.position;
             controller.Move(currentMove);
 
             elapsedTime += Time.deltaTime;
             yield return null;
         }
-        // “ËiI—¹‚ÉÅI“I‚ÈˆÊ’u‚ÉŠmÀ‚É“’B‚³‚¹‚éiCharacterController.Move ‚Ì“Á«ãAŠ®‘S‚Éˆê’v‚µ‚È‚¢ê‡‚ª‚ ‚é‚½‚ßj
+        // çªé€²çµ‚äº†æ™‚ã«æœ€çµ‚çš„ãªä½ç½®ã«ç¢ºå®Ÿã«åˆ°é”ã•ã›ã‚‹ï¼ˆCharacterController.Move ã®ç‰¹æ€§ä¸Šã€å®Œå…¨ã«ä¸€è‡´ã—ãªã„å ´åˆãŒã‚ã‚‹ãŸã‚ï¼‰
         controller.Move(endPosition - transform.position);
     }
 
     /// <summary>
-    /// ‹ßÚUŒ‚‚ÉŒ»İŒü‚¢‚Ä‚¢‚é•ûŒü‚Ö’Z‚­“Ëi‚·‚éƒRƒ‹[ƒ`ƒ“iƒ^[ƒQƒbƒg‚ª‚¢‚È‚¢ê‡j
+    /// è¿‘æ¥æ”»æ’ƒæ™‚ã«ç¾åœ¨å‘ã„ã¦ã„ã‚‹æ–¹å‘ã¸çŸ­ãçªé€²ã™ã‚‹ã‚³ãƒ«ãƒ¼ãƒãƒ³ï¼ˆã‚¿ãƒ¼ã‚²ãƒƒãƒˆãŒã„ãªã„å ´åˆï¼‰
     /// </summary>
     private System.Collections.IEnumerator MeleeDashInCurrentDirection()
     {

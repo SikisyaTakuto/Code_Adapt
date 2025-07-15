@@ -1,28 +1,28 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 
 public class TPSCameraController : MonoBehaviour
 {
-    public Transform target; // ’Ç]‚·‚éƒ^[ƒQƒbƒgiƒvƒŒƒCƒ„[j
-    public float distance = 5.0f; // ƒ^[ƒQƒbƒg‚©‚ç‚Ì‹——£
-    public float height = 2.0f;   // ƒ^[ƒQƒbƒg‚©‚ç‚Ì‚‚³
-    public float rotationSpeed = 3.0f; // ƒJƒƒ‰‚Ì‰ñ“]‘¬“xiƒ}ƒEƒXŠ´“xj
-    public float smoothSpeed = 10.0f; // ƒJƒƒ‰‚ÌˆÚ“®E‰ñ“]‚Ì‚È‚ß‚ç‚©‚³
+    public Transform target; // è¿½å¾“ã™ã‚‹ã‚¿ãƒ¼ã‚²ãƒƒãƒˆï¼ˆãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ãªã©ï¼‰
+    public float distance = 5.0f; // ã‚¿ãƒ¼ã‚²ãƒƒãƒˆã‹ã‚‰ã®è·é›¢
+    public float height = 2.0f;    // ã‚¿ãƒ¼ã‚²ãƒƒãƒˆã‹ã‚‰ã®é«˜ã•
+    public float rotationSpeed = 3.0f; // ã‚«ãƒ¡ãƒ©ã®å›è»¢é€Ÿåº¦ï¼ˆãƒã‚¦ã‚¹é€Ÿåº¦ï¼‰
+    public float smoothSpeed = 10.0f; // ã‚«ãƒ¡ãƒ©ã®ç§»å‹•ã¨å›è»¢ã®ã‚¹ãƒ ãƒ¼ã‚ºã•
 
-    public Vector2 pitchMinMax = new Vector2(-40, 85); // c•ûŒü‚ÌƒJƒƒ‰Šp“x§ŒÀ
+    public Vector2 pitchMinMax = new Vector2(-40, 85); // å‚ç›´æ–¹å‘ã®ã‚«ãƒ¡ãƒ©è§’åº¦åˆ¶é™
 
-    public LayerMask collisionLayers; // ƒJƒƒ‰‚ªÕ“Ë‚ğƒ`ƒFƒbƒN‚·‚éƒŒƒCƒ„[i•ÇA’n–Ê‚È‚Çj
-    public float collisionOffset = 0.2f; // Õ“Ë‚ÉƒJƒƒ‰‚ğ‚Ç‚ê‚¾‚¯è‘O‚É‚¸‚ç‚·‚©
+    public LayerMask collisionLayers; // ã‚«ãƒ¡ãƒ©ãŒè¡çªã‚’ãƒã‚§ãƒƒã‚¯ã™ã‚‹ãƒ¬ã‚¤ãƒ¤ãƒ¼ï¼ˆå£ã‚„åœ°é¢ãªã©ï¼‰
+    public float collisionOffset = 0.2f; // è¡çªæ™‚ã«ã‚«ãƒ¡ãƒ©ãŒæŠ¼ã—æˆ»ã•ã‚Œã‚‹ã‚ªãƒ•ã‚»ãƒƒãƒˆ
 
-    private float yaw = 0.0f;   // ¶‰E‚Ì‰ñ“]Šp“x (Y²)
-    private float pitch = 0.0f; // ã‰º‚Ì‰ñ“]Šp“x (X²)
+    private float yaw = 0.0f;    // å·¦å³ã®å›è»¢è§’åº¦ (Yè»¸)
+    private float pitch = 0.0f; // ä¸Šä¸‹ã®å›è»¢è§’åº¦ (Xè»¸)
 
     void Start()
     {
-        // ƒJ[ƒ\ƒ‹‚ğƒƒbƒN‚µ‚Ä”ñ•\¦‚É‚·‚é
+        // ã‚«ãƒ¼ã‚½ãƒ«ã‚’ãƒ­ãƒƒã‚¯ã—ã¦éè¡¨ç¤ºã«ã™ã‚‹
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
 
-        // ‰ŠúŠp“x‚ğİ’è (ƒvƒŒƒCƒ„[‚ÌŒü‚«‚É‡‚í‚¹‚é)
+        // åˆæœŸè§’åº¦ã‚’è¨­å®š (ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®å‘ãã«åˆã‚ã›ã‚‹)
         if (target != null)
         {
             Vector3 relativePos = transform.position - target.position;
@@ -36,67 +36,69 @@ public class TPSCameraController : MonoBehaviour
     {
         if (target == null) return;
 
-        // ƒ}ƒEƒX“ü—Í‚ÅƒJƒƒ‰‚ÌŠp“x‚ğXV
+        // ãƒã‚¦ã‚¹å…¥åŠ›ã§ã‚«ãƒ¡ãƒ©ã®è§’åº¦ã‚’æ›´æ–°
         yaw += Input.GetAxis("Mouse X") * rotationSpeed;
         pitch -= Input.GetAxis("Mouse Y") * rotationSpeed;
-        pitch = Mathf.Clamp(pitch, pitchMinMax.x, pitchMinMax.y); // ã‰ºŠp“x‚ğ§ŒÀ
+        pitch = Mathf.Clamp(pitch, pitchMinMax.x, pitchMinMax.y); // å‚ç›´è§’åº¦ã‚’åˆ¶é™
 
-        // ƒJƒƒ‰‚Ì–Ú•W‰ñ“] (Euler angles‚©‚çQuaternion‚É•ÏŠ·)
+        // ã‚«ãƒ¡ãƒ©ã®ç›®æ¨™å›è»¢ (Eulerè§’åº¦ã‹ã‚‰Quaternionã«å¤‰æ›)
         Quaternion targetRotation = Quaternion.Euler(pitch, yaw, 0);
 
-        // ƒJƒƒ‰‚Ì–Ú•WˆÊ’u‚ğŒvZ
+        // ã‚«ãƒ¡ãƒ©ã®ç›®æ¨™ä½ç½®ã‚’è¨ˆç®—
         Vector3 targetPosition = target.position + Vector3.up * height - targetRotation * Vector3.forward * distance;
 
-        // ƒJƒƒ‰‚ÌÕ“Ë”»’è
+        // ã‚«ãƒ¡ãƒ©ã®è¡çªåˆ¤å®š
         RaycastHit hit;
-        Vector3 currentTargetPos = target.position + Vector3.up * height; // ƒ^[ƒQƒbƒg‚Ì‚‚³‚ğŠÜ‚ñ‚¾ˆÊ’u
+        Vector3 currentTargetPos = target.position + Vector3.up * height; // ã‚¿ãƒ¼ã‚²ãƒƒãƒˆã®ä¸­å¿ƒã‚’å«ã‚€ä½ç½®
         if (Physics.Linecast(currentTargetPos, targetPosition, out hit, collisionLayers))
         {
-            // Õ“Ë‚µ‚½ê‡AÕ“Ë“_‚©‚ç­‚µè‘O‚ÉƒJƒƒ‰‚ğ”z’u
+            // è¡çªãŒã‚ã£ãŸå ´åˆã€è¡çªç‚¹ã‹ã‚‰å°‘ã—æ‰‹å‰ã«ã‚«ãƒ¡ãƒ©ã‚’é…ç½®
             targetPosition = hit.point + hit.normal * collisionOffset;
         }
 
-        // ƒJƒƒ‰‚ÌˆÊ’u‚Æ‰ñ“]‚ğLerp‚ÅƒXƒ€[ƒY‚É•âŠÔ
+        // ã‚«ãƒ¡ãƒ©ã®ä½ç½®ã¨å›è»¢ã‚’Lerpã§ã‚¹ãƒ ãƒ¼ã‚ºã«è£œé–“
         transform.position = Vector3.Lerp(transform.position, targetPosition, Time.deltaTime * smoothSpeed);
         transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * smoothSpeed);
     }
 
-    // ƒvƒŒƒCƒ„[‚ÌŒü‚«‚ğƒJƒƒ‰‚Ì…•½•ûŒü‚É‡‚í‚¹‚é‚½‚ß‚Ìƒƒ\ƒbƒh
+    // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®å‘ãã‚’ã‚«ãƒ¡ãƒ©ã®æ°´å¹³æ–¹å‘ã®å‘ãã«åˆã‚ã›ã‚‹ãŸã‚ã®ãƒ¡ã‚½ãƒƒãƒ‰
     public void RotatePlayerToCameraDirection()
     {
         if (target == null) return;
 
-        // ƒvƒŒƒCƒ„[‚ÌY²‰ñ“]‚Ì‚İ‚ğƒJƒƒ‰‚ÌY²‰ñ“]‚É‡‚í‚¹‚é
+        // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã‚’Yè»¸å›è»¢ã®ã¿ã§ã‚«ãƒ¡ãƒ©ã®Yè»¸å›è»¢ã«åˆã‚ã›ã‚‹
         Quaternion playerRotation = Quaternion.Euler(0, yaw, 0);
         target.rotation = Quaternion.Slerp(target.rotation, playerRotation, Time.deltaTime * smoothSpeed);
     }
 
+    // ã‚«ãƒ¡ãƒ©ã®ä¸­å¿ƒç‚¹ã‚’å–å¾—ã™ã‚‹ãƒ¡ã‚½ãƒƒãƒ‰
     public Vector3 GetCameraCenterPoint()
     {
-        // ƒƒCƒ“ƒJƒƒ‰‚ğæ“¾
+        // ãƒ¡ã‚¤ãƒ³ã‚«ãƒ¡ãƒ©ã‚’å–å¾—
         Camera mainCam = Camera.main;
         if (mainCam == null)
         {
             Debug.LogError("Main Camera not found! Make sure your camera is tagged 'MainCamera'.");
-            return transform.position; // fallback to controller position
+            return transform.position; // ãƒ•ã‚©ãƒ¼ãƒ«ãƒãƒƒã‚¯ã¨ã—ã¦ã‚³ãƒ³ãƒˆãƒ­ãƒ¼ãƒ©ãƒ¼ã®ä½ç½®ã‚’è¿”ã™
         }
 
-        // ƒJƒƒ‰‚Ìƒrƒ…[ƒ|[ƒg‚Ì’†S‚©‚çRay‚ğ”ò‚Î‚·
+        // ã‚«ãƒ¡ãƒ©ã®ãƒ“ãƒ¥ãƒ¼ãƒãƒ¼ãƒˆã®ä¸­å¿ƒã‹ã‚‰Rayã‚’é£›ã°ã™
         Ray ray = mainCam.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
         return ray.origin;
     }
 
+    // ã‚«ãƒ¡ãƒ©ã‹ã‚‰Rayã‚’å–å¾—ã™ã‚‹ãƒ¡ã‚½ãƒƒãƒ‰
     public Ray GetCameraRay()
     {
-        // ƒƒCƒ“ƒJƒƒ‰‚ğæ“¾
+        // ãƒ¡ã‚¤ãƒ³ã‚«ãƒ¡ãƒ©ã‚’å–å¾—
         Camera mainCam = Camera.main;
         if (mainCam == null)
         {
             Debug.LogError("Main Camera not found! Make sure your camera is tagged 'MainCamera'.");
-            return new Ray(transform.position, transform.forward); // Fallback ray
+            return new Ray(transform.position, transform.forward); // ãƒ•ã‚©ãƒ¼ãƒ«ãƒãƒƒã‚¯ã¨ã—ã¦å‰æ–¹ã‚’å‘ãRayã‚’è¿”ã™
         }
 
-        // ƒJƒƒ‰‚Ìƒrƒ…[ƒ|[ƒg‚Ì’†S‚©‚çRay‚ğ”ò‚Î‚·
+        // ã‚«ãƒ¡ãƒ©ã®ãƒ“ãƒ¥ãƒ¼ãƒãƒ¼ãƒˆã®ä¸­å¿ƒã‹ã‚‰Rayã‚’é£›ã°ã™
         return mainCam.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
     }
 }
