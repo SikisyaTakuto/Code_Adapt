@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class LookBossCanonn : MonoBehaviour
 {
-    public Transform target; // プレイヤーなどのターゲット
+    public Transform target;                 // ターゲット
     public float rotationSpeed = 5f;
     public BossEnemyDead bossEnemyDaed;
     public BossShotBullet bossShotBullet;

@@ -21,7 +21,7 @@ public class BossEnemyDead : MonoBehaviour
 
     private IEnumerator DaedDestroy()
     {
-        // Jキーを押したとき(HPが0になったとき)
+        // Kキーを押したとき(HPが0になったとき)
         if (Input.GetKeyDown(KeyCode.K))
         {
             Debug.Log("Death");

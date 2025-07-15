@@ -1,13 +1,12 @@
 using UnityEngine;
 using UnityEngine.AI;
+using System.Collections;
 using UnityEngine.Experimental.AI;
 
 public class PanjanEnemyMove : MonoBehaviour
 {
     // NavMeshAgent
     private NavMeshAgent navMeshAgent;
-    // ©”šŠÔ
-    public float BombTime;
     // €–S‚µ‚½ê‡‚ÌƒXƒNƒŠƒvƒg
     public EnemyDaed enemyDaed;
     // ©”šUŒ‚
@@ -21,7 +20,11 @@ public class PanjanEnemyMove : MonoBehaviour
 
     void Update()
     {
-        
+        if (enemyDaed.Dead || explosion.Explos)
+        {
+            navMeshAgent.destination = this.gameObject.transform.position;
+            StartCoroutine(PanDeath());
+        }
     }
 
     // Player‚ª‹ß‚Ã‚¢‚½ê‡
@@ -44,5 +47,12 @@ public class PanjanEnemyMove : MonoBehaviour
             // ‚»‚Ìê‚Å~‚Ü‚é
             navMeshAgent.destination = this.gameObject.transform.position;
         }
+    }
+
+    private IEnumerator PanDeath()
+    {
+        yield return new WaitForSeconds(2);
+        Debug.Log("mimimim");
+        Destroy(gameObject);
     }
 }

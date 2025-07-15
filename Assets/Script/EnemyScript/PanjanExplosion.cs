@@ -1,11 +1,14 @@
 using UnityEngine;
 using UnityEngine.AI;
 using System.Collections;
+using Unity.VisualScripting;
 
 public class PanjanExplosion : MonoBehaviour
 {
     // 自爆時間
     public float BombTime;
+
+    public bool Explos = false;
     // EnemyDaedアニメーション
     public EnemyDaed enemyDaed;
 
@@ -23,7 +26,7 @@ public class PanjanExplosion : MonoBehaviour
 
     public void OnDetectObject(Collider collider)
     {
-        if (enemyDaed.Dead)
+        if (!enemyDaed.Dead)
         {
             // Playerが範囲内に入ったとき
             if (collider.gameObject.tag == "Player")
@@ -33,9 +36,12 @@ public class PanjanExplosion : MonoBehaviour
         }
     }
 
+    // 自爆
     private IEnumerator ExplosDamage()
     {
-        yield return new WaitForSeconds(0);
-        Destroy(gameObject);
+        yield return new WaitForSeconds(BombTime);
+        Debug.Log("uuu");
+        Explos = true;
+        //Destroy(gameObject);
     }
 }
