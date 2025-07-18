@@ -1,10 +1,19 @@
 using UnityEngine;
+using UnityEngine.AI;
+using System.Collections;
 
 public class BossCannonMove : MonoBehaviour
 {
-    public float jumpPower;
+    // X軸
+    public float jumpPowerX;
+    // Y軸
+    public float jumpPowerY;
+    // Z軸
+    public float jumpPowerZ;
+
+    public float jumpCoolTime;
     private Rigidbody rb;
-    bool jump = false;
+    public bool jump = false;
 
     void Start()
     {
@@ -13,12 +22,27 @@ public class BossCannonMove : MonoBehaviour
 
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.J))
+        if (Input.GetKeyDown(KeyCode.J) && !jump)
         {
-            // ジャンプ
             Debug.Log("ジャンプ");
-            rb.linearVelocity = Vector3.up * jumpPower;
+            rb.linearVelocity = new Vector3(jumpPowerX, jumpPowerY, jumpPowerZ);
             jump = true;
         }
+    }
+
+    public void OnLoseObject(Collider other)
+    {
+        // Playerが範囲外に出たとき
+        if (other.CompareTag("Stage"))
+        {
+            StartCoroutine(Jump());
+        }
+    }
+
+    private IEnumerator Jump()
+    {
+        // ジャンプ
+        yield return new WaitForSeconds(jumpCoolTime);
+        jump = false;
     }
 }

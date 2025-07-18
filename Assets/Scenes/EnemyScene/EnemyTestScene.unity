@@ -716,6 +716,90 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 5962866093831206569, guid: da138ef1ea066fc4da85f40a54d63d1a, type: 3}
   m_PrefabInstance: {fileID: 2384413421580792105}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1042198996
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1042198997}
+  - component: {fileID: 1042198999}
+  - component: {fileID: 1042198998}
+  m_Layer: 0
+  m_Name: JumpCollder
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1042198997
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1042198996}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0.005, z: 0}
+  m_LocalScale: {x: 0.02857143, y: 0.02857143, z: 0.02857143}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 543450651885994189}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1042198998
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1042198996}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8e9649db951bb234e8bad8396d4ba987, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  onTriggerStayEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  onTriggerExitEvent:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 919132147614145145}
+        m_TargetAssemblyTypeName: BossCannonMove, Assembly-CSharp
+        m_MethodName: OnLoseObject
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+--- !u!65 &1042198999
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1042198996}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &1123762359
 GameObject:
   m_ObjectHideFlags: 0
@@ -2085,6 +2169,7 @@ Transform:
   - {fileID: 4518980003683601848}
   - {fileID: 6076900409598475625}
   - {fileID: 75874655}
+  - {fileID: 1042198997}
   m_Father: {fileID: 409191626}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &543450652869760636 stripped
@@ -2523,7 +2608,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 581bdc8d309e8944493daa62fc5d6b56, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  jumpPower: 20
+  jumpPowerX: 0
+  jumpPowerY: 20
+  jumpPowerZ: 10
+  jumpCoolTime: 10
+  jump: 0
 --- !u!4 &919689140049985859
 Transform:
   m_ObjectHideFlags: 0
