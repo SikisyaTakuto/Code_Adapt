@@ -3,8 +3,8 @@ using System; // Actionを使うために追加
 
 public class EnemyHealth : MonoBehaviour
 {
-    public float maxHealth = 100f;
-    private float currentHealth;
+    public float maxHealth = 100f; // EnemyControllerで初期化されるHP
+    public float currentHealth; // protected にすると EnemyController からアクセスできないため public のまま
 
     public Action onDeath; // 敵が倒されたときに発火するイベント
 

@@ -16,18 +16,20 @@ public class AudioManager : MonoBehaviour
     private const string BGM_VOLUME_PARAM = "BGMVolume";
     private const string SE_VOLUME_PARAM = "SEVolume";
 
-    public static AudioManager Instance { get; private set; }
+    public static AudioManager Instance { get; private set; } // シングルトンのインスタンス
 
     void Awake()
     {
+        // ① Instanceがまだ設定されていない（最初のAudioManagerオブジェクト）
         if (Instance == null)
         {
-            Instance = this;
-            DontDestroyOnLoad(gameObject); // シーンをまたいで存在させる
+            Instance = this; // このオブジェクトをシングルトンインスタンスとして設定
+            DontDestroyOnLoad(gameObject); // このGameObjectをシーン遷移で破棄しないように設定
         }
+        // ② 既にInstanceが存在する（別のシーンにAudioManagerが置かれていた場合など）
         else
         {
-            Destroy(gameObject);
+            Destroy(gameObject); // 新しく作られた（重複する）AudioManagerオブジェクトを破棄
         }
     }
 

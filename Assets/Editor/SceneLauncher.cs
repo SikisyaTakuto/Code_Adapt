@@ -67,6 +67,11 @@ public class SceneLauncher
         OpenSceneWithSaveCheck("Assets/Scenes/GameScene/ClearScene.unity");
     }
 
+    [MenuItem("Launcher/TutorialScene", priority = 0)]
+    public static void OpenTutorialScene()
+    {
+        OpenSceneWithSaveCheck("Assets/Scenes/GameScene/TutorialScene.unity");
+    }
 
     /// <summary>
     /// シーンを開く前に、現在のシーンに未保存の変更がある場合は保存を促し、

@@ -107,6 +107,7 @@ GameObject:
   - component: {fileID: 7306398197847722383}
   - component: {fileID: 530298121554398845}
   - component: {fileID: 3544813486321130061}
+  - component: {fileID: 2794167333682661993}
   m_Layer: 0
   m_Name: Dronen1
   m_TagString: Untagged
@@ -122,7 +123,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6177833445447717721}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 47.1, y: 17.361023, z: 41.368908}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -144,8 +145,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   cinemachineSplineCart: {fileID: 8718898589695340131}
-  cartSpeed: 2000
-  enemyDaed: {fileID: 0}
+  cartSpeed: 1000
+  enemyDaed: {fileID: 3544813486321130061}
 --- !u!114 &3544813486321130061
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -159,6 +160,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Dead: 0
+--- !u!114 &2794167333682661993
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6177833445447717721}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7f0c112abf4c4e64eb2eb28bc156bd7d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  maxHealth: 100
 --- !u!1 &8882959283783848121
 GameObject:
   m_ObjectHideFlags: 0
@@ -242,9 +256,9 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
-      - m_Target: {fileID: 0}
-        m_TargetAssemblyTypeName: ShotBullet, Assembly-CSharp
-        m_MethodName: OnTriggerEnter
+      - m_Target: {fileID: 8523188125912988371}
+        m_TargetAssemblyTypeName: FlyEnemyLooks, Assembly-CSharp
+        m_MethodName: OnDetectObject
         m_Mode: 0
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -254,9 +268,9 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
-      - m_Target: {fileID: 0}
-        m_TargetAssemblyTypeName: FlyEnemyLooks, Assembly-CSharp
-        m_MethodName: OnDetectObject
+      - m_Target: {fileID: 5155149989735246720}
+        m_TargetAssemblyTypeName: ShotBullet, Assembly-CSharp
+        m_MethodName: OnTriggerEnter
         m_Mode: 0
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -281,8 +295,20 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
-      - m_Target: {fileID: 0}
+      - m_Target: {fileID: 8523188125912988371}
         m_TargetAssemblyTypeName: FlyEnemyLooks, Assembly-CSharp
+        m_MethodName: OnTriggerExit
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+      - m_Target: {fileID: 5155149989735246720}
+        m_TargetAssemblyTypeName: ShotBullet, Assembly-CSharp
         m_MethodName: OnTriggerExit
         m_Mode: 0
         m_Arguments:
@@ -577,8 +603,54 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: -8679921383154817045, guid: 8ac0fffb2ff12d14c8e5ad12aa25542e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1234489890036450873}
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 8ac0fffb2ff12d14c8e5ad12aa25542e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8523188125912988371}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 8ac0fffb2ff12d14c8e5ad12aa25542e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5155149989735246720}
   m_SourcePrefab: {fileID: 100100000, guid: 8ac0fffb2ff12d14c8e5ad12aa25542e, type: 3}
+--- !u!1 &8512143542106582616 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 8ac0fffb2ff12d14c8e5ad12aa25542e, type: 3}
+  m_PrefabInstance: {fileID: 8854178719009919753}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &8523188125912988371
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8512143542106582616}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8fe420116018c254b8efbd907d7e423a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  target: {fileID: 0}
+  rotationSpeed: 0.25
+  enemyDaed: {fileID: 3544813486321130061}
+--- !u!114 &5155149989735246720
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8512143542106582616}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa5784161e5597040858b390ae8b40b3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  bulletPoint: {fileID: 5962866093831206569}
+  bullet: {fileID: 1877806789679844970, guid: 4b58e66d44c5e66408f91609aab1bad4, type: 3}
+  bulletCount: 20
+  shotInterval: 0.2
+  reloadTime: 3
+  speed: 20
+  shootingStartDelay: 2
+  enemyDaed: {fileID: 3544813486321130061}
 --- !u!4 &9037288349602526434 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 8ac0fffb2ff12d14c8e5ad12aa25542e, type: 3}
