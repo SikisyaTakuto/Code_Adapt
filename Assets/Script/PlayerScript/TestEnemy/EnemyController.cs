@@ -13,13 +13,13 @@ public class EnemyController : MonoBehaviour
 
     [Header("Attack Settings")]
     [Tooltip("敵の攻撃力。プレイヤーに与えるダメージ。")]
-    public float attackDamage = 100f; // 敵の攻撃力
+    public float attackDamage = 10f; // 敵の攻撃力
     [Tooltip("ビーム攻撃のクールダウン時間（秒）。")]
     public float beamAttackCooldown = 3.0f; // ビーム攻撃のクールダウン
     [Tooltip("ビーム攻撃の射程距離。")]
     public float beamAttackRange = 20f; // ビーム攻撃の射程距離
     [Tooltip("ビームが生成される位置のTransform。")]
-    public Transform beamSpawnPoint; // ビームが出る場所
+    public Transform beamSpawnPoint; // ビームが出る場所 (Raycastの開始点としても使用)
     [Tooltip("ビームのエフェクト/Prefab。")]
     public GameObject beamPrefab; // ビームのエフェクト（オプション）
     [Tooltip("ビームエフェクトの持続時間。")]
@@ -27,10 +27,10 @@ public class EnemyController : MonoBehaviour
     [Tooltip("ターゲットとなるプレイヤーのタグ。")]
     public string playerTag = "Player"; // プレイヤーオブジェクトのタグ
     [Tooltip("攻撃を開始してからビームを発射するまでの準備時間（秒）。この間敵は停止する。")]
-    public float attackPreparationTime = 1.0f; // ★追加：攻撃前の停止時間
+    public float attackPreparationTime = 1.0f; // 攻撃前の停止時間
 
     private bool canAttack = true; // 攻撃クールダウン管理用
-    private bool isAttacking = false; // ★追加：攻撃中フラグ
+    private bool isAttacking = false; // 攻撃中フラグ
 
     [Header("Movement Settings")]
     [Tooltip("ランダム移動の基準となる中心点。")]
@@ -90,7 +90,7 @@ public class EnemyController : MonoBehaviour
     {
         if (!isActivated || enemyHealth.currentHealth <= 0) return; // 非アクティブまたはHPが0以下なら何もしない
 
-        // ★変更点: 攻撃中は移動ロジックを実行しない
+        // 攻撃中は移動ロジックを実行しない
         if (isAttacking)
         {
             // 攻撃中はプレイヤーの方を向き続ける
@@ -160,43 +160,67 @@ public class EnemyController : MonoBehaviour
     IEnumerator BeamAttackRoutine()
     {
         canAttack = false; // 攻撃を開始したらクールダウン
-        isAttacking = true; // ★追加：攻撃中フラグを立てる
+        isAttacking = true; // 攻撃中フラグを立てる
         agent.isStopped = true; // 移動を確実に停止させる
 
         // 攻撃前の準備時間（数秒間停止する部分）
         Debug.Log("攻撃準備中...");
         yield return new WaitForSeconds(attackPreparationTime); // ここで数秒間停止する
 
-        // ビームエフェクトの生成と表示
-        if (beamPrefab != null && beamSpawnPoint != null)
+        // Raycastを飛ばしてプレイヤーにダメージを与える
+        if (beamSpawnPoint != null && playerTransform != null)
         {
-            GameObject beamInstance = Instantiate(beamPrefab, beamSpawnPoint.position, beamSpawnPoint.rotation);
-            // ビームを少し伸ばしてプレイヤーに届くようにすることも可能（例: transform.forward * beamAttackRange）
-            // Instantiate後、必要であればビームのスケールや向きを調整
-            Destroy(beamInstance, beamDuration); // 一定時間後にビームエフェクトを破棄
-            Debug.Log("ビーム発射！");
-        }
+            Vector3 rayOrigin = beamSpawnPoint.position;
+            Vector3 rayDirection = (playerTransform.position - rayOrigin).normalized; // プレイヤーの方向へRayを飛ばす
 
-        // プレイヤーへのダメージ処理
-        if (playerTransform != null)
-        {
-            PlayerHealth playerHealth = playerTransform.GetComponent<PlayerHealth>();
-            if (playerHealth != null)
+            RaycastHit hit;
+            // Raycastを視覚化（デバッグ用）
+            Debug.DrawRay(rayOrigin, rayDirection * beamAttackRange, Color.cyan, beamDuration);
+
+            if (Physics.Raycast(rayOrigin, rayDirection, out hit, beamAttackRange))
             {
-                playerHealth.TakeDamage(attackDamage);
-                Debug.Log($"敵がプレイヤーに {attackDamage} ダメージを与えました。");
+                Debug.Log($"Raycastがヒットしました: {hit.collider.name}, タグ: {hit.collider.tag}");
+                if (hit.collider.CompareTag(playerTag))
+                {
+                    PlayerHealth playerHealth = hit.collider.GetComponent<PlayerHealth>();
+                    if (playerHealth != null)
+                    {
+                        playerHealth.TakeDamage(attackDamage);
+                        Debug.Log($"敵がプレイヤーに {attackDamage} ダメージを与えました。（Raycast）");
+                    }
+                    else
+                    {
+                        Debug.LogWarning("Raycastがプレイヤーにヒットしましたが、PlayerHealthコンポーネントが見つかりません。");
+                    }
+                }
             }
             else
             {
-                Debug.LogWarning("プレイヤーにPlayerHealthコンポーネントが見つかりません。");
+                Debug.Log("Raycastは何もヒットしませんでした。");
             }
         }
+        else
+        {
+            Debug.LogWarning("beamSpawnPoint または playerTransform が設定されていません。Raycast攻撃を実行できません。");
+        }
+
+        // ビームエフェクトの生成と表示（オプション）
+        // Raycastによるダメージ判定とは独立して、視覚的なエフェクトとして残す
+        if (beamPrefab != null && beamSpawnPoint != null)
+        {
+            GameObject beamInstance = Instantiate(beamPrefab, beamSpawnPoint.position, beamSpawnPoint.rotation);
+            // プレイヤーの方向に向かってビームを伸ばす場合は、Transform.LookAtなどを使用
+            beamInstance.transform.LookAt(playerTransform.position);
+            Destroy(beamInstance, beamDuration); // 一定時間後にビームエフェクトを破棄
+            Debug.Log("ビームエフェクト発射！");
+        }
+
 
         // 攻撃アニメーションやSE再生などがあればここに追加
 
         yield return new WaitForSeconds(beamAttackCooldown); // クールダウン待機
         canAttack = true; // クールダウン終了
-        isAttacking = false; // ★追加：攻撃中フラグをリセット
+        isAttacking = false; // 攻撃中フラグをリセット
         agent.isStopped = false; // 攻撃が完了したら移動を再開
     }
 
@@ -225,6 +249,16 @@ public class EnemyController : MonoBehaviour
         if (playerTransform != null)
         {
             Gizmos.DrawWireSphere(transform.position, beamAttackRange);
+        }
+
+        // Raycastの開始位置と方向を視覚化
+        if (beamSpawnPoint != null && playerTransform != null)
+        {
+            Gizmos.color = Color.cyan;
+            Vector3 rayOrigin = beamSpawnPoint.position;
+            Vector3 rayDirection = (playerTransform.position - rayOrigin).normalized;
+            Gizmos.DrawLine(rayOrigin, rayOrigin + rayDirection * beamAttackRange);
+            Gizmos.DrawSphere(rayOrigin, 0.1f); // Rayの始点に小さな球を描画
         }
     }
 }

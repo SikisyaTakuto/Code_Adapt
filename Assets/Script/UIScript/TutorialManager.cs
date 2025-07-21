@@ -36,6 +36,12 @@ public class TutorialManager : MonoBehaviour
     [Tooltip("チュートリアルカメラへの切り替え、またはTPSカメラへの復帰のスムーズさ")]
     public float tutorialCameraSmoothTime = 0.1f; // 例えば、より速くするために値を小さくする
 
+    [Header("Enemy Reveal Camera Settings")]
+    [Tooltip("敵出現時にカメラが敵からどれくらい離れるか")]
+    public float enemyRevealCameraDistance = 15.0f; // 遠くに設定するための新しい変数
+    [Tooltip("敵出現時にカメラが敵からどれくらい高さに位置するか")]
+    public float enemyRevealCameraHeight = 5.0f; // 高さに設定するための新しい変数
+
     // チュートリアル説明済みフラグ
     [Header("Tutorial Explanations Flags")]
     private bool hasExplainedEnergyDepletion = false;
@@ -77,7 +83,7 @@ public class TutorialManager : MonoBehaviour
         }
         if (objectiveText == null)
         {
-            Debug.LogError("TutorialManager: ObjectiveText (TextMeshProUGUI)が割り当てられていません。");
+            Debug.LogError("TutorialManager: ObjectiveText (TextMeshProProUGUI)が割り当てられていません。");
             return;
         }
 
@@ -244,8 +250,8 @@ public class TutorialManager : MonoBehaviour
         objectiveText.gameObject.SetActive(false);
         if (enemyPrefab != null && enemySpawnPoint != null)
         {
-            // ★追加: 敵の出現位置にカメラを向ける
-            SetCameraToLookAtPosition(enemySpawnPoint.position, tutorialCameraDistance, tutorialCameraHeight, tutorialCameraSmoothTime);
+            // 敵の出現位置にカメラを向ける (遠くから見下ろすように)
+            SetCameraToLookAtPosition(enemySpawnPoint.position, enemyRevealCameraDistance, enemyRevealCameraHeight, tutorialCameraSmoothTime);
 
             SpawnEnemy(enemyPrefab, enemySpawnPoint.position); // 新しい敵をスポーン
             yield return StartCoroutine(ShowMessage("目の前に敵が現れました。\n左クリックで近接攻撃ができます。", 4.0f));
@@ -272,8 +278,8 @@ public class TutorialManager : MonoBehaviour
         objectiveText.gameObject.SetActive(false);
         if (enemyPrefab != null && enemySpawnPoint != null)
         {
-            // ★追加: 敵の出現位置にカメラを向ける
-            SetCameraToLookAtPosition(enemySpawnPoint.position + new Vector3(0, 0, 10), tutorialCameraDistance, tutorialCameraHeight, tutorialCameraSmoothTime);
+            // 敵の出現位置にカメラを向ける (遠くから見下ろすように)
+            SetCameraToLookAtPosition(enemySpawnPoint.position + new Vector3(0, 0, 10), enemyRevealCameraDistance, enemyRevealCameraHeight, tutorialCameraSmoothTime);
 
             SpawnEnemy(enemyPrefab, enemySpawnPoint.position + new Vector3(0, 0, 10)); // 少し離れた位置に新しい敵をスポーン
             yield return StartCoroutine(ShowMessage("少し離れた位置に敵が再出現しました。\n右クリックでビーム攻撃が有効です。", 4.0f));
@@ -300,13 +306,11 @@ public class TutorialManager : MonoBehaviour
         objectiveText.gameObject.SetActive(false);
         if (enemyPrefab != null && enemySpawnPoint != null)
         {
-            // ★追加: 敵の出現位置にカメラを向ける (複数の敵がいるので代表的な位置)
-            SetCameraToLookAtPosition(enemySpawnPoint.position + new Vector3(0, 0, 5), tutorialCameraDistance, tutorialCameraHeight, tutorialCameraSmoothTime);
+            // 敵の出現位置にカメラを向ける (遠くから見下ろすように)
+            SetCameraToLookAtPosition(enemySpawnPoint.position + new Vector3(0, 0, 5), enemyRevealCameraDistance, enemyRevealCameraHeight, tutorialCameraSmoothTime);
 
             SpawnEnemy(enemyPrefab, enemySpawnPoint.position + new Vector3(0, 0, 5));
-            SpawnEnemy(enemyPrefab, enemySpawnPoint.position + new Vector3(5, 0, 5));
-            SpawnEnemy(enemyPrefab, enemySpawnPoint.position + new Vector3(-5, 0, 5));
-            yield return StartCoroutine(ShowMessage("複数の敵が現れました。\nホイールクリックで特殊攻撃を試してみましょう。\n複数の敵に有効です！", 4.0f));
+            yield return StartCoroutine(ShowMessage("敵が現れました。\nホイールクリックで特殊攻撃を試してみましょう。\n複数の敵に有効です！", 4.0f));
             UpdateObjectiveText("目標: ホイールクリックで特殊攻撃を使い、全ての敵を倒しましょう。"); // 常時目標を更新
         }
         else
@@ -352,8 +356,8 @@ public class TutorialManager : MonoBehaviour
         ResetCameraToTPS();
         if (armorModeEnemyPrefab != null && armorModeEnemySpawnPoint != null)
         {
-            // ★追加: 敵の出現位置にカメラを向ける
-            SetCameraToLookAtPosition(armorModeEnemySpawnPoint.position, tutorialCameraDistance, tutorialCameraHeight, tutorialCameraSmoothTime);
+            // 敵の出現位置にカメラを向ける (遠くから見下ろすように)
+            SetCameraToLookAtPosition(armorModeEnemySpawnPoint.position, enemyRevealCameraDistance, enemyRevealCameraHeight, tutorialCameraSmoothTime);
 
             SpawnEnemy(armorModeEnemyPrefab, armorModeEnemySpawnPoint.position);
             objectiveText.gameObject.SetActive(false);
@@ -739,8 +743,8 @@ public class TutorialManager : MonoBehaviour
         SetCameraToPlayerFront(); // カメラをプレイヤー正面に設定
         objectiveText.gameObject.SetActive(false);
         // ShowMessageはtutorialTextを使用し、メッセージ表示後には非表示にする
-        yield return StartCoroutine(ShowMessage("ダメージを受けました！\nHPが0になるとゲームオーバーです。\n敵の攻撃に注意しましょう！", 4.0f));
-        yield return StartCoroutine(WaitForPlayerAction(2.0f));
         ResetCameraToTPS(); // カメラをTPSモードに戻す
+        yield return StartCoroutine(ShowMessage("ダメージを受けました！\nHPが0になるとゲームオーバーです。\n敵の攻撃に注意しましょう！", 2.0f));
+        yield return StartCoroutine(WaitForPlayerAction(0.5f));
     }
 }
