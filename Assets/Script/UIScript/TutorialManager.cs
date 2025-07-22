@@ -1,15 +1,11 @@
 using UnityEngine;
 using UnityEngine.UI; // Text, Canvas, Slider を使うため
 using System.Collections;
-<<<<<<< HEAD
 using UnityEngine.SceneManagement; // SceneManagerを使用するために追加
-=======
->>>>>>> New
 
 public class TutorialManager : MonoBehaviour
 {
     public PlayerController playerController;
-<<<<<<< HEAD
     public TPSCameraController tpsCameraController;
     public Text tutorialText; // 一時的な説明用テキスト
     public Text objectiveText; // 常時表示される目標テキスト
@@ -55,15 +51,6 @@ public class TutorialManager : MonoBehaviour
     private Image energyFillImage; // エネルギーゲージのFill Image
 
     private Coroutine energyBlinkCoroutine; // エネルギーゲージ点滅コルーチンの参照
-=======
-    public Text tutorialText; // TextMeshProUGUI に変更
-    public GameObject enemyPrefab; // 敵のPrefab
-    public Transform enemySpawnPoint; // 敵の出現位置
-    public GameObject armorModeEnemyPrefab; // アーマーモード切り替え時に出現させる敵のPrefab
-    public Transform armorModeEnemySpawnPoint; // アーマーモード切り替え時に出現させる敵の出現位置
-
-    private GameObject currentEnemyInstance; // 現在出現している敵のインスタンス
->>>>>>> New
 
     // チュートリアルステップの定義
     private enum TutorialStep
@@ -94,7 +81,6 @@ public class TutorialManager : MonoBehaviour
             Debug.LogError("TutorialManager: TutorialText (TextMeshProUGUI)が割り当てられていません。");
             return;
         }
-<<<<<<< HEAD
         if (objectiveText == null)
         {
             Debug.LogError("TutorialManager: ObjectiveText (TextMeshProProUGUI)が割り当てられていません。");
@@ -156,8 +142,6 @@ public class TutorialManager : MonoBehaviour
             }
         }
 
-=======
->>>>>>> New
         if (enemyPrefab == null)
         {
             Debug.LogWarning("TutorialManager: Enemy Prefabが割り当てられていません。近接/ビーム攻撃のチュートリアルが機能しない可能性があります。");
@@ -175,7 +159,6 @@ public class TutorialManager : MonoBehaviour
             Debug.LogWarning("TutorialManager: Armor Mode Enemy Spawn Pointが割り当てられていません。アーマーモード切り替えのチュートリアルが機能しない可能性があります。");
         }
 
-<<<<<<< HEAD
         // イベント購読
         if (playerController != null)
         {
@@ -186,16 +169,11 @@ public class TutorialManager : MonoBehaviour
             playerHealth.onHealthDamaged += HandleHPDamageTutorial;
         }
 
-=======
-
-        // チュートリアル開始
->>>>>>> New
         StartCoroutine(TutorialSequence());
     }
 
     IEnumerator TutorialSequence()
     {
-<<<<<<< HEAD
         playerController.canReceiveInput = false;
 
         // ステップ1: ようこそ
@@ -234,80 +212,10 @@ public class TutorialManager : MonoBehaviour
 
         objectiveText.gameObject.SetActive(false);
         yield return StartCoroutine(ShowMessage("上昇成功！空中での移動も重要です。", 2.0f));
-=======
-        // プレイヤーの入力を一時的に無効化
-        playerController.canReceiveInput = false;
-
-        // ステップ1: ようこそ
-        yield return StartCoroutine(ShowMessage("ようこそ、新米パイロット！\nこの世界で生き抜くための基本を学びましょう。", 3.0f));
-        yield return StartCoroutine(WaitForPlayerAction(0.5f)); // 短い間隔
-
-        // ステップ2: WASD移動
-        currentStep = TutorialStep.MoveWASD;
-        yield return StartCoroutine(ShowMessage("まずは基本操作です。\nWASDキーを使って、5秒間移動してください。", 0)); // 0は自動消去なし
-        playerController.canReceiveInput = true; // WASD入力受付開始
-        playerController.ResetInputTracking();
-
-        float moveStartTime = Time.time;
-        bool wasdCompleted = false;
-        while (Time.time < moveStartTime + 5.0f)
-        {
-            if (playerController.WASDMoveTimer >= 5.0f) // 連続して5秒間移動したか
-            {
-                wasdCompleted = true;
-                break;
-            }
-            yield return null;
-        }
-        playerController.canReceiveInput = false; // 入力受付停止
-        if (wasdCompleted)
-        {
-            yield return StartCoroutine(ShowMessage("素晴らしい！移動操作はバッチリです！", 2.0f));
-        }
-        else
-        {
-            yield return StartCoroutine(ShowMessage("WASDキーで移動を続けてください。あと少しです。", 2.0f));
-            yield return new WaitForSeconds(1f); // 少し待ってから再試行を促す
-            StartCoroutine(TutorialSequence()); // このステップからやり直し
-            yield break;
-        }
-
-        yield return StartCoroutine(WaitForPlayerAction(0.5f));
-
-        // ステップ3: スペースキーで飛ぶ
-        currentStep = TutorialStep.Jump;
-        yield return StartCoroutine(ShowMessage("次に、スペースキーを押して3秒間飛んでみましょう！", 0));
-        playerController.canReceiveInput = true;
-        playerController.ResetInputTracking();
-        float jumpStartTime = Time.time;
-        bool jumpCompleted = false;
-        while (Time.time < jumpStartTime + 3.0f)
-        {
-            if (playerController.JumpTimer >= 3.0f)
-            {
-                jumpCompleted = true;
-                break;
-            }
-            yield return null;
-        }
-        playerController.canReceiveInput = false;
-        if (jumpCompleted)
-        {
-            yield return StartCoroutine(ShowMessage("上昇成功！空中での移動も重要です。", 2.0f));
-        }
-        else
-        {
-            yield return StartCoroutine(ShowMessage("スペースキーを押し続けてください。あと少しで完了です。", 2.0f));
-            yield return new WaitForSeconds(1f);
-            StartCoroutine(TutorialSequence());
-            yield break;
-        }
->>>>>>> New
         yield return StartCoroutine(WaitForPlayerAction(0.5f));
 
         // ステップ4: オルトキーで下がる
         currentStep = TutorialStep.Descend;
-<<<<<<< HEAD
         SetCameraToPlayerFront();
         objectiveText.gameObject.SetActive(false);
         yield return StartCoroutine(ShowMessage("今度はAltキーを押して下降してみましょう。", 3.0f));
@@ -391,97 +299,10 @@ public class TutorialManager : MonoBehaviour
 
         objectiveText.gameObject.SetActive(false);
         yield return StartCoroutine(ShowMessage("ビーム攻撃も完璧です！\nこれで遠くの敵も怖くありません。", 2.0f));
-=======
-        yield return StartCoroutine(ShowMessage("今度はAltキーを押して2秒間下降してみましょう。", 0));
-        playerController.canReceiveInput = true;
-        playerController.ResetInputTracking();
-        float descendStartTime = Time.time;
-        bool descendCompleted = false;
-        while (Time.time < descendStartTime + 2.0f)
-        {
-            if (playerController.DescendTimer >= 2.0f)
-            {
-                descendCompleted = true;
-                break;
-            }
-            yield return null;
-        }
-        playerController.canReceiveInput = false;
-        if (descendCompleted)
-        {
-            yield return StartCoroutine(ShowMessage("下降も完璧です！これで自由自在に飛び回れますね。", 2.0f));
-        }
-        else
-        {
-            yield return StartCoroutine(ShowMessage("Altキーを押し続けてください。あと少しで完了です。", 2.0f));
-            yield return new WaitForSeconds(1f);
-            StartCoroutine(TutorialSequence());
-            yield break;
-        }
-        yield return StartCoroutine(WaitForPlayerAction(0.5f));
-
-        // ステップ5: 中心に戻す＆敵出現
-        currentStep = TutorialStep.ResetPosition;
-        yield return StartCoroutine(ShowMessage("素晴らしい！では、元の位置に戻って次の訓練に移りましょう。", 3.0f));
-        TeleportPlayer(Vector3.zero); // プレイヤーを原点に戻す
-        yield return new WaitForSeconds(2.0f); // テレポートの演出時間
-
-        if (enemyPrefab != null && enemySpawnPoint != null)
-        {
-            yield return StartCoroutine(ShowMessage("目の前に敵が現れました。\n攻撃の準備をしましょう！", 3.0f));
-            SpawnEnemy(enemyPrefab, enemySpawnPoint.position);
-        }
-        yield return StartCoroutine(WaitForPlayerAction(0.5f));
-
-        // ステップ6: 左クリックで近接攻撃
-        currentStep = TutorialStep.MeleeAttack;
-        yield return StartCoroutine(ShowMessage("左クリックで近接攻撃ができます。\n敵を攻撃してみましょう！", 0));
-        playerController.canReceiveInput = true;
-        bool meleeAttacked = false;
-        playerController.onMeleeAttackPerformed += () => { meleeAttacked = true; };
-        yield return new WaitUntil(() => meleeAttacked && currentEnemyInstance == null); // 攻撃して敵を倒すまで待つ
-        playerController.canReceiveInput = false;
-        playerController.onMeleeAttackPerformed -= () => { meleeAttacked = true; }; // イベント購読解除
-
-        yield return StartCoroutine(ShowMessage("見事な近接攻撃でした！", 2.0f));
-        yield return StartCoroutine(WaitForPlayerAction(0.5f));
-
-        // 敵を再度出現 (ビーム攻撃用)
-        if (enemyPrefab != null && enemySpawnPoint != null)
-        {
-            yield return StartCoroutine(ShowMessage("少し離れた位置に敵が再出現しました。", 2.0f));
-            SpawnEnemy(enemyPrefab, enemySpawnPoint.position + new Vector3(0, 0, 10)); // 少し離れた位置
-        }
-        yield return StartCoroutine(WaitForPlayerAction(0.5f));
-
-        // ステップ7: 右クリックでビーム攻撃
-        currentStep = TutorialStep.BeamAttack;
-        yield return StartCoroutine(ShowMessage("少し離れた敵には右クリックでビーム攻撃が有効です。\n敵を倒しましょう！", 0));
-        playerController.canReceiveInput = true;
-        bool beamAttacked = false;
-        playerController.onBeamAttackPerformed += () => { beamAttacked = true; };
-        yield return new WaitUntil(() => beamAttacked && currentEnemyInstance == null); // 攻撃して敵を倒すまで待つ
-        playerController.canReceiveInput = false;
-        playerController.onBeamAttackPerformed -= () => { /*beamAttated = true;*/ }; // イベント購読解除
-
-        yield return StartCoroutine(ShowMessage("ビーム攻撃も完璧です！\nこれで遠くの敵も怖くありません。", 2.0f));
-        yield return StartCoroutine(WaitForPlayerAction(0.5f));
-
-        // 敵を再度出現 (特殊攻撃用)
-        if (enemyPrefab != null && enemySpawnPoint != null)
-        {
-            yield return StartCoroutine(ShowMessage("複数の敵が現れました。", 2.0f));
-            // 複数出現させる場合は、適当な位置に数体配置するロジックを追加
-            SpawnEnemy(enemyPrefab, enemySpawnPoint.position + new Vector3(0, 0, 5));
-            SpawnEnemy(enemyPrefab, enemySpawnPoint.position + new Vector3(5, 0, 5));
-            SpawnEnemy(enemyPrefab, enemySpawnPoint.position + new Vector3(-5, 0, 5));
-        }
->>>>>>> New
         yield return StartCoroutine(WaitForPlayerAction(0.5f));
 
         // ステップ8: ホイール押込みで特殊攻撃
         currentStep = TutorialStep.SpecialAttack;
-<<<<<<< HEAD
         objectiveText.gameObject.SetActive(false);
         if (enemyPrefab != null && enemySpawnPoint != null)
         {
@@ -507,25 +328,11 @@ public class TutorialManager : MonoBehaviour
         playerController.canUseSwordBitAttack = false;
 
         objectiveText.gameObject.SetActive(false);
-=======
-        yield return StartCoroutine(ShowMessage("最後に、ホイールクリックで特殊攻撃を試してみましょう。\n複数の敵に有効です！", 0));
-        playerController.canUseSwordBitAttack = true; // 特殊攻撃を有効にする
-        playerController.canReceiveInput = true;
-        bool bitAttacked = false;
-        playerController.onBitAttackPerformed += () => { bitAttacked = true; };
-        // 全ての敵が倒れるまで待つ
-        yield return new WaitUntil(() => bitAttacked && GameObject.FindGameObjectsWithTag("Enemy").Length == 0);
-        playerController.canReceiveInput = false;
-        playerController.onBitAttackPerformed -= () => { bitAttacked = true; }; // イベント購読解除
-        playerController.canUseSwordBitAttack = false; // 特殊攻撃を無効に戻す
-
->>>>>>> New
         yield return StartCoroutine(ShowMessage("素晴らしい！特殊攻撃も使いこなせますね！", 2.0f));
         yield return StartCoroutine(WaitForPlayerAction(0.5f));
 
         // プレイヤーを再度中心に戻す
         currentStep = TutorialStep.ResetPosition;
-<<<<<<< HEAD
         SetCameraToPlayerFront();
         objectiveText.gameObject.SetActive(false);
         yield return StartCoroutine(ShowMessage("一旦、中央に戻りましょう。", 2.0f));
@@ -571,38 +378,11 @@ public class TutorialManager : MonoBehaviour
         playerController.canReceiveInput = false;
 
         objectiveText.gameObject.SetActive(false);
-=======
-        yield return StartCoroutine(ShowMessage("一旦、中央に戻りましょう。", 2.0f));
-        TeleportPlayer(Vector3.zero);
-        yield return new WaitForSeconds(1.0f);
-
-        // ステップ9: 1, 2, 3でアーマーモード切り替え
-        currentStep = TutorialStep.ArmorModeSwitch;
-        yield return StartCoroutine(ShowMessage("最後に、1, 2, 3キーでアーマーモードを切り替えることができます。\n好きなモードに切り替えてみましょう！", 0));
-        // プレイヤーの近くに敵を出現させて、モード切り替えの理由を与えることも可能
-        if (armorModeEnemyPrefab != null && armorModeEnemySpawnPoint != null)
-        {
-            SpawnEnemy(armorModeEnemyPrefab, armorModeEnemySpawnPoint.position);
-            yield return StartCoroutine(ShowMessage("アーマーモードを切り替えて、新しい敵に挑んでみましょう！", 2.0f));
-        }
-
-        playerController.canReceiveInput = true;
-        bool armorModeChanged = false;
-        playerController.onArmorModeChanged += (mode) => {
-            Debug.Log($"Armor mode changed to: {mode}");
-            armorModeChanged = true;
-        };
-        yield return new WaitUntil(() => armorModeChanged); // いずれかのモードに切り替わるまで待つ
-        playerController.canReceiveInput = false;
-        playerController.onArmorModeChanged -= (mode) => { armorModeChanged = true; }; // イベント購読解除
-
->>>>>>> New
         yield return StartCoroutine(ShowMessage("アーマーモードの切り替え完了！\n状況に合わせてモードを使い分けましょう。", 2.0f));
         yield return StartCoroutine(WaitForPlayerAction(0.5f));
 
         // ステップ10: チュートリアル終了
         currentStep = TutorialStep.End;
-<<<<<<< HEAD
         SetCameraToPlayerFront();
         objectiveText.gameObject.SetActive(false);
         yield return StartCoroutine(ShowMessage("これで基本訓練は終了です！\n広大な世界へ飛び立ちましょう！", 5.0f));
@@ -627,28 +407,10 @@ public class TutorialManager : MonoBehaviour
     /// </summary>
     /// <param name="message">表示するメッセージ</param>
     /// <param name="duration">メッセージ表示時間（秒）。この時間経過後にゲーム再開、入力有効化。</param>
-=======
-        yield return StartCoroutine(ShowMessage("これで基本訓練は終了です！\n広大な世界へ飛び立ちましょう！", 5.0f));
-        yield return StartCoroutine(WaitForPlayerAction(0.5f));
-
-        // チュートリアル終了後の処理（例: メインゲームシーンへの遷移）
-        Debug.Log("チュートリアル終了。");
-        // ここにメインゲームシーンをロードする処理などを追加
-        // 例: SceneManager.LoadScene("MainGameScene");
-    }
-
-    /// <summary>
-    /// メッセージを表示し、指定秒数待つ（0秒の場合はプレイヤー入力待ち）
-    /// </summary>
-    /// <param name="message">表示するメッセージ</param>
-    /// <param name="duration">表示時間（秒）。0の場合はプレイヤー入力待ち。</param>
-    /// <returns></returns>
->>>>>>> New
     IEnumerator ShowMessage(string message, float duration)
     {
         tutorialText.text = message;
         tutorialText.gameObject.SetActive(true);
-<<<<<<< HEAD
         objectiveText.gameObject.SetActive(false); // tutorialText表示中はobjectiveTextを非表示にする
         tutorialProgressBar.gameObject.SetActive(false); // メッセージ中はゲージを非表示
         Time.timeScale = 0f; // ゲームを一時停止
@@ -825,51 +587,16 @@ public class TutorialManager : MonoBehaviour
         if (tpsCameraController == null) return;
         tpsCameraController.ResetToTPSView(tutorialCameraSmoothTime);
         Debug.Log("カメラをTPSモードに戻しました。");
-=======
-        Time.timeScale = 0f; // ゲームを一時停止
-        yield return null; // Time.timeScale変更を適用するため1フレーム待つ
-
-        if (duration > 0)
-        {
-            float unscaledTime = 0f;
-            while (unscaledTime < duration)
-            {
-                unscaledTime += Time.unscaledDeltaTime; // UnscaledDeltaTime を使用してポーズ中に時間を進める
-                yield return null;
-            }
-        }
-        else // durationが0の場合、プレイヤーがクリックするまで待つ
-        {
-            yield return new WaitUntil(() => Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Return));
-        }
-        tutorialText.gameObject.SetActive(false);
-        Time.timeScale = 1f; // ゲームを再開
-    }
-
-    /// <summary>
-    /// 短い間隔でプレイヤーに思考時間を与える
-    /// </summary>
-    /// <param name="delay">遅延時間（秒）</param>
-    /// <returns></returns>
-    IEnumerator WaitForPlayerAction(float delay)
-    {
-        yield return new WaitForSeconds(delay);
->>>>>>> New
     }
 
     /// <summary>
     /// プレイヤーを特定の位置にテレポートさせる
     /// </summary>
-<<<<<<< HEAD
     /// <param name="position">テレポート先の位置</param>
-=======
-    /// <param name="position"></param>
->>>>>>> New
     void TeleportPlayer(Vector3 position)
     {
         if (playerController != null)
         {
-<<<<<<< HEAD
             CharacterController charController = playerController.gameObject.GetComponent<CharacterController>();
             if (charController != null)
             {
@@ -884,43 +611,18 @@ public class TutorialManager : MonoBehaviour
                 playerController.transform.position = position + Vector3.up * 0.1f;
                 Debug.LogWarning($"プレイヤーにCharacterControllerが見つかりません。直接位置を設定しました。");
             }
-=======
-            // CharacterControllerを使用しているため、直接positionを設定するのではなく、
-            // Disableして位置を変更し、再度Enableする手法を取るか、
-            // またはController.Moveを使って非常に短い時間で移動させるなどの工夫が必要。
-            // ここでは簡易的に、一旦オフにして位置を設定、すぐにオンに戻す。
-            // （ただし、これにより一時的にコリジョンが無視される可能性があるので注意）
-            playerController.gameObject.SetActive(false);
-            playerController.transform.position = position;
-            playerController.gameObject.SetActive(true);
-            Debug.Log($"プレイヤーを {position} にテレポートしました。");
->>>>>>> New
         }
     }
 
     /// <summary>
-<<<<<<< HEAD
     /// 敵を生成する。既存の「Enemy」タグのオブジェクトは全て破棄される。
-=======
-    /// 敵を生成する。既存の敵がいれば破棄する。
->>>>>>> New
     /// </summary>
     /// <param name="prefab">敵のPrefab</param>
     /// <param name="position">出現位置</param>
     void SpawnEnemy(GameObject prefab, Vector3 position)
     {
-<<<<<<< HEAD
         // 注意: この処理は、新しい敵をスポーンする前に、シーン内の全ての「Enemy」タグの付いたオブジェクトを破棄します。
         // これにより、前のチュートリアルステップで倒しきれなかった敵や、以前にスポーンした敵がクリアされます。
-=======
-        if (currentEnemyInstance != null)
-        {
-            Destroy(currentEnemyInstance); // 既存の敵を破棄
-            currentEnemyInstance = null;
-        }
-
-        // すでに存在している全てのEnemyタグのオブジェクトを破棄
->>>>>>> New
         GameObject[] existingEnemies = GameObject.FindGameObjectsWithTag("Enemy");
         foreach (GameObject enemy in existingEnemies)
         {
@@ -930,26 +632,14 @@ public class TutorialManager : MonoBehaviour
         if (prefab != null)
         {
             currentEnemyInstance = Instantiate(prefab, position, Quaternion.identity);
-<<<<<<< HEAD
             EnemyHealth enemyHealth = currentEnemyInstance.GetComponent<EnemyHealth>();
             if (enemyHealth == null)
             {
-=======
-            // EnemyHealthスクリプトがアタッチされていることを確認
-            EnemyHealth enemyHealth = currentEnemyInstance.GetComponent<EnemyHealth>();
-            if (enemyHealth == null)
-            {
-                // Rootにない場合は、子オブジェクトから検索
->>>>>>> New
                 enemyHealth = currentEnemyInstance.GetComponentInChildren<EnemyHealth>();
             }
 
             if (enemyHealth != null)
             {
-<<<<<<< HEAD
-=======
-                // 敵が倒されたときにイベントを購読できるようにする
->>>>>>> New
                 enemyHealth.onDeath += HandleEnemyDeath;
                 Debug.Log($"敵を {position} に出現させました。");
             }
@@ -966,7 +656,6 @@ public class TutorialManager : MonoBehaviour
     private void HandleEnemyDeath()
     {
         Debug.Log("敵が倒されました！");
-<<<<<<< HEAD
         if (currentEnemyInstance != null)
         {
             EnemyHealth eh = currentEnemyInstance.GetComponent<EnemyHealth>();
@@ -1059,15 +748,3 @@ public class TutorialManager : MonoBehaviour
         yield return StartCoroutine(WaitForPlayerAction(0.5f));
     }
 }
-=======
-        // 敵が倒されたら、その敵オブジェクトの参照をクリア
-        if (currentEnemyInstance != null)
-        {
-            // 複数の敵が出現している場合のために、Destroyされたオブジェクトの参照を確実にクリアする
-            // ここではイベントを購読解除し、nullにする
-            currentEnemyInstance.GetComponent<EnemyHealth>().onDeath -= HandleEnemyDeath;
-            currentEnemyInstance = null; // 単一のcurrentEnemyInstanceしか見ていないので注意
-        }
-    }
-}
->>>>>>> New
