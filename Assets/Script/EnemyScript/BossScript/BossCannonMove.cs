@@ -22,7 +22,11 @@ public class BossCannonMove : MonoBehaviour
 
     void Update()
     {
+<<<<<<< HEAD
         if (Input.GetKeyDown(KeyCode.J) && !jump)
+=======
+        if (Input.GetKeyDown(KeyCode.J))
+>>>>>>> New
         {
             Debug.Log("ƒWƒƒƒ“ƒv");
             rb.linearVelocity = new Vector3(jumpPowerX, jumpPowerY, jumpPowerZ);

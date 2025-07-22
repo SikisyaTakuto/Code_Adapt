@@ -1,8 +1,12 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems; // マウスイベントを扱うために必要
+<<<<<<< HEAD
 using System.Collections;        // Coroutineのために必要
 using UnityEngine.SceneManagement; // SceneManagerを使用するために追加
+=======
+using System.Collections;       // Coroutineのために必要
+>>>>>>> New
 
 public class StageCard : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler
 {
@@ -25,8 +29,11 @@ public class StageCard : MonoBehaviour, IPointerEnterHandler, IPointerExitHandle
     private const float ANIMATION_DURATION = 0.15f; // アニメーション時間
     [SerializeField, Tooltip("SE再生が完了するまでの待機時間（秒）")]
     private float sePlayDuration = 0.3f; // SEの長さに応じて調整
+<<<<<<< HEAD
 
     private bool isProcessingClick = false; // クリック処理中かどうかのフラグ（多重クリック防止）
+=======
+>>>>>>> New
 
     private void Awake()
     {
@@ -63,12 +70,17 @@ public class StageCard : MonoBehaviour, IPointerEnterHandler, IPointerExitHandle
     // マウスカーソルがカードから出た時
     public void OnPointerExit(PointerEventData eventData)
     {
+<<<<<<< HEAD
+=======
+        // Debug.Log($"{gameObject.name} からマウスが出た！");
+>>>>>>> New
         LeanTween.scale(gameObject, originalScale, ANIMATION_DURATION).setEaseInSine();
     }
 
     // カードがクリックされた時
     public void OnPointerClick(PointerEventData eventData)
     {
+<<<<<<< HEAD
         if (isProcessingClick)
         {
             return;
@@ -81,13 +93,33 @@ public class StageCard : MonoBehaviour, IPointerEnterHandler, IPointerExitHandle
             if (AudioManager.Instance != null)
             {
                 AudioManager.Instance.PlayButtonClickSE();
+=======
+        // Debug.Log($"{gameObject.name} がクリックされた！");
+
+        if (!string.IsNullOrEmpty(stageSceneName))
+        {
+            // まずボタンクリックSEを再生
+            if (AudioManager.Instance != null)
+            {
+                AudioManager.Instance.PlayButtonClickSE();
+                // SE再生が終わるのを待ってからシーンをロードするコルーチンを開始
+>>>>>>> New
                 StartCoroutine(LoadSceneAfterSE(stageSceneName));
             }
             else
             {
+<<<<<<< HEAD
                 Debug.LogError("AudioManager.Instance が見つかりません。SEを再生せずにシーンをロードします。", this);
                 HandleSceneLoadImmediately(stageSceneName);
                 isProcessingClick = false;
+=======
+                Debug.LogError("AudioManager.Instance が見つかりません。SEを再生せずにシーンをロードします。");
+                // AudioManagerがない場合でもシーンはロードする
+                if (StageSelectManager.Instance != null)
+                {
+                    StageSelectManager.Instance.SelectStage(stageSceneName);
+                }
+>>>>>>> New
             }
         }
         else
@@ -132,6 +164,27 @@ public class StageCard : MonoBehaviour, IPointerEnterHandler, IPointerExitHandle
                 Debug.LogError("StageSelectManager が見つかりません。シーンロードを直接実行します。", this);
                 SceneManager.LoadScene(sceneToLoad);
             }
+        }
+    }
+
+    /// <summary>
+    /// SE再生を待ってからシーンをロードするコルーチン
+    /// </summary>
+    private IEnumerator LoadSceneAfterSE(string sceneToLoad)
+    {
+        // SEが再生し終わるまで待機
+        yield return new WaitForSeconds(sePlayDuration);
+
+        // StageSelectManagerを通して選択されたステージ情報を保存し、次のシーンへ遷移
+        if (StageSelectManager.Instance != null)
+        {
+            StageSelectManager.Instance.SelectStage(sceneToLoad);
+        }
+        else
+        {
+            Debug.LogError("StageSelectManager が見つかりません。シーンロードを直接実行します。");
+            // 緊急回避として直接シーンロード
+            // SceneManager.LoadScene(sceneToLoad); // 必要に応じてコメント解除
         }
     }
 }

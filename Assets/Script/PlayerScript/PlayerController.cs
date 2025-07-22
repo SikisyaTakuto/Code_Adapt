@@ -1,9 +1,14 @@
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;
+<<<<<<< HEAD
 using System.Linq;
 using System;
 using System.Collections; // Action „Çí‰Ωø„ÅÜ„Åü„ÇÅ„Å´ÂøÖË¶Å
+=======
+using System.Linq; // OrderByÇégÇ§ÇΩÇﬂÇ…í«â¡
+using System; // ActionÇégÇ§ÇΩÇﬂÇ…í«â¡
+>>>>>>> New
 
 public class PlayerController : MonoBehaviour
 {
@@ -165,6 +170,7 @@ public class PlayerController : MonoBehaviour
     [Tooltip("ÂâØÊ≠¶Âô®„ÇíÂèñ„Çä‰ªò„Åë„ÇãTransform„ÄÇ")]
     public Transform secondaryWeaponAttachPoint;
 
+<<<<<<< HEAD
     [Tooltip("„Éó„É¨„Ç§„É§„Éº„ÅåÂÖ•Âäõ„Åß„Åç„Çã„Åã„Å©„ÅÜ„Åã„ÅÆ„Éï„É©„Ç∞„ÄÇ„ÉÅ„É•„Éº„Éà„É™„Ç¢„É´„Å™„Å©„Åß‰ΩøÁî®„ÄÇ")]
     public bool canReceiveInput = true;
 
@@ -184,6 +190,25 @@ public class PlayerController : MonoBehaviour
 
     private float _descendTimer = 0f;
     public float DescendTimer { get { return _descendTimer; } }
+=======
+    // Åöí«â¡: É`ÉÖÅ[ÉgÉäÉAÉãóp
+    public bool canReceiveInput = true; // ÉvÉåÉCÉÑÅ[Ç™ì¸óÕÇ≈Ç´ÇÈÇ©Ç«Ç§Ç©ÇÃÉtÉâÉO
+    public Action onWASDMoveCompleted; // WASDà⁄ìÆäÆóπéûÇ…î≠âŒÇ∑ÇÈÉCÉxÉìÉg
+    public Action onJumpCompleted; // ÉWÉÉÉìÉväÆóπéûÇ…î≠âŒÇ∑ÇÈÉCÉxÉìÉg
+    public Action onDescendCompleted; // ç~â∫äÆóπéûÇ…î≠âŒÇ∑ÇÈÉCÉxÉìÉg
+    public Action onMeleeAttackPerformed; // ãﬂê⁄çUåÇé¿çséûÇ…î≠âŒÇ∑ÇÈÉCÉxÉìÉg
+    public Action onBeamAttackPerformed; // ÉrÅ[ÉÄçUåÇé¿çséûÇ…î≠âŒÇ∑ÇÈÉCÉxÉìÉg
+    public Action onBitAttackPerformed; // ì¡éÍçUåÇé¿çséûÇ…î≠âŒÇ∑ÇÈÉCÉxÉìÉg
+    public Action<int> onArmorModeChanged; // ÉAÅ[É}Å[ÉÇÅ[ÉhïœçXéûÇ…î≠âŒÇ∑ÇÈÉCÉxÉìÉg (à¯êîÇÕÉÇÅ[Éhî‘çÜ)
+
+    private float _wasdMoveTimer = 0f;
+    private float _jumpTimer = 0f;
+    private float _descendTimer = 0f;
+    private bool _hasMovedWASD = false; // WASDÇ™àÍìxÇ≈Ç‡ì¸óÕÇ≥ÇÍÇΩÇ©
+    private bool _hasJumped = false; // ÉXÉyÅ[ÉXÉLÅ[Ç™àÍìxÇ≈Ç‡âüÇ≥ÇÍÇΩÇ©
+    private bool _hasDescended = false; // AltÉLÅ[Ç™àÍìxÇ≈Ç‡âüÇ≥ÇÍÇΩÇ©
+
+>>>>>>> New
 
     void Start()
     {
@@ -227,8 +252,23 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
+<<<<<<< HEAD
         // „ÉÅ„É•„Éº„Éà„É™„Ç¢„É´‰∏≠„ÅÆÂÖ•ÂäõÂà∂Âæ°„Å®ÊîªÊíÉ‰∏≠„ÅÆÂõ∫ÂÆö
         if (!canReceiveInput)
+=======
+        if (!canReceiveInput) // Åöí«â¡: ì¸óÕéÛïtÇ™ñ≥å¯Ç»ÇÁèàóùÇÉXÉLÉbÉv
+        {
+            // çUåÇíÜå≈íËéûä‘ÇÃÉ^ÉCÉ}Å[ÇÕêiÇﬂÇÈ
+            if (isAttacking)
+            {
+                HandleAttackState();
+            }
+            return;
+        }
+
+        // çUåÇíÜÇÕÉvÉåÉCÉÑÅ[ÇÃìÆÇ´Çå≈íË
+        if (isAttacking)
+>>>>>>> New
         {
             if (isAttacking)
             {
@@ -260,15 +300,24 @@ public class PlayerController : MonoBehaviour
         if (Input.GetMouseButtonDown(0))
         {
             PerformMeleeAttack();
+<<<<<<< HEAD
             onMeleeAttackPerformed?.Invoke();
+=======
+            onMeleeAttackPerformed?.Invoke(); // Åöí«â¡: ÉCÉxÉìÉgî≠âŒ
+>>>>>>> New
         }
         else if (Input.GetMouseButtonDown(2) && canUseSwordBitAttack)
         {
             PerformBitAttack();
+<<<<<<< HEAD
             onBitAttackPerformed?.Invoke();
+=======
+            onBitAttackPerformed?.Invoke(); // Åöí«â¡: ÉCÉxÉìÉgî≠âŒ
+>>>>>>> New
         }
         else if (Input.GetMouseButtonDown(1))
         {
+<<<<<<< HEAD
             PerformBeamAttack();
             onBeamAttackPerformed?.Invoke();
         }
@@ -283,7 +332,25 @@ public class PlayerController : MonoBehaviour
         else if (Input.GetKeyDown(KeyCode.Alpha3))
         {
             onArmorModeChanged?.Invoke(2);
+=======
+            PerformBeamAttack(); // Ç±Ç±Ç≈é©ìÆÉçÉbÉNÉIÉìÇÃÉçÉWÉbÉNÇåƒÇ—èoÇ∑
+            onBeamAttackPerformed?.Invoke(); // Åöí«â¡: ÉCÉxÉìÉgî≠âŒ
+>>>>>>> New
         }
+        // Åöí«â¡: ÉAÅ[É}Å[ÉÇÅ[ÉhêÿÇËë÷Ç¶
+        else if (Input.GetKeyDown(KeyCode.Alpha1))
+        {
+            onArmorModeChanged?.Invoke(1);
+        }
+        else if (Input.GetKeyDown(KeyCode.Alpha2))
+        {
+            onArmorModeChanged?.Invoke(2);
+        }
+        else if (Input.GetKeyDown(KeyCode.Alpha3))
+        {
+            onArmorModeChanged?.Invoke(3);
+        }
+
 
 
         if (Time.time - lastMeleeInputTime > comboResetTime)
@@ -324,6 +391,7 @@ public class PlayerController : MonoBehaviour
         }
         moveDirection *= currentSpeed;
 
+<<<<<<< HEAD
         // WASDÂÖ•Âäõ„ÅÆÁõ£Ë¶ñÔºà„ÉÅ„É•„Éº„Éà„É™„Ç¢„É´Áî®Ôºâ - ÁßªÂãï„Åó„Å¶„ÅÑ„ÇãÈñì„Å†„Åë„Çø„Ç§„Éû„ÉºÂ¢óÂä†
         if (moveDirection.magnitude > 0.1f) // ÂÆüÈöõ„Å´„ÅÇ„ÇãÁ®ãÂ∫¶ÁßªÂãï„Åó„Å¶„ÅÑ„ÇãÂ†¥Âêà
         {
@@ -334,6 +402,20 @@ public class PlayerController : MonoBehaviour
             _wasdMoveTimer = 0f; // ÂÖ•Âäõ„ÅåÈÄîÂàá„Çå„Åü„Çâ„Çø„Ç§„Éû„Éº„Çí„É™„Çª„ÉÉ„Éà
         }
 
+=======
+        // Åöí«â¡: WASDì¸óÕÇÃäƒéã
+        if (Mathf.Abs(horizontalInput) > 0.1f || Mathf.Abs(verticalInput) > 0.1f)
+        {
+            _wasdMoveTimer += Time.deltaTime;
+            _hasMovedWASD = true;
+        }
+        else
+        {
+            _wasdMoveTimer = 0f; // ì¸óÕÇ™ìrêÿÇÍÇΩÇÁÉäÉZÉbÉg
+        }
+
+        // îÚçsã@î\Ç™óLå¯Ç»èÍçáÇÃÇ›ÉXÉyÅ[ÉX/AltÇ≈ÇÃè„è∏â∫ç~Çãñâ¬
+>>>>>>> New
         if (canFly)
         {
             if (Input.GetKey(KeyCode.Space) && currentEnergy > 0)
@@ -341,17 +423,32 @@ public class PlayerController : MonoBehaviour
                 velocity.y = verticalSpeed;
                 currentEnergy -= energyConsumptionRate * Time.deltaTime;
                 isConsumingEnergy = true;
+<<<<<<< HEAD
                 _jumpTimer += Time.deltaTime; // „Ç∏„É£„É≥„Éó„Çø„Ç§„Éû„ÉºÊõ¥Êñ∞
+=======
+                _jumpTimer += Time.deltaTime; // Åöí«â¡: ÉWÉÉÉìÉvÉ^ÉCÉ}Å[çXêV
+                _hasJumped = true;
+>>>>>>> New
             }
             else if ((Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt)) && currentEnergy > 0)
             {
                 velocity.y = -verticalSpeed;
                 currentEnergy -= energyConsumptionRate * Time.deltaTime;
                 isConsumingEnergy = true;
+<<<<<<< HEAD
                 _descendTimer += Time.deltaTime; // Èôç‰∏ã„Çø„Ç§„Éû„ÉºÊõ¥Êñ∞
+=======
+                _descendTimer += Time.deltaTime; // Åöí«â¡: ç~â∫É^ÉCÉ}Å[çXêV
+                _hasDescended = true;
+>>>>>>> New
             }
             else // „Çπ„Éö„Éº„Çπ/Alt„ÅåÈõ¢„Åï„Çå„Åü„Çâ„Çø„Ç§„Éû„Éº„Çí„É™„Çª„ÉÉ„Éà
             {
+<<<<<<< HEAD
+=======
+                velocity.y += gravity * Time.deltaTime;
+                // Åöí«â¡: ÉXÉyÅ[ÉX/AltÇ™ó£Ç≥ÇÍÇΩÇÁÉ^ÉCÉ}Å[ÇÉäÉZÉbÉg
+>>>>>>> New
                 _jumpTimer = 0f;
                 _descendTimer = 0f;
             }
@@ -362,7 +459,6 @@ public class PlayerController : MonoBehaviour
         {
             velocity.y += gravity * Time.deltaTime;
         }
-
 
         if (currentEnergy <= 0)
         {
@@ -403,6 +499,25 @@ public class PlayerController : MonoBehaviour
         Vector3 finalMove = moveDirection + new Vector3(0, velocity.y, 0);
         controller.Move(finalMove * Time.deltaTime);
     }
+
+    // Åöí«â¡: É`ÉÖÅ[ÉgÉäÉAÉãÉ}ÉlÅ[ÉWÉÉÅ[Ç™É^ÉCÉ}Å[ÇÉ`ÉFÉbÉNÇ∑ÇÈÇΩÇﬂÇÃÉvÉçÉpÉeÉB
+    public float WASDMoveTimer => _wasdMoveTimer;
+    public float JumpTimer => _jumpTimer;
+    public float DescendTimer => _descendTimer;
+    public bool HasMovedWASD => _hasMovedWASD;
+    public bool HasJumped => _hasJumped;
+    public bool HasDescended => _hasDescended;
+
+    public void ResetInputTracking()
+    {
+        _wasdMoveTimer = 0f;
+        _jumpTimer = 0f;
+        _descendTimer = 0f;
+        _hasMovedWASD = false;
+        _hasJumped = false;
+        _hasDescended = false;
+    }
+
 
     /// <summary>
     /// „ÉÅ„É•„Éº„Éà„É™„Ç¢„É´Áî®„ÅÆÂÖ•ÂäõËøΩË∑°„Éï„É©„Ç∞„Å®„Çø„Ç§„Éû„Éº„Çí„É™„Çª„ÉÉ„Éà„Åô„Çã„ÄÇ
@@ -760,7 +875,17 @@ public class PlayerController : MonoBehaviour
         if (attackTimer >= attackFixedDuration)
         {
             isAttacking = false;
+<<<<<<< HEAD
             attackTimer = 0.0f;
+=======
+            // äeçUåÇÇÃÉçÉbÉNÉIÉìÉ^Å[ÉQÉbÉgÇÉNÉäÉA
+            lockedEnemies.RemoveAll(t => t == null); // ÉrÉbÉgçUåÇóp
+            currentLockedBeamTarget = null; // ÉrÅ[ÉÄçUåÇóp
+            currentLockedMeleeTarget = null; // ãﬂê⁄çUåÇóp
+
+            Debug.Log("Attack sequence finished.");
+            attackFixedDuration = 0.8f; // Ç±Ç±Ç≈ÉfÉtÉHÉãÉgÇ…ñﬂÇ∑ó·
+>>>>>>> New
         }
     }
 
