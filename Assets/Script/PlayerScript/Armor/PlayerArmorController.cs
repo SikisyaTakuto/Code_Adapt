@@ -146,13 +146,13 @@ public class PlayerArmorController : MonoBehaviour
         _playerController.meleeAttackRange = _playerController.baseMeleeAttackRange * armorData.meleeAttackRangeModifier;
         _playerController.meleeDamage = _playerController.baseMeleeDamage * armorData.meleeAttackDamageModifier; // PlayerControllerにこの変数を追加
         _playerController.beamDamage = _playerController.baseBeamDamage * armorData.beamAttackDamageModifier; // PlayerControllerにこの変数を追加
-        _playerController.bitAttackEnergyCost = _playerController.baseBitAttackEnergyCost * armorData.bitAttackEnergyCostModifier; // PlayerControllerにこの変数を追加
+        //_playerController.bitAttackEnergyCost = _playerController.baseBitAttackEnergyCost * armorData.bitAttackEnergyCostModifier; // PlayerControllerにこの変数を追加
 
         // 飛行能力の制限 (バスターアーマーなど)
         _playerController.canFly = armorData.canFly;
 
-        // 特殊能力 (例: ソードビットの有効/無効)
-        _playerController.canUseSwordBitAttack = armorData.canUseSwordBit;
+        //// 特殊能力 (例: ソードビットの有効/無効)
+        //_playerController.canUseSwordBitAttack = armorData.canUseSwordBit;
 
         // 武器の見た目を切り替える (primaryWeapon, secondaryWeapon のPrefabをロードしてアタッチ)
         // ここに武器のPrefabをインスタンス化して、プレイヤーの手にアタッチするロジックを追加

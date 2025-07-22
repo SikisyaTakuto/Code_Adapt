@@ -28,9 +28,16 @@ public class EnemyController : MonoBehaviour
     public string playerTag = "Player"; // プレイヤーオブジェクトのタグ
     [Tooltip("攻撃を開始してからビームを発射するまでの準備時間（秒）。この間敵は停止する。")]
     public float attackPreparationTime = 1.0f; // 攻撃前の停止時間
+    [Tooltip("ビームの線の太さ。")] // ★追加
+    public float beamWidth = 0.5f; // ★追加
+    [Tooltip("ビームの線の色（開始色）。")] // ★追加
+    public Color beamStartColor = Color.red; // ★追加
+    [Tooltip("ビームの線の色（終了色）。")] // ★追加
+    public Color beamEndColor = Color.magenta; // ★追加
 
     private bool canAttack = true; // 攻撃クールダウン管理用
     private bool isAttacking = false; // 攻撃中フラグ
+    private GameObject currentBeamVisualizer; // ★追加: 現在表示中のビームの視覚化オブジェクトへの参照
 
     [Header("Movement Settings")]
     [Tooltip("ランダム移動の基準となる中心点。")]
@@ -73,6 +80,12 @@ public class EnemyController : MonoBehaviour
         {
             Debug.LogWarning($"プレイヤーオブジェクトにタグ '{playerTag}' が見つかりません。敵は攻撃行動を行いません。");
         }
+
+        // ★追加: 敵のHPが0になったときにビームエフェクトを消去するためのイベント購読
+        if (enemyHealth != null)
+        {
+            enemyHealth.onDeath += HandleEnemyDeath;
+        }
     }
 
     void Start()
@@ -88,7 +101,19 @@ public class EnemyController : MonoBehaviour
 
     void Update()
     {
-        if (!isActivated || enemyHealth.currentHealth <= 0) return; // 非アクティブまたはHPが0以下なら何もしない
+        if (!isActivated || enemyHealth.currentHealth <= 0)
+        {
+            // HPが0以下になった場合、ビームエフェクトを強制的に消去
+            if (enemyHealth.currentHealth <= 0)
+            {
+                if (currentBeamVisualizer != null)
+                {
+                    Destroy(currentBeamVisualizer);
+                    currentBeamVisualizer = null;
+                }
+            }
+            return; // 非アクティブまたはHPが0以下なら何もしない
+        }
 
         // 攻撃中は移動ロジックを実行しない
         if (isAttacking)
@@ -167,54 +192,80 @@ public class EnemyController : MonoBehaviour
         Debug.Log("攻撃準備中...");
         yield return new WaitForSeconds(attackPreparationTime); // ここで数秒間停止する
 
-        // Raycastを飛ばしてプレイヤーにダメージを与える
-        if (beamSpawnPoint != null && playerTransform != null)
+        // 敵のHPが0以下の場合、ビームを撃たずに終了
+        if (enemyHealth.currentHealth <= 0)
         {
-            Vector3 rayOrigin = beamSpawnPoint.position;
-            Vector3 rayDirection = (playerTransform.position - rayOrigin).normalized; // プレイヤーの方向へRayを飛ばす
+            isAttacking = false;
+            agent.isStopped = false;
+            canAttack = true; // クールダウンをリセット
+            yield break;
+        }
 
-            RaycastHit hit;
-            // Raycastを視覚化（デバッグ用）
-            Debug.DrawRay(rayOrigin, rayDirection * beamAttackRange, Color.cyan, beamDuration);
+        Vector3 rayOrigin = beamSpawnPoint.position;
+        Vector3 rayDirection = (playerTransform.position - rayOrigin).normalized; // プレイヤーの方向へRayを飛ばす
+        Vector3 beamEndPoint = rayOrigin + rayDirection * beamAttackRange; // ビームのデフォルト終点
 
-            if (Physics.Raycast(rayOrigin, rayDirection, out hit, beamAttackRange))
+        RaycastHit hit;
+        PlayerHealth playerHealth = null; // ヒットしたPlayerHealthを保持する変数
+
+        if (Physics.Raycast(rayOrigin, rayDirection, out hit, beamAttackRange))
+        {
+            Debug.Log($"Raycastがヒットしました: {hit.collider.name}, タグ: {hit.collider.tag}");
+            beamEndPoint = hit.point; // ヒットした位置をビームの終点とする
+
+            if (hit.collider.CompareTag(playerTag))
             {
-                Debug.Log($"Raycastがヒットしました: {hit.collider.name}, タグ: {hit.collider.tag}");
-                if (hit.collider.CompareTag(playerTag))
+                playerHealth = hit.collider.GetComponent<PlayerHealth>();
+                if (playerHealth != null)
                 {
-                    PlayerHealth playerHealth = hit.collider.GetComponent<PlayerHealth>();
-                    if (playerHealth != null)
-                    {
-                        playerHealth.TakeDamage(attackDamage);
-                        Debug.Log($"敵がプレイヤーに {attackDamage} ダメージを与えました。（Raycast）");
-                    }
-                    else
-                    {
-                        Debug.LogWarning("Raycastがプレイヤーにヒットしましたが、PlayerHealthコンポーネントが見つかりません。");
-                    }
+                    playerHealth.TakeDamage(attackDamage);
+                    Debug.Log($"敵がプレイヤーに {attackDamage} ダメージを与えました。（Raycast）");
                 }
-            }
-            else
-            {
-                Debug.Log("Raycastは何もヒットしませんでした。");
+                else
+                {
+                    Debug.LogWarning("Raycastがプレイヤーにヒットしましたが、PlayerHealthコンポーネントが見つかりません。");
+                }
             }
         }
         else
         {
-            Debug.LogWarning("beamSpawnPoint または playerTransform が設定されていません。Raycast攻撃を実行できません。");
+            Debug.Log("Raycastは何もヒットしませんでした。");
         }
+
+        // ビームの視覚化（Line Renderer）
+        // 既存のビジュアライザーがあれば破棄してから新しく生成
+        if (currentBeamVisualizer != null)
+        {
+            Destroy(currentBeamVisualizer);
+            currentBeamVisualizer = null;
+        }
+        currentBeamVisualizer = new GameObject("EnemyBeamVisualizer");
+        LineRenderer lineRenderer = currentBeamVisualizer.AddComponent<LineRenderer>();
+        lineRenderer.startWidth = beamWidth;
+        lineRenderer.endWidth = beamWidth;
+        lineRenderer.material = new Material(Shader.Find("Sprites/Default")); // 標準のシェーダー
+        lineRenderer.startColor = beamStartColor;
+        lineRenderer.endColor = beamEndColor;
+        lineRenderer.positionCount = 2;
+        lineRenderer.SetPosition(0, rayOrigin);
+        lineRenderer.SetPosition(1, beamEndPoint);
 
         // ビームエフェクトの生成と表示（オプション）
-        // Raycastによるダメージ判定とは独立して、視覚的なエフェクトとして残す
-        if (beamPrefab != null && beamSpawnPoint != null)
+        GameObject beamEffectInstance = null;
+        if (beamPrefab != null)
         {
-            GameObject beamInstance = Instantiate(beamPrefab, beamSpawnPoint.position, beamSpawnPoint.rotation);
-            // プレイヤーの方向に向かってビームを伸ばす場合は、Transform.LookAtなどを使用
-            beamInstance.transform.LookAt(playerTransform.position);
-            Destroy(beamInstance, beamDuration); // 一定時間後にビームエフェクトを破棄
-            Debug.Log("ビームエフェクト発射！");
+            beamEffectInstance = Instantiate(beamPrefab, rayOrigin, Quaternion.identity);
+            beamEffectInstance.transform.LookAt(beamEndPoint); // エフェクトをビームの方向に向ける
+            beamEffectInstance.transform.parent = currentBeamVisualizer.transform; // ラインレンダラーの子にする（まとめて破棄するため）
         }
 
+        // 指定時間表示した後、破棄
+        yield return new WaitForSeconds(beamDuration);
+        if (currentBeamVisualizer != null) // コルーチン中に敵が倒された場合に備えてnullチェック
+        {
+            Destroy(currentBeamVisualizer); // Line Rendererと子オブジェクト（エフェクト）をまとめて破棄
+            currentBeamVisualizer = null;
+        }
 
         // 攻撃アニメーションやSE再生などがあればここに追加
 
@@ -225,11 +276,45 @@ public class EnemyController : MonoBehaviour
     }
 
     /// <summary>
+    /// 敵のHPが0になったときに呼び出されるハンドラ。
+    /// </summary>
+    private void HandleEnemyDeath()
+    {
+        Debug.Log("敵が倒されました！ビームエフェクトを消去します。");
+        if (currentBeamVisualizer != null)
+        {
+            Destroy(currentBeamVisualizer);
+            currentBeamVisualizer = null;
+        }
+        // 敵が倒されたら、NavMeshAgentを停止
+        if (agent != null && agent.enabled)
+        {
+            agent.isStopped = true;
+            agent.enabled = false; // エージェントを無効化して移動を完全に停止
+        }
+        // 必要に応じて、敵のモデルを非表示にする、パーティクルエフェクトを再生するなどの処理を追加
+        // 例: gameObject.SetActive(false);
+    }
+
+    void OnDestroy()
+    {
+        // ★追加: スクリプトが破棄されるときにイベント購読を解除する
+        if (enemyHealth != null)
+        {
+            enemyHealth.onDeath -= HandleEnemyDeath;
+        }
+    }
+
+    /// <summary>
     /// 敵をアクティブにするメソッド（チュートリアルスクリプトから呼び出すことを想定）
     /// </summary>
     public void ActivateEnemy(Vector3 centerPoint, float range)
     {
         isActivated = true;
+        if (agent != null && !agent.enabled) // エージェントが無効になっている場合、有効にする
+        {
+            agent.enabled = true;
+        }
         agent.isStopped = false; // 移動を再開
         walkPointCenter = centerPoint; // チュートリアルで設定された範囲を使用
         walkPointRange = range;

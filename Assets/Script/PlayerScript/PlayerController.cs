@@ -25,8 +25,8 @@ public class PlayerController : MonoBehaviour
     public float baseMeleeDamage = 10.0f;
     [Tooltip("基本的なビーム攻撃ダメージ。")]
     public float baseBeamDamage = 50.0f;
-    [Tooltip("ビット攻撃の基本的なエネルギー消費量。")]
-    public float baseBitAttackEnergyCost = 20.0f;
+    // [Tooltip("ビット攻撃の基本的なエネルギー消費量。")] // 特殊攻撃の項目をコメントアウト
+    // public float baseBitAttackEnergyCost = 20.0f; // 特殊攻撃の項目をコメントアウト
     [Tooltip("ビーム攻撃の基本的なエネルギー消費量。")]
     public float baseBeamAttackEnergyCost = 30.0f;
 
@@ -48,15 +48,17 @@ public class PlayerController : MonoBehaviour
     public float meleeDamage;
     [Tooltip("現在のビーム攻撃ダメージ。ArmorControllerによって変更される。")]
     public float beamDamage;
-    [Tooltip("現在のビット攻撃エネルギー消費量。ArmorControllerによって変更される。")]
-    public float bitAttackEnergyCost;
+    // [Tooltip("現在のビット攻撃エネルギー消費量。ArmorControllerによって変更される。")] // 特殊攻撃の項目をコメントアウト
+    // public float bitAttackEnergyCost; // 特殊攻撃の項目をコメントアウト
     [Tooltip("現在のビーム攻撃エネルギー消費量。ArmorControllerによって変更される。")]
     public float beamAttackEnergyCost;
+    // [Tooltip("現在のビット攻撃ダメージ。ArmorControllerによって変更される。")] // 特殊攻撃の項目をコメントアウト
+    // public float bitDamage; // 特殊攻撃の項目をコメントアウト
 
     [Tooltip("飛行機能が有効かどうかのフラグ。")]
     public bool canFly = true;
-    [Tooltip("ソードビット攻撃が使用可能かどうかのフラグ。")]
-    public bool canUseSwordBitAttack = false;
+    // [Tooltip("ソードビット攻撃が使用可能かどうかのフラグ。")] // 特殊攻撃の項目をコメントアウト
+    // public bool canUseSwordBitAttack = false; // 特殊攻撃の項目をコメントアウト
 
     [Tooltip("プレイヤーに適用される重力の強さ。")]
     public float gravity = -9.81f;
@@ -82,24 +84,24 @@ public class PlayerController : MonoBehaviour
 
     private TPSCameraController tpsCamController;
 
-    // --- ビット攻撃関連の変数 ---
-    [Header("Bit Attack Settings")]
-    [Tooltip("射出するビットのPrefab。")]
-    public GameObject bitPrefab;
-    [Tooltip("ビットがプレイヤーの後方から上昇する高さ。")]
-    public float bitLaunchHeight = 5.0f;
-    [Tooltip("ビットが上昇するまでの時間。")]
-    public float bitLaunchDuration = 0.5f;
-    [Tooltip("ビットが敵に向かって飛ぶ速度。")]
-    public float bitAttackSpeed = 20.0f;
-    [Tooltip("敵をロックオンできる最大距離。")]
-    public float lockOnRange = 30.0f;
-    [Tooltip("敵のレイヤーマスク。")]
-    public LayerMask enemyLayer;
-    [Tooltip("ロックできる敵の最大数。")]
-    public int maxLockedEnemies = 6;
-    [Tooltip("ビット攻撃が与えるダメージ。")]
-    public float bitDamage = 25.0f;
+    // --- ビット攻撃関連の変数 --- // 特殊攻撃の項目をコメントアウト
+    // [Header("Bit Attack Settings")] // 特殊攻撃の項目をコメントアウト
+    // [Tooltip("射出するビットのPrefab。")] // 特殊攻撃の項目をコメントアウト
+    // public GameObject bitPrefab; // 特殊攻撃の項目をコメントアウト
+    // [Tooltip("ビットがプレイヤーの後方から上昇する高さ。")] // 特殊攻撃の項目をコメントアウト
+    // public float bitLaunchHeight = 5.0f; // 特殊攻撃の項目をコメントアウト
+    // [Tooltip("ビットが上昇するまでの時間。")] // 特殊攻撃の項目をコメントアウト
+    // public float bitLaunchDuration = 0.5f; // 特殊攻撃の項目をコメントアウト
+    // [Tooltip("ビットが敵に向かって飛ぶ速度。")] // 特殊攻撃の項目をコメントアウト
+    // public float bitAttackSpeed = 20.0f; // 特殊攻撃の項目をコメントアウト
+    // [Tooltip("敵をロックオンできる最大距離。")] // 特殊攻撃の項目をコメントアウト
+    // public float lockOnRange = 30.0f; // 特殊攻撃の項目をコメントアウト
+    [Tooltip("敵のレイヤーマスク。")] // 特殊攻撃の項目をコメントアウト
+    public LayerMask enemyLayer; // 特殊攻撃の項目をコメントアウト
+    // [Tooltip("ロックできる敵の最大数。")] // 特殊攻撃の項目をコメントアウト
+    // public int maxLockedEnemies = 6; // 特殊攻撃の項目をコメントアウト
+    // [Tooltip("ビット攻撃が与えるダメージ。")] // 特殊攻撃の項目をコメントアウト
+    // public float bitDamage = 25.0f; // 特殊攻撃の項目をコメントアウト
 
     private List<Transform> lockedEnemies = new List<Transform>();
     private bool isAttacking = false;
@@ -107,10 +109,10 @@ public class PlayerController : MonoBehaviour
     [Tooltip("攻撃中にプレイヤーが固定される時間。")]
     public float attackFixedDuration = 0.8f;
 
-    [Tooltip("ビットのスポーン位置を複数設定するためのリスト。")]
-    public List<Transform> bitSpawnPoints = new List<Transform>();
-    [Tooltip("ビットが上昇する軌道のアーチの高さ。")]
-    public float bitArcHeight = 2.0f;
+    // [Tooltip("ビットのスポーン位置を複数設定するためのリスト。")] // 特殊攻撃の項目をコメントアウト
+    // public List<Transform> bitSpawnPoints = new List<Transform>(); // 特殊攻撃の項目をコメントアウト
+    // [Tooltip("ビットが上昇する軌道のアーチの高さ。")] // 特殊攻撃の項目をコメントアウト
+    // public float bitArcHeight = 2.0f; // 特殊攻撃の項目をコメントアウト
 
     // --- 近接攻撃関連の変数 ---
     [Header("Melee Attack Settings")]
@@ -141,7 +143,7 @@ public class PlayerController : MonoBehaviour
     // --- ビーム攻撃関連の変数 ---
     [Header("Beam Attack Settings")]
     [Tooltip("ビームの最大射程距離。")]
-    public float beamAttackRange = 50.0f;
+    public float beamAttackRange = 30.0f;
     [Tooltip("ビーム攻撃のクールダウン時間。")]
     public float beamCooldown = 0.5f;
     private float lastBeamAttackTime = -Mathf.Infinity;
@@ -149,6 +151,10 @@ public class PlayerController : MonoBehaviour
     public GameObject beamEffectPrefab;
     [Tooltip("ビームの開始位置（例: プレイヤーの目の前など）。")]
     public Transform beamSpawnPoint;
+    [Tooltip("ビームの線の太さ。")] // ★追加
+    public float beamWidth = 0.5f; // ★追加
+    [Tooltip("ビームの表示時間。")] // ★追加
+    public float beamDisplayDuration = 0.5f; // ★追加
 
     [Header("Auto Lock-on Beam Settings")]
     [Tooltip("ビーム攻撃の自動ロックオン最大距離。")]
@@ -171,7 +177,7 @@ public class PlayerController : MonoBehaviour
     // チュートリアル用イベント
     public Action onMeleeAttackPerformed;
     public Action onBeamAttackPerformed;
-    public Action onBitAttackPerformed;
+    // public Action onBitAttackPerformed; // 特殊攻撃の項目をコメントアウト
     public Action<int> onArmorModeChanged;
     public event Action onEnergyDepleted; // ★追加: エネルギー枯渇時に発火するイベント
 
@@ -203,10 +209,10 @@ public class PlayerController : MonoBehaviour
         currentEnergy = maxEnergy;
         UpdateEnergyUI();
 
-        if (bitSpawnPoints.Count == 0)
-        {
-            Debug.LogWarning("PlayerController: bitSpawnPointsが設定されていません。Hierarchyに空のゲームオブジェクトを作成し、このリストにドラッグ＆ドロップしてください。");
-        }
+        // if (bitSpawnPoints.Count == 0) // 特殊攻撃の項目をコメントアウト
+        // { // 特殊攻撃の項目をコメントアウト
+        //     Debug.LogWarning("PlayerController: bitSpawnPointsが設定されていません。Hierarchyに空のゲームオブジェクトを作成し、このリストにドラッグ＆ドロップしてください。"); // 特殊攻撃の項目をコメントアウト
+        // } // 特殊攻撃の項目をコメントアウト
         if (beamSpawnPoint == null)
         {
             Debug.LogWarning("PlayerController: Beam Spawn Pointが設定されていません。Hierarchyに空のゲームオブジェクトを作成し、このフィールドにドラッグ＆ドロップしてください。");
@@ -220,9 +226,9 @@ public class PlayerController : MonoBehaviour
         meleeAttackRange = baseMeleeAttackRange;
         meleeDamage = baseMeleeDamage;
         beamDamage = baseBeamDamage;
-        bitAttackEnergyCost = baseBitAttackEnergyCost;
+        // bitAttackEnergyCost = baseBitAttackEnergyCost; // 特殊攻撃の項目をコメントアウト
         beamAttackEnergyCost = baseBeamAttackEnergyCost;
-        bitDamage = baseBitAttackEnergyCost;
+        // bitDamage = baseBitAttackEnergyCost; // 特殊攻撃の項目をコメントアウト
     }
 
     void Update()
@@ -262,11 +268,11 @@ public class PlayerController : MonoBehaviour
             PerformMeleeAttack();
             onMeleeAttackPerformed?.Invoke();
         }
-        else if (Input.GetMouseButtonDown(2) && canUseSwordBitAttack)
-        {
-            PerformBitAttack();
-            onBitAttackPerformed?.Invoke();
-        }
+        // else if (Input.GetMouseButtonDown(2) && canUseSwordBitAttack) // 特殊攻撃の項目をコメントアウト
+        // { // 特殊攻撃の項目をコメントアウト
+        //     PerformBitAttack(); // 特殊攻撃の項目をコメントアウト
+        //     onBitAttackPerformed?.Invoke(); // 特殊攻撃の項目をコメントアウト
+        // } // 特殊攻撃の項目をコメントアウト
         else if (Input.GetMouseButtonDown(1))
         {
             PerformBeamAttack();
@@ -464,112 +470,112 @@ public class PlayerController : MonoBehaviour
         return closestEnemy;
     }
 
-    void LockOnEnemies()
-    {
-        lockedEnemies.Clear();
-        Collider[] hitColliders = Physics.OverlapSphere(transform.position, lockOnRange, enemyLayer);
-        var sortedEnemies = hitColliders.OrderBy(col => Vector3.Distance(transform.position, col.transform.position)).Take(maxLockedEnemies);
-        foreach (Collider col in sortedEnemies)
-        {
-            if (col.transform != transform)
-            {
-                lockedEnemies.Add(col.transform);
-                Debug.Log($"Locked on: {col.name}");
-            }
-        }
-        if (lockedEnemies.Count > 0)
-        {
-            Vector3 lookAtTarget = lockedEnemies[0].position;
-            lookAtTarget.y = transform.position.y;
-            transform.LookAt(lookAtTarget);
-        }
-    }
+    // void LockOnEnemies() // 特殊攻撃の項目をコメントアウト
+    // { // 特殊攻撃の項目をコメントアウト
+    //     lockedEnemies.Clear(); // 特殊攻撃の項目をコメントアウト
+    //     Collider[] hitColliders = Physics.OverlapSphere(transform.position, lockOnRange, enemyLayer); // 特殊攻撃の項目をコメントアウト
+    //     var sortedEnemies = hitColliders.OrderBy(col => Vector3.Distance(transform.position, col.transform.position)).Take(maxLockedEnemies); // 特殊攻撃の項目をコメントアウト
+    //     foreach (Collider col in sortedEnemies) // 特殊攻撃の項目をコメントアウト
+    //     { // 特殊攻撃の項目をコメントアウト
+    //         if (col.transform != transform) // 特殊攻撃の項目をコメントアウト
+    //         { // 特殊攻撃の項目をコメントアウト
+    //             lockedEnemies.Add(col.transform); // 特殊攻撃の項目をコメントアウト
+    //             Debug.Log($"Locked on: {col.name}"); // 特殊攻撃の項目をコメントアウト
+    //         } // 特殊攻撃の項目をコメントアウト
+    //     } // 特殊攻撃の項目をコメントアウト
+    //     if (lockedEnemies.Count > 0) // 特殊攻撃の項目をコメントアウト
+    //     { // 特殊攻撃の項目をコメントアウト
+    //         Vector3 lookAtTarget = lockedEnemies[0].position; // 特殊攻撃の項目をコメントアウト
+    //         lookAtTarget.y = transform.position.y; // 特殊攻撃の項目をコメントアウト
+    //         transform.LookAt(lookAtTarget); // 特殊攻撃の項目をコメントアウト
+    //     } // 特殊攻撃の項目をコメントアウト
+    // } // 特殊攻撃の項目をコメントアウト
 
-    void PerformBitAttack()
-    {
-        if (bitSpawnPoints.Count == 0)
-        {
-            Debug.LogWarning("Bit spawn points are not set up in the Inspector. Cannot perform bit attack.");
-            return;
-        }
+    // void PerformBitAttack() // 特殊攻撃の項目をコメントアウト
+    // { // 特殊攻撃の項目をコメントアウト
+    //     if (bitSpawnPoints.Count == 0) // 特殊攻撃の項目をコメントアウト
+    //     { // 特殊攻撃の項目をコメントアウト
+    //         Debug.LogWarning("Bit spawn points are not set up in the Inspector. Cannot perform bit attack."); // 特殊攻撃の項目をコメントアウト
+    //         return; // 特殊攻撃の項目をコメントアウト
+    //     } // 特殊攻撃の項目をコメントアウト
 
-        LockOnEnemies();
+    //     LockOnEnemies(); // 特殊攻撃の項目をコメントアウト
 
-        if (lockedEnemies.Count == 0)
-        {
-            Debug.Log("No enemies to lock on. Bit attack cancelled.");
-            return;
-        }
+    //     if (lockedEnemies.Count == 0) // 特殊攻撃の項目をコメントアウト
+    //     { // 特殊攻撃の項目をコメントアウト
+    //         Debug.Log("No enemies to lock on. Bit attack cancelled."); // 特殊攻撃の項目をコメントアウト
+    //         return; // 特殊攻撃の項目をコメントアウト
+    //     } // 特殊攻撃の項目をコメントアウト
 
-        if (currentEnergy < bitAttackEnergyCost * lockedEnemies.Count)
-        {
-            Debug.Log($"Not enough energy for Bit Attack! Need {bitAttackEnergyCost * lockedEnemies.Count} energy.");
-            return;
-        }
+    //     if (currentEnergy < bitAttackEnergyCost * lockedEnemies.Count) // 特殊攻撃の項目をコメントアウト
+    //     { // 特殊攻撃の項目をコメントアウト
+    //         Debug.Log($"Not enough energy for Bit Attack! Need {bitAttackEnergyCost * lockedEnemies.Count} energy."); // 特殊攻撃の項目をコメントアウト
+    //         return; // 特殊攻撃の項目をコメントアウト
+    //     } // 特殊攻撃の項目をコメントアウト
 
-        currentEnergy -= bitAttackEnergyCost * lockedEnemies.Count;
-        UpdateEnergyUI();
+    //     currentEnergy -= bitAttackEnergyCost * lockedEnemies.Count; // 特殊攻撃の項目をコメントアウト
+    //     UpdateEnergyUI(); // 特殊攻撃の項目をコメントアウト
 
-        isAttacking = true;
-        attackTimer = 0.0f;
+    //     isAttacking = true; // 特殊攻撃の項目をコメントアウト
+    //     attackTimer = 0.0f; // 特殊攻撃の項目をコメントアウト
 
-        int bitsToSpawn = Mathf.Min(lockedEnemies.Count, bitSpawnPoints.Count);
+    //     int bitsToSpawn = Mathf.Min(lockedEnemies.Count, bitSpawnPoints.Count); // 特殊攻撃の項目をコメントアウト
 
-        for (int i = 0; i < bitsToSpawn; i++)
-        {
-            Transform target = lockedEnemies[i];
-            Transform spawnPoint = bitSpawnPoints[i];
-            StartCoroutine(LaunchBit(bitPrefab, spawnPoint.position, target, bitLaunchDuration, bitAttackSpeed, bitDamage, bitArcHeight));
-        }
-        onBitAttackPerformed?.Invoke(); // イベント発火
-    }
+    //     for (int i = 0; i < bitsToSpawn; i++) // 特殊攻撃の項目をコメントアウト
+    //     { // 特殊攻撃の項目をコメントアウト
+    //         Transform target = lockedEnemies[i]; // 特殊攻撃の項目をコメントアウト
+    //         Transform spawnPoint = bitSpawnPoints[i]; // 特殊攻撃の項目をコメントアウト
+    //         StartCoroutine(LaunchBit(bitPrefab, spawnPoint.position, target, bitLaunchDuration, bitAttackSpeed, bitDamage, bitArcHeight)); // 特殊攻撃の項目をコメントアウト
+    //     } // 特殊攻撃の項目をコメントアウト
+    //     onBitAttackPerformed?.Invoke(); // イベント発火 // 特殊攻撃の項目をコメントアウト
+    // } // 特殊攻撃の項目をコメントアウト
 
-    IEnumerator LaunchBit(GameObject bitPrefab, Vector3 startPos, Transform target, float launchDuration, float attackSpeed, float damage, float arcHeight)
-    {
-        GameObject bitInstance = Instantiate(bitPrefab, startPos, Quaternion.identity);
-        float startTime = Time.time;
-        Vector3 initialUpPos = startPos + Vector3.up * bitLaunchHeight; // 最初の上昇地点
+    // IEnumerator LaunchBit(GameObject bitPrefab, Vector3 startPos, Transform target, float launchDuration, float attackSpeed, float damage, float arcHeight) // 特殊攻撃の項目をコメントアウト
+    // { // 特殊攻撃の項目をコメントアウト
+    //     GameObject bitInstance = Instantiate(bitPrefab, startPos, Quaternion.identity); // 特殊攻撃の項目をコメントアウト
+    //     float startTime = Time.time; // 特殊攻撃の項目をコメントアウト
+    //     Vector3 initialUpPos = startPos + Vector3.up * bitLaunchHeight; // 最初の上昇地点 // 特殊攻撃の項目をコメントアウト
 
-        // 上昇アニメーション
-        while (Time.time < startTime + launchDuration)
-        {
-            float t = (Time.time - startTime) / launchDuration;
-            bitInstance.transform.position = Vector3.Lerp(startPos, initialUpPos, t);
-            yield return null;
-        }
+    //     // 上昇アニメーション // 特殊攻撃の項目をコメントアウト
+    //     while (Time.time < startTime + launchDuration) // 特殊攻撃の項目をコメントアウト
+    //     { // 特殊攻撃の項目をコメントアウト
+    //         float t = (Time.time - startTime) / launchDuration; // 特殊攻撃の項目をコメントアウト
+    //         bitInstance.transform.position = Vector3.Lerp(startPos, initialUpPos, t); // 特殊攻撃の項目をコメントアウト
+    //         yield return null; // 特殊攻撃の項目をコメントアウト
+    //     } // 特殊攻撃の項目をコメントアウト
 
-        // ターゲット追尾
-        while (bitInstance != null && target != null && target.gameObject.activeInHierarchy)
-        {
-            Vector3 directionToTarget = (target.position - bitInstance.transform.position).normalized;
-            bitInstance.transform.position += directionToTarget * attackSpeed * Time.deltaTime;
-            bitInstance.transform.LookAt(target); // 常にターゲットの方を向く
+    //     // ターゲット追尾 // 特殊攻撃の項目をコメントアウト
+    //     while (bitInstance != null && target != null && target.gameObject.activeInHierarchy) // 特殊攻撃の項目をコメントアウト
+    //     { // 特殊攻撃の項目をコメントアウト
+    //         Vector3 directionToTarget = (target.position - bitInstance.transform.position).normalized; // 特殊攻撃の項目をコメントアウト
+    //         bitInstance.transform.position += directionToTarget * attackSpeed * Time.deltaTime; // 特殊攻撃の項目をコメントアウト
+    //         bitInstance.transform.LookAt(target); // 常にターゲットの方を向く // 特殊攻撃の項目をコメントアウト
 
-            // ターゲットに十分近づいたら攻撃して破棄
-            if (Vector3.Distance(bitInstance.transform.position, target.position) < 1.0f) // 適切な距離を設定
-            {
-                // 敵にダメージを与える処理 (例: EnemyHealthスクリプトのTakeDamageメソッドを呼び出す)
-                EnemyHealth enemyHealth = target.GetComponent<EnemyHealth>();
-                if (enemyHealth == null)
-                {
-                    enemyHealth = target.GetComponentInChildren<EnemyHealth>();
-                }
-                if (enemyHealth != null)
-                {
-                    enemyHealth.TakeDamage(damage);
-                }
-                Destroy(bitInstance);
-                yield break; // コルーチンを終了
-            }
-            yield return null;
-        }
+    //         // ターゲットに十分近づいたら攻撃して破棄 // 特殊攻撃の項目をコメントアウト
+    //         if (Vector3.Distance(bitInstance.transform.position, target.position) < 1.0f) // 適切な距離を設定 // 特殊攻撃の項目をコメントアウト
+    //         { // 特殊攻撃の項目をコメントアウト
+    //             // 敵にダメージを与える処理 (例: EnemyHealthスクリプトのTakeDamageメソッドを呼び出す) // 特殊攻撃の項目をコメントアウト
+    //             EnemyHealth enemyHealth = target.GetComponent<EnemyHealth>(); // 特殊攻撃の項目をコメントアウト
+    //             if (enemyHealth == null) // 特殊攻撃の項目をコメントアウト
+    //             { // 特殊攻撃の項目をコメントアウト
+    //                 enemyHealth = target.GetComponentInChildren<EnemyHealth>(); // 特殊攻撃の項目をコメントアウト
+    //             } // 特殊攻撃の項目をコメントアウト
+    //             if (enemyHealth != null) // 特殊攻撃の項目をコメントアウト
+    //             { // 特殊攻撃の項目をコメントアウト
+    //                 enemyHealth.TakeDamage(damage); // 特殊攻撃の項目をコメントアウト
+    //             } // 特殊攻撃の項目をコメントアウト
+    //             Destroy(bitInstance); // 特殊攻撃の項目をコメントアウト
+    //             yield break; // コルーチンを終了 // 特殊攻撃の項目をコメントアウト
+    //         } // 特殊攻撃の項目をコメントアウト
+    //         yield return null; // 特殊攻撃の項目をコメントアウト
+    //     } // 特殊攻撃の項目をコメントアウト
 
-        // ターゲットが消滅した場合など、追尾できなくなったらビットを破棄
-        if (bitInstance != null)
-        {
-            Destroy(bitInstance);
-        }
-    }
+    //     // ターゲットが消滅した場合など、追尾できなくなったらビットを破棄 // 特殊攻撃の項目をコメントアウト
+    //     if (bitInstance != null) // 特殊攻撃の項目をコメントアウト
+    //     { // 特殊攻撃の項目をコメントアウト
+    //         Destroy(bitInstance); // 特殊攻撃の項目をコメントアウト
+    //     } // 特殊攻撃の項目をコメントアウト
+    // } // 特殊攻撃の項目をコメントアウト
 
     void PerformMeleeAttack()
     {
@@ -682,75 +688,105 @@ public class PlayerController : MonoBehaviour
         // ターゲットを見つける
         currentLockedBeamTarget = FindBeamTarget();
 
-        Vector3 targetPoint;
+        Vector3 startPoint = beamSpawnPoint.position;
+        Vector3 endPoint;
+        RaycastHit hitInfo;
+        Transform hitEnemyTransform = null;
+
         if (currentLockedBeamTarget != null && preferLockedTarget)
         {
-            targetPoint = currentLockedBeamTarget.position;
+            endPoint = currentLockedBeamTarget.position;
             // ターゲットの方向を向く
             Vector3 lookAtTarget = currentLockedBeamTarget.position;
             lookAtTarget.y = transform.position.y; // Y軸は固定（水平方向のみ向く）
             transform.LookAt(lookAtTarget);
+
+            // ロックオンしたターゲットに対してRaycastを飛ばし、間に障害物がないか確認
+            if (Physics.Raycast(startPoint, (endPoint - startPoint).normalized, out hitInfo, beamAttackRange, enemyLayer))
+            {
+                if (hitInfo.collider.transform == currentLockedBeamTarget)
+                {
+                    endPoint = hitInfo.point;
+                    hitEnemyTransform = currentLockedBeamTarget;
+                }
+                else
+                {
+                    // 途中に別の敵や障害物があった場合
+                    endPoint = hitInfo.point;
+                    hitEnemyTransform = hitInfo.collider.transform;
+                }
+            }
+            else
+            {
+                // ロックオンした敵にRayが届かない場合（間に何もヒットしなかった場合）、最大射程まで伸ばす
+                endPoint = startPoint + (endPoint - startPoint).normalized * beamAttackRange;
+            }
         }
         else
         {
             // カメラの中心からRayを飛ばし、ヒットした場所をターゲットにする
             Ray ray = tpsCamController.GetCameraRay();
-            RaycastHit hit;
-            if (Physics.Raycast(ray, out hit, beamAttackRange, enemyLayer))
+            if (Physics.Raycast(ray, out hitInfo, beamAttackRange, enemyLayer))
             {
-                targetPoint = hit.point;
+                endPoint = hitInfo.point;
+                hitEnemyTransform = hitInfo.collider.transform;
             }
             else
             {
-                targetPoint = ray.origin + ray.direction * beamAttackRange;
+                endPoint = ray.origin + ray.direction * beamAttackRange;
             }
         }
 
-        // ビームエフェクトの生成
-        if (beamEffectPrefab != null && beamSpawnPoint != null)
+        // ビームエフェクトとラインレンダラーの表示
+        StartCoroutine(ShowBeamEffectAndLine(startPoint, endPoint, hitEnemyTransform));
+
+        onBeamAttackPerformed?.Invoke(); // イベント発火
+    }
+
+    IEnumerator ShowBeamEffectAndLine(Vector3 startPoint, Vector3 endPoint, Transform hitEnemyTransform)
+    {
+        GameObject beamVisualizer = new GameObject("BeamVisualizer");
+        beamVisualizer.transform.position = startPoint;
+
+        // Line Renderer の設定
+        LineRenderer lineRenderer = beamVisualizer.AddComponent<LineRenderer>();
+        lineRenderer.startWidth = beamWidth;
+        lineRenderer.endWidth = beamWidth;
+        lineRenderer.material = new Material(Shader.Find("Sprites/Default")); // 標準のシェーダー
+        lineRenderer.startColor = Color.cyan; // ビームの色
+        lineRenderer.endColor = Color.blue;
+        lineRenderer.positionCount = 2;
+        lineRenderer.SetPosition(0, startPoint);
+        lineRenderer.SetPosition(1, endPoint);
+
+        // ビームエフェクトの生成（あれば）
+        GameObject beamEffectInstance = null;
+        if (beamEffectPrefab != null)
         {
-            GameObject beamInstance = Instantiate(beamEffectPrefab, beamSpawnPoint.position, Quaternion.identity);
-            // ビームエフェクトをターゲット方向に向ける
-            beamInstance.transform.LookAt(targetPoint);
-            // ビームの長さを調整 (エフェクトの作りによる)
-            // 例: beamInstance.transform.localScale = new Vector3(1, 1, Vector3.Distance(beamSpawnPoint.position, targetPoint));
-            Destroy(beamInstance, 0.5f); // 0.5秒後にエフェクトを破棄
+            beamEffectInstance = Instantiate(beamEffectPrefab, startPoint, Quaternion.identity);
+            beamEffectInstance.transform.LookAt(endPoint); // エフェクトをターゲット方向に向ける
+            beamEffectInstance.transform.parent = beamVisualizer.transform; // ラインレンダラーの子にするかはお好みで
         }
 
-        // ターゲットにダメージを与える
-        if (currentLockedBeamTarget != null && preferLockedTarget)
+        // 敵にダメージを与える
+        if (hitEnemyTransform != null)
         {
-            EnemyHealth enemyHealth = currentLockedBeamTarget.GetComponent<EnemyHealth>();
+            EnemyHealth enemyHealth = hitEnemyTransform.GetComponent<EnemyHealth>();
             if (enemyHealth == null)
             {
-                enemyHealth = currentLockedBeamTarget.GetComponentInChildren<EnemyHealth>();
+                enemyHealth = hitEnemyTransform.GetComponentInChildren<EnemyHealth>();
             }
             if (enemyHealth != null)
             {
                 enemyHealth.TakeDamage(beamDamage);
-                Debug.Log($"{currentLockedBeamTarget.name} にビーム攻撃で {beamDamage} ダメージを与えました。");
+                Debug.Log($"{hitEnemyTransform.name} にビーム攻撃で {beamDamage} ダメージを与えました。");
             }
         }
-        else
-        {
-            // Raycastでヒットした敵にダメージ
-            Ray ray = tpsCamController.GetCameraRay();
-            RaycastHit hit;
-            if (Physics.Raycast(ray, out hit, beamAttackRange, enemyLayer))
-            {
-                EnemyHealth enemyHealth = hit.collider.GetComponent<EnemyHealth>();
-                if (enemyHealth == null)
-                {
-                    enemyHealth = hit.collider.GetComponentInChildren<EnemyHealth>();
-                }
-                if (enemyHealth != null)
-                {
-                    enemyHealth.TakeDamage(beamDamage);
-                    Debug.Log($"{hit.collider.name} にビーム攻撃で {beamDamage} ダメージを与えました。");
-                }
-            }
-        }
-        onBeamAttackPerformed?.Invoke(); // イベント発火
+
+        // 指定時間表示した後、破棄
+        yield return new WaitForSeconds(beamDisplayDuration);
+
+        Destroy(beamVisualizer); // Line Rendererと子オブジェクト（エフェクト）をまとめて破棄
     }
 
     // 攻撃中のプレイヤーの状態を処理

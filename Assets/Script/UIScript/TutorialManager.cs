@@ -62,7 +62,7 @@ public class TutorialManager : MonoBehaviour
         ResetPosition,
         MeleeAttack,
         BeamAttack,
-        SpecialAttack,
+        // SpecialAttack, // 特殊攻撃のステップを削除
         ArmorModeSwitch,
         End
     }
@@ -301,38 +301,8 @@ public class TutorialManager : MonoBehaviour
         yield return StartCoroutine(ShowMessage("ビーム攻撃も完璧です！\nこれで遠くの敵も怖くありません。", 2.0f));
         yield return StartCoroutine(WaitForPlayerAction(0.5f));
 
-        // ステップ8: ホイール押込みで特殊攻撃
-        currentStep = TutorialStep.SpecialAttack;
-        objectiveText.gameObject.SetActive(false);
-        if (enemyPrefab != null && enemySpawnPoint != null)
-        {
-            // 敵の出現位置にカメラを向ける (遠くから見下ろすように)
-            SetCameraToLookAtPosition(enemySpawnPoint.position + new Vector3(0, 0, 5), enemyRevealCameraDistance, enemyRevealCameraHeight, tutorialCameraSmoothTime);
-
-            SpawnEnemy(enemyPrefab, enemySpawnPoint.position + new Vector3(0, 0, 5));
-            yield return StartCoroutine(ShowMessage("敵が現れました。\nホイールクリックで特殊攻撃を試してみましょう。\n複数の敵に有効です！", 4.0f));
-            UpdateObjectiveText("目標: ホイールクリックで特殊攻撃を使い、全ての敵を倒しましょう。"); // 常時目標を更新
-        }
-        else
-        {
-            yield return StartCoroutine(ShowMessage("特殊攻撃のチュートリアルを開始します。（敵Prefabが設定されていません）", 3.0f));
-            UpdateObjectiveText("目標: 特殊攻撃のチュートリアル（敵Prefabなし）。"); // 常時目標を更新
-        }
-        // メッセージ表示後にTPSカメラに戻す
-        ResetCameraToTPS();
-
-        playerController.canUseSwordBitAttack = true;
-        playerController.canReceiveInput = true;
-        yield return StartCoroutine(WaitForEnemyDefeatCompletion());
-        playerController.canReceiveInput = false;
-        playerController.canUseSwordBitAttack = false;
-
-        objectiveText.gameObject.SetActive(false);
-        yield return StartCoroutine(ShowMessage("素晴らしい！特殊攻撃も使いこなせますね！", 2.0f));
-        yield return StartCoroutine(WaitForPlayerAction(0.5f));
-
-        // プレイヤーを再度中心に戻す
-        currentStep = TutorialStep.ResetPosition;
+        // ステップ8: プレイヤーを再度中心に戻す (特殊攻撃ステップが削除されたため、ステップ番号を調整)
+        currentStep = TutorialStep.ResetPosition; // ResetPositionを再利用
         SetCameraToPlayerFront();
         objectiveText.gameObject.SetActive(false);
         yield return StartCoroutine(ShowMessage("一旦、中央に戻りましょう。", 2.0f));
@@ -347,7 +317,7 @@ public class TutorialManager : MonoBehaviour
         yield return StartCoroutine(WaitForPlayerAction(0.5f)); // 全ての移動が完了した後の短い待機
 
 
-        // ステップ9: 1, 2, 3でアーマーモード切り替え
+        // ステップ9: 1, 2, 3でアーマーモード切り替え (特殊攻撃ステップが削除されたため、ステップ番号を調整)
         currentStep = TutorialStep.ArmorModeSwitch;
         SetCameraToPlayerFront();
         objectiveText.gameObject.SetActive(false);
@@ -378,27 +348,31 @@ public class TutorialManager : MonoBehaviour
         playerController.canReceiveInput = false;
 
         objectiveText.gameObject.SetActive(false);
-        yield return StartCoroutine(ShowMessage("アーマーモードの切り替え完了！\n状況に合わせてモードを使い分けましょう。", 2.0f));
-        yield return StartCoroutine(WaitForPlayerAction(0.5f));
+        yield return StartCoroutine(ShowMessage("チュートリアル完了！ClearSceneに移動します。", 4.0f));
+        yield return StartCoroutine(WaitForPlayerAction(1.5f));
 
-        // ステップ10: チュートリアル終了
-        currentStep = TutorialStep.End;
-        SetCameraToPlayerFront();
-        objectiveText.gameObject.SetActive(false);
-        yield return StartCoroutine(ShowMessage("これで基本訓練は終了です！\n広大な世界へ飛び立ちましょう！", 5.0f));
-        objectiveText.gameObject.SetActive(false); // チュートリアル終了時にobjectiveTextを非表示にする場合
-        ResetCameraToTPS();
-        yield return StartCoroutine(WaitForPlayerAction(0.5f));
+        // チュートリアル終了後、ClearSceneに移動
+        Debug.Log("チュートリアル完了！ClearSceneに移動します。");
+        SceneManager.LoadScene("ClearScene");
 
-        if (playerController != null)
-        {
-            playerController.canReceiveInput = true;
-            Debug.Log("チュートリアル終了。プレイヤーの入力を有効にしました。");
-        }
-        else
-        {
-            Debug.LogError("PlayerControllerがnullのため、チュートリアル終了時にプレイヤーの入力を有効にできませんでした。");
-        }
+        // 以下のチュートリアル終了処理は、シーン遷移によって実行されないためコメントアウトまたは削除
+        // currentStep = TutorialStep.End;
+        // SetCameraToPlayerFront();
+        // objectiveText.gameObject.SetActive(false);
+        // yield return StartCoroutine(ShowMessage("これで基本訓練は終了です！\n広大な世界へ飛び立ちましょう！", 5.0f));
+        // objectiveText.gameObject.SetActive(false); // チュートリアル終了時にobjectiveTextを非表示にする場合
+        // ResetCameraToTPS();
+        // yield return StartCoroutine(WaitForPlayerAction(0.5f));
+
+        // if (playerController != null)
+        // {
+        //     playerController.canReceiveInput = true;
+        //     Debug.Log("チュートリアル終了。プレイヤーの入力を有効にしました。");
+        // }
+        // else
+        // {
+        //     Debug.LogError("PlayerControllerがnullのため、チュートリアル終了時にプレイヤーの入力を有効にできませんでした。");
+        // }
     }
 
     /// <summary>
@@ -685,10 +659,23 @@ public class TutorialManager : MonoBehaviour
         // 他の点滅コルーチンが動いていれば停止
         if (energyBlinkCoroutine != null) StopCoroutine(energyBlinkCoroutine);
 
+        // ShowMessageを呼び出す前に、tutorialProgressBarの現在の表示状態を保存
+        bool wasProgressBarActive = tutorialProgressBar.gameObject.activeSelf;
+
         SetCameraToPlayerFront(); // カメラをプレイヤー正面に設定
-        objectiveText.gameObject.SetActive(false);
+        objectiveText.gameObject.SetActive(false); // 一時的に目標テキストを非表示
         // ShowMessageはtutorialTextを使用し、メッセージ表示後には非表示にする
         yield return StartCoroutine(ShowMessage("エネルギーがなくなりました！\nブーストや特殊攻撃はエネルギーを消費します。\nエネルギーは時間で回復します。", 4.0f));
+
+        // メッセージ表示後、現在の目標を再表示
+        UpdateObjectiveText(GetCurrentObjectiveString());
+        ResetCameraToTPS(); // カメラをTPSモードに戻す
+
+        // ShowMessageを呼び出す前の状態に戻す
+        if (wasProgressBarActive)
+        {
+            tutorialProgressBar.gameObject.SetActive(true);
+        }
 
         // エネルギーゲージの点滅を開始
         if (energyFillImage != null)
@@ -708,7 +695,6 @@ public class TutorialManager : MonoBehaviour
         {
             energyFillImage.color = new Color(energyFillImage.color.r, energyFillImage.color.g, energyFillImage.color.b, 1f); // アルファ値を1に戻す
         }
-        ResetCameraToTPS(); // カメラをTPSモードに戻す
     }
 
     // エネルギーゲージ点滅コルーチン
@@ -740,11 +726,62 @@ public class TutorialManager : MonoBehaviour
 
     IEnumerator HPDamageSequence()
     {
+        // ShowMessageを呼び出す前に、tutorialProgressBarの現在の表示状態を保存
+        bool wasProgressBarActive = tutorialProgressBar.gameObject.activeSelf;
+
         SetCameraToPlayerFront(); // カメラをプレイヤー正面に設定
-        objectiveText.gameObject.SetActive(false);
+        objectiveText.gameObject.SetActive(false); // 一時的に目標テキストを非表示
         // ShowMessageはtutorialTextを使用し、メッセージ表示後には非表示にする
-        ResetCameraToTPS(); // カメラをTPSモードに戻す
         yield return StartCoroutine(ShowMessage("ダメージを受けました！\nHPが0になるとゲームオーバーです。\n敵の攻撃に注意しましょう！", 2.0f));
+
+        // メッセージ表示後、現在の目標を再表示
+        UpdateObjectiveText(GetCurrentObjectiveString());
+        ResetCameraToTPS(); // カメラをTPSモードに戻す
+
+        // ShowMessageを呼び出す前の状態に戻す
+        if (wasProgressBarActive)
+        {
+            tutorialProgressBar.gameObject.SetActive(true);
+        }
         yield return StartCoroutine(WaitForPlayerAction(0.5f));
+    }
+
+    /// <summary>
+    /// 現在のチュートリアルステップに応じた目標テキストを返す。
+    /// </summary>
+    /// <returns>現在の目標テキスト</returns>
+    private string GetCurrentObjectiveString()
+    {
+        switch (currentStep)
+        {
+            case TutorialStep.Welcome:
+                return "ようこそ！\nチュートリアルを開始します。";
+            case TutorialStep.MoveWASD:
+                return "目標: WASDキーを使って移動してください。";
+            case TutorialStep.Jump:
+                return "目標: スペースキーを押して飛んでみましょう。";
+            case TutorialStep.Descend:
+                return "目標: Altキーを押して下降してみましょう。";
+            case TutorialStep.ResetPosition:
+                return "目標: 元の位置に戻りましょう。"; // プレイヤーを中央に戻す際の目標
+            case TutorialStep.MeleeAttack:
+                return "目標: 左クリックで近接攻撃を使い、敵を倒しましょう。";
+            case TutorialStep.BeamAttack:
+                return "目標: 右クリックでビーム攻撃を使い、敵を倒しましょう。";
+            case TutorialStep.ArmorModeSwitch:
+                // アーマーモード切り替えと敵討伐が複合しているため、状況に応じて調整
+                if (currentEnemyInstance != null)
+                {
+                    return "目標: アーマーモードを切り替えて、敵を倒しましょう。";
+                }
+                else
+                {
+                    return "目標: 1, 2, 3キーでアーマーモードを切り替えてみましょう。";
+                }
+            case TutorialStep.End:
+                return "チュートリアル終了！";
+            default:
+                return "現在の目標はありません。";
+        }
     }
 }
