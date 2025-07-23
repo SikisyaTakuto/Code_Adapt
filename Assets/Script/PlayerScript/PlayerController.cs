@@ -22,7 +22,7 @@ public class PlayerController : MonoBehaviour
     [Tooltip("近接攻撃の基本範囲。")]
     public float baseMeleeAttackRange = 2.0f;
     [Tooltip("基本的な近接攻撃ダメージ。")]
-    public float baseMeleeDamage = 10.0f;
+    public float baseMeleeDamage = 50.0f;
     [Tooltip("基本的なビーム攻撃ダメージ。")]
     public float baseBeamDamage = 50.0f;
     // [Tooltip("ビット攻撃の基本的なエネルギー消費量。")] // 特殊攻撃の項目をコメントアウト
