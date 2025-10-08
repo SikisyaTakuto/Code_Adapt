@@ -7,13 +7,13 @@ using UnityEngine;
 /// </summary>
 public class SceneLauncher
 {
-    // メニューに「Launcher/Enemy Scene」という項目を追加
-    // クリックするとEnemy Test Sceneが開かれる
-    [MenuItem("Launcher/Enemy Scene", priority = 0)]
-    public static void OpenEnemyScene()
-    {
-        OpenSceneWithSaveCheck("Assets/Scenes/EnemyScene/EnemyTestScene.unity");
-    }
+    //// メニューに「Launcher/Enemy Scene」という項目を追加
+    //// クリックするとEnemy Test Sceneが開かれる
+    //[MenuItem("Launcher/Enemy Scene", priority = 0)]
+    //public static void OpenEnemyScene()
+    //{
+    //    OpenSceneWithSaveCheck("Assets/Scenes/EnemyScene/EnemyTestScene.unity");
+    //}
 
     // メニューに「Launcher/PlayerScene」という項目を追加
     // クリックするとPlayerSceneが開かれる
