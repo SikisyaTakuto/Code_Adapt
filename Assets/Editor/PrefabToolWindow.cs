@@ -19,7 +19,10 @@ public class PrefabToolWindow : EditorWindow
     private Vector3 placementOffset = Vector3.one;
     // 3. スクロール位置を保持するための変数
     private Vector2 scrollPosition = Vector2.zero;
-    // ------------------
+    // 4. カスタム回転入力用
+    private Vector3 customRotation = Vector3.zero;
+    // 5. カスタムスケール入力用
+    private Vector3 customScale = Vector3.one;
 
     // サムネイルのサイズを大きく修正
     private const float PREVIEW_SIZE = 128f;
@@ -57,37 +60,108 @@ public class PrefabToolWindow : EditorWindow
     {
         if (thumbnailStyle == null) InitStyles();
 
-        // --- 修正箇所: スクロールビューの開始 ---
-        // scrollPositionに現在のスクロール位置が格納される
+        //スクロールビューの開始
         scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
 
-        // 内部コンテンツの描画開始
+        GUILayout.Label("プレハブの配置と削除", EditorStyles.boldLabel);
 
-        GUILayout.Label("Prefab Placement & Deletion", EditorStyles.boldLabel);
-
-        // --- プレハブリスト管理セクション ---
+        //プレハブリスト管理セクション
         DrawPrefabListManagement();
 
-        // --- プレハブサムネイル表示セクション ---
+        //プレハブサムネイル表示セクション
+        //ここでGridを描画し、イベント処理も行います
+        int oldSelectedIndex = selectedPrefabIndex;
         DrawPrefabSelectionGrid();
 
-        // --- 選択されたプレハブの配置 ---
+        //プレハブリストの削除処理（イベントドリブン）
+        HandlePrefabDeletionEvent(oldSelectedIndex);
+
+        //選択されたプレハブの配置
         GUILayout.Space(10);
         DrawPlacementControls();
 
-        // --- 選択オブジェクト削除 ---
+        //選択オブジェクト削除
         GUILayout.Space(20);
         DrawDeletionControls();
 
-        // 内部コンテンツの描画終了
-        // --- 修正箇所: スクロールビューの終了 ---
+        //スクロールビューの終了
         EditorGUILayout.EndScrollView();
     }
 
-    // (中略: DrawPrefabListManagement は変更なし)
+    // プレハブの削除イベント処理
+    void HandlePrefabDeletionEvent(int previousIndex)
+    {
+        // 現在のイベントを取得
+        Event currentEvent = Event.current;
+
+        // プレハブ選択グリッドを描画した領域（Rect）を取得します。
+        // SelectionGridの描画後に `GUILayoutUtility.GetLastRect()` を呼ぶことで、
+        // 直前の描画領域を取得できますが、Grid内の個々のボタンの領域が必要です。
+        // SelectionGridは内部でボタンを処理するため、より一般的な方法として
+        // Deleteキーと右クリックをチェックします。
+
+        // 1. Deleteキーによる削除
+        // 選択インデックスが有効で、かつDeleteキーが押された場合
+        if (selectedPrefabIndex != -1 &&
+            currentEvent.type == EventType.KeyDown &&
+            (currentEvent.keyCode == KeyCode.Delete || currentEvent.keyCode == KeyCode.Backspace))
+        {
+            // Grid上で何かを選択した直後で、DeleteキーがGridのフォーカス内にあると仮定して処理します。
+            DeletePrefabFromList(selectedPrefabIndex);
+            currentEvent.Use(); // イベントを消費し、他のコンポーネントが処理しないようにする
+            return;
+        }
+
+        // 2. 右クリックによる選択
+        // クリックイベントで、右ボタン (1) が押された場合
+        if (currentEvent.type == EventType.MouseDown && currentEvent.button == 1)
+        {
+            // マウス位置がGrid領域内にあるかを確認する必要がありますが、
+            // SelectionGridはクリックしたインデックスを自動でselectedPrefabIndexにセットします。
+            // SelectionGridの**直後**でマウスダウンイベントを捕捉し、
+            // selectedPrefabIndexが変化した（つまりクリックされた）か確認します。
+
+            if (selectedPrefabIndex != previousIndex)
+            {
+                // 右クリックで新しいプレハブが選択された場合
+                currentEvent.Use(); // イベントを消費し、GUIのコンテキストメニューが出ないようにする
+            }
+        }
+
+        // 3. コンテキストメニュー (右クリック削除) の提供
+        // 右クリックで新しいプレハブが選択された、あるいは以前から選択されている状態で、
+        // かつ現在のイベントがコンテキストメニュー要求（マウスの右ボタンクリックなど）の場合
+        if (selectedPrefabIndex != -1 && currentEvent.type == EventType.ContextClick)
+        {
+            // コンテキストメニューを作成
+            GenericMenu menu = new GenericMenu();
+            menu.AddItem(new GUIContent("リストから削除"), false, () => DeletePrefabFromList(selectedPrefabIndex));
+            menu.ShowAsContext();
+
+            currentEvent.Use(); // イベントを消費
+        }
+    }
+
+
+    // プレハブリストから削除するヘルパーメソッド
+    void DeletePrefabFromList(int index)
+    {
+        if (index < 0 || index >= prefabList.Count) return;
+
+        // Undo機能に登録 (リストの状態変更をUndoできるように)
+        Undo.RecordObject(this, "プレハブをリストから削除: " + prefabList[index].name);
+
+        prefabList.RemoveAt(index);
+        selectedPrefabIndex = -1; // 選択を解除
+
+        // GUIを再描画
+        Repaint();
+    }
+
+
     void DrawPrefabListManagement()
     {
-        GUILayout.Label("Prefab List", EditorStyles.miniBoldLabel);
+        GUILayout.Label("プレハブリスト", EditorStyles.miniBoldLabel);
         SerializedObject serializedObject = new SerializedObject(this);
         SerializedProperty property = serializedObject.FindProperty("prefabList");
 
@@ -101,7 +175,7 @@ public class PrefabToolWindow : EditorWindow
         }
     }
 
-    // (中略: DrawPrefabSelectionGrid は変更なし)
+    // プレハブ選択グリッドの描画
     void DrawPrefabSelectionGrid()
     {
         if (prefabList.Count == 0)
@@ -109,7 +183,8 @@ public class PrefabToolWindow : EditorWindow
             EditorGUILayout.HelpBox("プレハブリストにオブジェクトを追加してください。", MessageType.Info);
             return;
         }
-        GUILayout.Label("Select Prefab (Click Thumbnail)", EditorStyles.miniBoldLabel);
+        GUILayout.Label("プレハブを選択 (サムネイルをクリック)", EditorStyles.miniBoldLabel);
+
         GUIContent[] gridContents = new GUIContent[prefabList.Count];
         for (int i = 0; i < prefabList.Count; i++)
         {
@@ -143,7 +218,7 @@ public class PrefabToolWindow : EditorWindow
         }
     }
 
-    // プレハブ配置コントロールの描画と処理 (変更なし)
+    // プレハブ配置コントロールの描画と処理
     void DrawPlacementControls()
     {
         GameObject prefabToPlace = (selectedPrefabIndex >= 0 && selectedPrefabIndex < prefabList.Count)
@@ -154,22 +229,39 @@ public class PrefabToolWindow : EditorWindow
 
         GUILayout.Label("Placement Settings", EditorStyles.boldLabel);
 
-        // --- 1. 配置オフセット入力フィールド ---
-        GUILayout.Label("Placement Offset (隣接配置時の間隔):", EditorStyles.miniBoldLabel);
+        //1. 配置オフセット入力フィールド
+        GUILayout.Label("配置オフセット (隣接配置時の間隔):", EditorStyles.miniBoldLabel);
         placementOffset = EditorGUILayout.Vector3Field("", placementOffset);
 
-        // --- 2. 任意の座標配置 ---
-        GUILayout.Label("1. Custom Position Placement:", EditorStyles.miniBoldLabel);
-        customPosition = EditorGUILayout.Vector3Field("Target Position", customPosition);
+        // 任意の回転入力フィールド
+        GUILayout.Space(5);
+        GUILayout.Label("回転 (オイラー角 XYZ):", EditorStyles.miniBoldLabel);
+        customRotation = EditorGUILayout.Vector3Field("", customRotation);
 
-        if (GUILayout.Button("Place at Custom Position"))
+        // 任意のスケール入力フィールド
+        GUILayout.Space(5);
+        GUILayout.Label("スケール (ローカルスケール):", EditorStyles.miniBoldLabel);
+        customScale = EditorGUILayout.Vector3Field("", customScale);
+
+        // スケールを負の値にしないための簡単なバリデーション
+        customScale.x = Mathf.Max(0.001f, customScale.x);
+        customScale.y = Mathf.Max(0.001f, customScale.y);
+        customScale.z = Mathf.Max(0.001f, customScale.z);
+
+
+        //2. 任意の座標配置
+        GUILayout.Space(10);
+        GUILayout.Label("1. 任意座標への配置:", EditorStyles.miniBoldLabel);
+        customPosition = EditorGUILayout.Vector3Field("目標座標", customPosition);
+
+        if (GUILayout.Button("指定座標に配置"))
         {
             PlacePrefab(prefabToPlace, customPosition);
         }
 
-        // --- 3. 隣接配置 ---
+        //3. 隣接配置
         GUILayout.Space(10);
-        GUILayout.Label("2. Adjacent Placement:", EditorStyles.miniBoldLabel);
+        GUILayout.Label("2. 隣接配置:", EditorStyles.miniBoldLabel);
 
         GameObject selectedObj = Selection.activeGameObject;
         if (selectedObj == null)
@@ -178,7 +270,7 @@ public class PrefabToolWindow : EditorWindow
         }
         else
         {
-            EditorGUILayout.ObjectField("Base Object:", selectedObj, typeof(GameObject), true);
+            EditorGUILayout.ObjectField("基準オブジェクト:", selectedObj, typeof(GameObject), true);
 
             // 隣接配置ボタン（X/Y/Zの+/−方向）をグリッドで配置
             DrawAdjacentButtons(prefabToPlace, selectedObj.transform.position);
@@ -187,7 +279,7 @@ public class PrefabToolWindow : EditorWindow
         EditorGUI.EndDisabledGroup();
     }
 
-    // 隣接配置ボタンの描画 (変更なし)
+    // 隣接配置ボタンの描画
     void DrawAdjacentButtons(GameObject prefabToPlace, Vector3 basePosition)
     {
         GUILayout.BeginVertical(EditorStyles.helpBox);
@@ -222,18 +314,18 @@ public class PrefabToolWindow : EditorWindow
         GUILayout.EndVertical();
     }
 
-    // 削除ボタンの描画と処理 (変更なし)
+    // 削除ボタンの描画と処理
     void DrawDeletionControls()
     {
-        GUILayout.Label("Selected Object Deletion", EditorStyles.miniBoldLabel);
+        GUILayout.Label("選択オブジェクトの削除", EditorStyles.miniBoldLabel);
 
-        if (GUILayout.Button("Delete Selected GameObjects"))
+        if (GUILayout.Button("選択中のゲームオブジェクトを削除"))
         {
             DeleteSelectedObjects();
         }
     }
 
-    // プレハブ配置処理 (変更なし)
+    // プレハブ配置処理
     void PlacePrefab(GameObject prefab, Vector3 position)
     {
         if (prefab == null) return;
@@ -247,17 +339,23 @@ public class PrefabToolWindow : EditorWindow
         // プレハブをシーンにインスタンス化
         GameObject newObject = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
 
+        // Undo機能に登録
+        Undo.RegisterCreatedObjectUndo(newObject, "プレハブを配置:" + prefab.name);
+
         // 配置場所を設定
         newObject.transform.position = position;
 
-        // Undo機能に登録
-        Undo.RegisterCreatedObjectUndo(newObject, "Place Prefab: " + prefab.name);
+        // 回転を設定
+        newObject.transform.rotation = Quaternion.Euler(customRotation);
+
+        // スケールを設定
+        newObject.transform.localScale = customScale;
 
         // シーンビューで作成したオブジェクトを選択
         Selection.activeGameObject = newObject;
     }
 
-    // 選択オブジェクト削除処理 (変更なし)
+    // 選択オブジェクト削除処理
     void DeleteSelectedObjects()
     {
         GameObject[] selectedObjects = Selection.gameObjects;
@@ -268,7 +366,7 @@ public class PrefabToolWindow : EditorWindow
             return;
         }
 
-        Undo.SetCurrentGroupName("Delete Selected Objects");
+        Undo.SetCurrentGroupName("選択オブジェクトを削除");
         int groupIndex = Undo.GetCurrentGroup();
 
         foreach (GameObject obj in selectedObjects)
