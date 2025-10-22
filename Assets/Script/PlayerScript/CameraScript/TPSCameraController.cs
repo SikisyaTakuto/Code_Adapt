@@ -16,8 +16,6 @@ public class TPSCameraController : MonoBehaviour
     [Tooltip("ターゲットの中心からカメラまでの相対的な高さ。")]
     public float height = 2.0f;    // ターゲットからの高さ
 
-    // --------------------------------------------------------------------------
-
     [Header("Camera Control")]
     [Tooltip("マウス入力によるカメラの回転速度（感度）。")]
     public float rotationSpeed = 3.0f; // カメラの回転速度（マウス速度）
@@ -28,16 +26,12 @@ public class TPSCameraController : MonoBehaviour
     [Tooltip("垂直方向（上下）のカメラの角度制限。Xが最小値（下）、Yが最大値（上）。")]
     public Vector2 pitchMinMax = new Vector2(-40, 85); // 垂直方向のカメラ角度制限
 
-    // --------------------------------------------------------------------------
-
     [Header("Collision Settings")]
     [Tooltip("カメラが衝突をチェックするレイヤー。壁や地面などを設定します。")]
     public LayerMask collisionLayers; // カメラが衝突をチェックするレイヤー（壁や地面など）
 
     [Tooltip("衝突が発生した際、カメラを押し戻す距離のオフセット。")]
     public float collisionOffset = 0.2f; // 衝突時にカメラが押し戻されるオフセット
-
-    // --------------------------------------------------------------------------
 
     // カメラの現在の角度
     // プライベートフィールドのため、インスペクターに表示する必要がなければTooltipは不要です。
