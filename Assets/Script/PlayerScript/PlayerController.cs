@@ -37,38 +37,23 @@ public class PlayerController : MonoBehaviour
     public Slider energySlider;
     private bool hasTriggeredEnergyDepletedEvent = false;
 
+    // ロックオン関連の設定 
+    [Header("Lock-On Settings")]
+    public LayerMask enemyLayer;             // 敵のレイヤー
+    public float maxLockOnRange = 30.0f;     // ロックオン可能な最大距離
+    public float lockOnAngle = 120.0f;       // カメラ前方の視野角 (120度)
+
+    [Header("Lock-On UI Settings")]
+    public GameObject lockOnUIPrefab; // ロックオン強調表示用のUI (EnemyLockOnUIスクリプトを持つImage)
+    private GameObject currentLockOnUIInstance; // 現在表示中のUIインスタンスの参照
+
+    public Transform currentLockOnTarget { get; private set; } // 現在のロックオン対象
+
     // --- 内部状態と移動関連 ---
     private Vector3 velocity;
     private bool isAttacking = false;
     private float attackTimer = 0.0f;
     public float attackFixedDuration = 0.8f;
-
-    // --- 近接攻撃関連 ---
-    [Header("Melee Attack Settings")]
-    public float meleeAttackRadius = 1.0f;
-    public float meleeAttackCooldown = 0.5f;
-    private float lastMeleeAttackTime = -Mathf.Infinity;
-    private int currentMeleeCombo = 0;
-    public int maxMeleeCombo = 5;
-    public float comboResetTime = 1.0f;
-    private float lastMeleeInputTime;
-    public float autoLockOnMeleeRange = 5.0f;
-    public bool preferLockedMeleeTarget = true;
-    private Transform currentLockedMeleeTarget;
-    public LayerMask enemyLayer;
-
-    // --- ビーム攻撃関連 ---
-    [Header("Beam Attack Settings")]
-    public float beamAttackRange = 30.0f;
-    public float beamCooldown = 0.5f;
-    private float lastBeamAttackTime = -Mathf.Infinity;
-    public GameObject beamEffectPrefab;
-    public Transform beamSpawnPoint;
-    public float beamWidth = 0.5f;
-    public float beamDisplayDuration = 0.5f;
-    public float autoLockOnRange = 40.0f;
-    public bool preferLockedTarget = true;
-    private Transform currentLockedBeamTarget;
 
     // プレイヤー入力制御
     public bool canReceiveInput = true;
@@ -89,7 +74,6 @@ public class PlayerController : MonoBehaviour
         InitializeComponents();
         currentEnergy = maxEnergy;
         UpdateEnergyUI();
-        CheckWarnings();
     }
 
     /// <summary>コンポーネントの初期化とエラーチェック</summary>
@@ -110,15 +94,6 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    /// <summary>設定漏れの警告チェック</summary>
-    private void CheckWarnings()
-    {
-        if (beamSpawnPoint == null)
-        {
-            Debug.LogWarning("PlayerController: Beam Spawn Pointが設定されていません。");
-        }
-    }
-
     void Update()
     {
         // 攻撃中または入力無効化中は移動・攻撃入力をブロック
@@ -127,16 +102,29 @@ public class PlayerController : MonoBehaviour
             HandleAttackState();
             WASDMoveTimer = JumpTimer = DescendTimer = 0f;
         }
-        else // 攻撃中でない場合のみ、カメラ方向への回転を行う
+        else // 攻撃中でない場合
         {
-            tpsCamController?.RotatePlayerToCameraDirection();
+            // ★★★ Lock-On処理を呼び出す ★★★
+            HandleLockOn();
+
+            // ロックオン対象がいなければカメラ方向に回転
+            if (currentLockOnTarget == null)
+            {
+                tpsCamController?.RotatePlayerToCameraDirection();
+            }
         }
 
-        HandleAttackInputs();
+        //HandleAttackInputs();
         HandleEnergy();
 
         Vector3 finalMove = HandleVerticalMovement() + HandleHorizontalMovement();
         controller.Move(finalMove * Time.deltaTime);
+
+        //// ★★★ ロックオン中のプレイヤーの向きの調整 ★★★
+        //if (currentLockOnTarget != null)
+        //{
+        //    RotatePlayerToTarget(currentLockOnTarget);
+        //}
     }
 
     /// <summary>水平方向の移動処理</summary>
@@ -266,139 +254,6 @@ public class PlayerController : MonoBehaviour
         UpdateEnergyUI();
     }
 
-    /// <summary>攻撃入力の処理</summary>
-    private void HandleAttackInputs()
-    {
-        if (Input.GetMouseButtonDown(0)) PerformMeleeAttack();
-        else if (Input.GetMouseButtonDown(1)) PerformBeamAttack();
-    }
-
-    // ターゲット検索の共通ロジック
-    private Transform FindClosestEnemy(float range)
-    {
-        Collider[] hits = Physics.OverlapSphere(transform.position, range, enemyLayer);
-        if (hits.Length == 0) return null;
-
-        return hits.OrderBy(col => Vector3.Distance(transform.position, col.transform.position))
-                   .Select(col => col.transform)
-                   .FirstOrDefault(t => t != transform);
-    }
-
-    void PerformMeleeAttack()
-    {
-        if (Time.time < lastMeleeAttackTime + meleeAttackCooldown) return;
-
-        lastMeleeAttackTime = lastMeleeInputTime = Time.time;
-        isAttacking = true;
-        attackTimer = 0.0f;
-
-        currentLockedMeleeTarget = FindClosestEnemy(autoLockOnMeleeRange);
-
-        if (currentLockedMeleeTarget != null && preferLockedMeleeTarget)
-        {
-            Vector3 lookAtTarget = currentLockedMeleeTarget.position;
-            lookAtTarget.y = transform.position.y;
-            transform.LookAt(lookAtTarget);
-        }
-
-        PerformMeleeDamageCheck(); // 突進せずに即座に攻撃判定
-
-        currentMeleeCombo = (currentMeleeCombo % maxMeleeCombo) + 1;
-        onMeleeAttackPerformed?.Invoke();
-
-        Debug.Log($"近接攻撃実行! (コンボ: {currentMeleeCombo})");
-    }
-
-    void PerformMeleeDamageCheck()
-    {
-        RaycastHit[] hits = Physics.SphereCastAll(transform.position, meleeAttackRadius, transform.forward, meleeAttackRange, enemyLayer);
-
-        foreach (RaycastHit hit in hits)
-        {
-            EnemyHealth enemyHealth = hit.collider.GetComponent<EnemyHealth>() ?? hit.collider.GetComponentInChildren<EnemyHealth>();
-            enemyHealth?.TakeDamage(meleeDamage);
-        }
-    }
-
-    void PerformBeamAttack()
-    {
-        if (Time.time < lastBeamAttackTime + beamCooldown || currentEnergy < beamAttackEnergyCost)
-        {
-            return;
-        }
-
-        currentEnergy -= beamAttackEnergyCost;
-        UpdateEnergyUI();
-        lastBeamAttackTime = Time.time;
-        isAttacking = true;
-        attackTimer = 0.0f;
-
-        currentLockedBeamTarget = FindClosestEnemy(autoLockOnRange);
-
-        Vector3 startPoint = beamSpawnPoint.position;
-        Vector3 endPoint;
-        RaycastHit hitInfo;
-        Transform hitEnemyTransform = null;
-        Ray attackRay = default;
-
-        if (currentLockedBeamTarget != null && preferLockedTarget)
-        {
-            // ロックオン時の処理
-            Vector3 lookAtTarget = currentLockedBeamTarget.position;
-            lookAtTarget.y = transform.position.y;
-            transform.LookAt(lookAtTarget);
-            attackRay = new Ray(startPoint, (currentLockedBeamTarget.position - startPoint).normalized);
-        }
-        else
-        {
-            // ノンロックオン (カメラ基準) の処理
-            attackRay = tpsCamController.GetCameraRay();
-        }
-
-        // Raycastでヒット判定
-        if (Physics.Raycast(attackRay, out hitInfo, beamAttackRange, enemyLayer))
-        {
-            endPoint = hitInfo.point;
-            hitEnemyTransform = hitInfo.collider.transform;
-        }
-        else
-        {
-            endPoint = attackRay.origin + attackRay.direction * beamAttackRange;
-        }
-
-        StartCoroutine(ShowBeamEffectAndLine(startPoint, endPoint, hitEnemyTransform));
-        onBeamAttackPerformed?.Invoke();
-    }
-
-    IEnumerator ShowBeamEffectAndLine(Vector3 startPoint, Vector3 endPoint, Transform hitEnemyTransform)
-    {
-        GameObject beamVisualizer = new GameObject("BeamVisualizer");
-        LineRenderer lineRenderer = beamVisualizer.AddComponent<LineRenderer>();
-
-        // Line Renderer の設定を簡略化
-        lineRenderer.startWidth = lineRenderer.endWidth = beamWidth;
-        lineRenderer.material = new Material(Shader.Find("Sprites/Default")) { color = Color.cyan };
-        lineRenderer.startColor = Color.cyan;
-        lineRenderer.endColor = Color.blue;
-        lineRenderer.positionCount = 2;
-        lineRenderer.SetPosition(0, startPoint);
-        lineRenderer.SetPosition(1, endPoint);
-
-        // ビームエフェクトの生成
-        if (beamEffectPrefab != null)
-        {
-            GameObject beamEffectInstance = Instantiate(beamEffectPrefab, startPoint, Quaternion.identity, beamVisualizer.transform);
-            beamEffectInstance.transform.LookAt(endPoint);
-        }
-
-        // 敵にダメージを与える
-        EnemyHealth enemyHealth = hitEnemyTransform?.GetComponent<EnemyHealth>() ?? hitEnemyTransform?.GetComponentInChildren<EnemyHealth>();
-        enemyHealth?.TakeDamage(beamDamage);
-
-        yield return new WaitForSeconds(beamDisplayDuration);
-        Destroy(beamVisualizer);
-    }
-
     /// <summary>攻撃中のプレイヤーの状態を処理（移動ロックなど）</summary>
     void HandleAttackState()
     {
@@ -421,6 +276,189 @@ public class PlayerController : MonoBehaviour
             }
         }
     }
+
+    // --- ロックオン機能関連のメソッド ★追加★ ---
+
+    /// <summary>
+    /// カメラの視野角内の最も近い敵を検索し、ロックオン対象とする。
+    /// </summary>
+    private void HandleLockOn()
+    {
+        // ロックオン解除の入力処理 (例: Rキー)
+        if (Input.GetKeyDown(KeyCode.R)) // 例としてRキーを使用
+        {
+            currentLockOnTarget = null;
+            // ★★★ ここから変更/追加 ★★★
+            UpdateLockOnUI(null); // ロックオンUIを破棄
+            // ★★★ ここまで変更/追加 ★★★
+            return;
+        }
+
+        // ロックオンキー (例: Qキー) が押されたら、新規ロックオンを試みる
+        if (Input.GetKeyDown(KeyCode.Q)) // 例としてQキーを使用
+        {
+            FindAndLockOnClosestEnemy();
+        }
+
+        // ロックオン対象が既にいる場合、有効性のチェック
+        if (currentLockOnTarget != null)
+        {
+            float distance = Vector3.Distance(transform.position, currentLockOnTarget.position);
+
+            // 1. 距離チェック
+            // ロックオンを維持できる距離は検索距離より少し長めに設定
+            if (distance > maxLockOnRange * 1.5f)
+            {
+                Debug.Log("ロックオン対象が遠すぎるため解除");
+                currentLockOnTarget = null; // 遠すぎたらロックオン解除
+                // ★★★ ここから変更/追加 ★★★
+                UpdateLockOnUI(null); // ロックオンUIを破棄
+                // ★★★ ここまで変更/追加 ★★★
+                return;
+            }
+
+            // 2. 視野角チェック: lockOnAngle (120度) の範囲外に出たら解除
+            if (!IsTargetInCameraViewAngle(currentLockOnTarget, lockOnAngle))
+            {
+                Debug.Log("ロックオン対象がカメラの視野角外に出たため解除");
+                currentLockOnTarget = null;
+                // ★★★ ここから変更/追加 ★★★
+                UpdateLockOnUI(null); // ロックオンUIを破棄
+                // ★★★ ここまで変更/追加 ★★★
+            }
+        }
+    }
+
+    /// <summary>
+    /// カメラの前方視野角内の最も近い敵を検索し、ロックオン対象に設定する。
+    /// </summary>
+    private void FindAndLockOnClosestEnemy()
+    {
+        if (tpsCamController == null)
+        {
+            Debug.LogWarning("TPSCameraControllerが見つからないため、ロックオンできません。");
+            return;
+        }
+
+        // SphereCastで敵を検索
+        Collider[] hitColliders = Physics.OverlapSphere(transform.position, maxLockOnRange, enemyLayer);
+
+        if (hitColliders.Length == 0)
+        {
+            currentLockOnTarget = null;
+            UpdateLockOnUI(null); // ターゲットが見つからなければUIを破棄
+            return;
+        }
+
+        Transform bestTarget = null;
+        float minDistance = float.MaxValue;
+
+        // 視野角内の最も近い敵を見つける
+        foreach (var hitCollider in hitColliders)
+        {
+            Transform target = hitCollider.transform;
+            if (target == transform) continue; // 自分自身を除く
+
+            float distance = Vector3.Distance(transform.position, target.position);
+
+            // 距離と視野角の条件を満たすかチェック (lockOnAngle = 120.0f)
+            if (distance <= maxLockOnRange && IsTargetInCameraViewAngle(target, lockOnAngle))
+            {
+                if (distance < minDistance)
+                {
+                    minDistance = distance;
+                    bestTarget = target;
+                }
+            }
+        }
+
+        currentLockOnTarget = bestTarget;
+
+        UpdateLockOnUI(currentLockOnTarget);
+
+        if (currentLockOnTarget != null)
+        {
+            Debug.Log($"ロックオン: {currentLockOnTarget.name}");
+        }
+    }
+
+    /// <summary>
+    /// 対象が現在のカメラの視野角内にいるかを判定する。
+    /// </summary>
+    private bool IsTargetInCameraViewAngle(Transform target, float angleLimit)
+    {
+        if (tpsCamController == null) return false;
+
+        // カメラからターゲットへのベクトル
+        Vector3 toTarget = (target.position - tpsCamController.transform.position).normalized;
+        // カメラの前方ベクトルとターゲットへのベクトルの角度を計算
+        float angle = Vector3.Angle(tpsCamController.transform.forward, toTarget);
+
+        // 許容角度の半分以内であれば視野角内と判定
+        return angle <= angleLimit / 2.0f;
+    }
+
+    /// <summary>
+    /// ロックオンUIの表示を更新する。
+    /// </summary>
+    private void UpdateLockOnUI(Transform target)
+    {
+        // ターゲットがない場合 (ロックオン解除時)
+        if (target == null)
+        {
+            if (currentLockOnUIInstance != null)
+            {
+                // UIインスタンスが存在すれば破棄
+                Destroy(currentLockOnUIInstance);
+                currentLockOnUIInstance = null;
+            }
+        }
+        // ターゲットがある場合 (新規ロックオンまたは継続時)
+        else
+        {
+            // 初回ロックオン時 (またはUIが破棄された後の再ロックオン時)
+            if (currentLockOnUIInstance == null && lockOnUIPrefab != null)
+            {
+                // UIを生成し、Canvasの子として配置されるように設定
+                // LockOnUIPrefabには EnemyLockOnUI がアタッチされている必要がある
+                currentLockOnUIInstance = Instantiate(lockOnUIPrefab);
+
+                // EnemyLockOnUIスクリプトを取得し、ターゲットを設定
+                EnemyLockOnUI uiScript = currentLockOnUIInstance.GetComponent<EnemyLockOnUI>();
+                if (uiScript != null)
+                {
+                    uiScript.SetTarget(target);
+                }
+                else
+                {
+                    Debug.LogError("LockOnUIPrefabにEnemyLockOnUIスクリプトがアタッチされていません。");
+                    Destroy(currentLockOnUIInstance); // スクリプトがない場合は破棄
+                    currentLockOnUIInstance = null;
+                }
+            }
+            // ターゲットが変わった場合 (もしあれば、ただしFindAndLockOnClosestEnemyでは最も近い敵にしかロックオンしないため、通常は起こらない)
+            // ここではターゲットの変更を検知するより、シンプルな構造を維持する。
+            // ターゲットが設定されていれば EnemyLockOnUI.cs が自動で追従する。
+        }
+    }
+
+    ///// <summary>
+    ///// ロックオン対象の方向にプレイヤーを回転させる。
+    ///// </summary>
+    //private void RotatePlayerToTarget(Transform target)
+    //{
+    //    Vector3 targetDirection = target.position - transform.position;
+    //    targetDirection.y = 0; // Y軸は無視して水平方向のみを計算
+
+    //    if (targetDirection != Vector3.zero)
+    //    {
+    //        Quaternion targetRotation = Quaternion.LookRotation(targetDirection);
+    //        // 滑らかに回転させる
+    //        transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 10f);
+    //    }
+    //}
+
+    // --- チュートリアル・UI関連のメソッド ---
 
     /// <summary>チュートリアル用の入力追跡フラグとタイマーをリセットする。</summary>
     public void ResetInputTracking()
