@@ -28,7 +28,13 @@ public class PlayerController : MonoBehaviour
     public bool canFly = true;
     public float gravity = -9.81f;
 
-    // --- エネルギーゲージ関連 ---
+    //[HPゲージ関連の追加]
+    [Header("Health Settings")]
+    public float maxHP = 100.0f; // 最大HP
+    [HideInInspector] public float currentHP; // 現在HP
+    public Slider hPSlider; // HPスライダー (UI)
+
+    //エネルギーゲージ関連
     [Header("Energy Gauge Settings")]
     public float maxEnergy = 100.0f;
     [HideInInspector] public float currentEnergy;
@@ -49,7 +55,7 @@ public class PlayerController : MonoBehaviour
 
     public Transform currentLockOnTarget { get; private set; } // 現在のロックオン対象
 
-    // --- 内部状態と移動関連 ---
+    // 内部状態と移動関連
     private Vector3 velocity;
     private bool isAttacking = false;
     private float attackTimer = 0.0f;
@@ -74,6 +80,8 @@ public class PlayerController : MonoBehaviour
         InitializeComponents();
         currentEnergy = maxEnergy;
         UpdateEnergyUI();
+        currentHP = maxHP; // 現在HPを最大HPで初期化
+        UpdateHPUI();
     }
 
     /// <summary>コンポーネントの初期化とエラーチェック</summary>
@@ -104,7 +112,7 @@ public class PlayerController : MonoBehaviour
         }
         else // 攻撃中でない場合
         {
-            // ★★★ Lock-On処理を呼び出す ★★★
+            //Lock-On処理を呼び出す
             HandleLockOn();
 
             // ロックオン対象がいなければカメラ方向に回転
@@ -119,12 +127,6 @@ public class PlayerController : MonoBehaviour
 
         Vector3 finalMove = HandleVerticalMovement() + HandleHorizontalMovement();
         controller.Move(finalMove * Time.deltaTime);
-
-        //// ★★★ ロックオン中のプレイヤーの向きの調整 ★★★
-        //if (currentLockOnTarget != null)
-        //{
-        //    RotatePlayerToTarget(currentLockOnTarget);
-        //}
     }
 
     /// <summary>水平方向の移動処理</summary>
@@ -277,7 +279,7 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    // --- ロックオン機能関連のメソッド ★追加★ ---
+    // ロックオン機能関連のメソッド
 
     /// <summary>
     /// カメラの視野角内の最も近い敵を検索し、ロックオン対象とする。
@@ -288,9 +290,7 @@ public class PlayerController : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.R)) // 例としてRキーを使用
         {
             currentLockOnTarget = null;
-            // ★★★ ここから変更/追加 ★★★
             UpdateLockOnUI(null); // ロックオンUIを破棄
-            // ★★★ ここまで変更/追加 ★★★
             return;
         }
 
@@ -311,9 +311,7 @@ public class PlayerController : MonoBehaviour
             {
                 Debug.Log("ロックオン対象が遠すぎるため解除");
                 currentLockOnTarget = null; // 遠すぎたらロックオン解除
-                // ★★★ ここから変更/追加 ★★★
                 UpdateLockOnUI(null); // ロックオンUIを破棄
-                // ★★★ ここまで変更/追加 ★★★
                 return;
             }
 
@@ -322,9 +320,7 @@ public class PlayerController : MonoBehaviour
             {
                 Debug.Log("ロックオン対象がカメラの視野角外に出たため解除");
                 currentLockOnTarget = null;
-                // ★★★ ここから変更/追加 ★★★
                 UpdateLockOnUI(null); // ロックオンUIを破棄
-                // ★★★ ここまで変更/追加 ★★★
             }
         }
     }
@@ -442,23 +438,7 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    ///// <summary>
-    ///// ロックオン対象の方向にプレイヤーを回転させる。
-    ///// </summary>
-    //private void RotatePlayerToTarget(Transform target)
-    //{
-    //    Vector3 targetDirection = target.position - transform.position;
-    //    targetDirection.y = 0; // Y軸は無視して水平方向のみを計算
-
-    //    if (targetDirection != Vector3.zero)
-    //    {
-    //        Quaternion targetRotation = Quaternion.LookRotation(targetDirection);
-    //        // 滑らかに回転させる
-    //        transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 10f);
-    //    }
-    //}
-
-    // --- チュートリアル・UI関連のメソッド ---
+    // チュートリアル・UI関連のメソッド
 
     /// <summary>チュートリアル用の入力追跡フラグとタイマーをリセットする。</summary>
     public void ResetInputTracking()
@@ -471,6 +451,16 @@ public class PlayerController : MonoBehaviour
         if (energySlider != null)
         {
             energySlider.value = currentEnergy / maxEnergy;
+        }
+    }
+
+    /// <summary>HPスライダーを更新する。</summary>
+    void UpdateHPUI()
+    {
+        if (hPSlider != null)
+        {
+            // 現在HPを最大HPで割った値をスライダーの値として設定
+            hPSlider.value = currentHP / maxHP;
         }
     }
 }
