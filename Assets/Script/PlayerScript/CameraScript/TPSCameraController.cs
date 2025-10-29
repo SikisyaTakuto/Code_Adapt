@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using System.Linq; // LINQを使用するため追加
 
 /// <summary>
 /// ターゲットを追跡し、マウス入力で操作可能な三人称視点（TPS）カメラを制御します。
@@ -26,6 +27,27 @@ public class TPSCameraController : MonoBehaviour
     [Tooltip("垂直方向（上下）のカメラの角度制限。Xが最小値（下）、Yが最大値（上）。")]
     public Vector2 pitchMinMax = new Vector2(-40, 85); // 垂直方向のカメラ角度制限
 
+    // === ロックオン機能 変更部分 ===
+    [Header("Lock-On Settings (Camera)")]
+    [Tooltip("ロックオン時のカメラの回転速度。")]
+    public float lockOnRotationSpeed = 15f;
+
+    [Tooltip("ロックオンの最大距離。プレイヤーからこの範囲内の敵を検出します。")]
+    public float maxLockOnRange = 30f; // プレイヤーの周りの検出範囲
+
+    [Tooltip("敵オブジェクトのレイヤーマスク。")]
+    public LayerMask enemyLayer; // 新しく追加
+
+    // 外部（PlayerControllerなど）から設定されるロックオンターゲット
+    private Transform _lockOnTarget = null;
+    /// <summary>現在のロックオンターゲットを設定・取得します。</summary>
+    public Transform LockOnTarget
+    {
+        get { return _lockOnTarget; }
+        set { _lockOnTarget = value; } // PlayerControllerからの設定/解除を許可
+    }
+    // ===================================
+
     [Header("Collision Settings")]
     [Tooltip("カメラが衝突をチェックするレイヤー。壁や地面などを設定します。")]
     public LayerMask collisionLayers; // カメラが衝突をチェックするレイヤー（壁や地面など）
@@ -34,7 +56,6 @@ public class TPSCameraController : MonoBehaviour
     public float collisionOffset = 0.2f; // 衝突時にカメラが押し戻されるオフセット
 
     // カメラの現在の角度
-    // プライベートフィールドのため、インスペクターに表示する必要がなければTooltipは不要です。
     private float _yaw = 0.0f;    // 左右の回転角度 (Y軸)
     private float _pitch = 0.0f; // 上下の回転角度 (X軸)
 
@@ -81,6 +102,15 @@ public class TPSCameraController : MonoBehaviour
         }
     }
 
+    void Update()
+    {
+        // LateUpdateでカメラの移動を行う前に、Updateでロックオン入力を処理
+        if (!_isFixedViewMode && target != null)
+        {
+            HandleLockOnInput();
+        }
+    }
+
     void LateUpdate()
     {
         if (target == null) return;
@@ -92,6 +122,55 @@ public class TPSCameraController : MonoBehaviour
         else
         {
             HandleTPSViewMode();
+        }
+    }
+
+    /// <summary>
+    /// 右クリック入力でロックオン/解除を処理します。
+    /// 範囲内の敵を検出し、最も近い敵にロックオンします。
+    /// </summary>
+    private void HandleLockOnInput()
+    {
+        // ロックオンの維持/解除ロジック（Raycast版から変更なし）
+        if (Input.GetMouseButton(1)) // 右クリックを押し続けている間
+        {
+            if (_lockOnTarget == null)
+            {
+                // ロックオンを試みる（範囲内の敵を検出）
+                Collider[] colliders = Physics.OverlapSphere(target.position, maxLockOnRange, enemyLayer);
+
+                if (colliders.Length > 0)
+                {
+                    // 検出された敵の中で、最もカメラ（またはターゲット）に近い敵を選択
+                    Transform nearestTarget = colliders
+                        .OrderBy(col => Vector3.Distance(transform.position, col.transform.position)) // カメラとの距離でソート
+                        .FirstOrDefault()?.transform; // 最も近い敵のTransformを取得
+
+                    if (nearestTarget != null)
+                    {
+                        // 最も近い敵をロックオンターゲットに設定
+                        LockOnTarget = nearestTarget;
+                        Debug.Log($"ロックオン: {LockOnTarget.name}");
+                    }
+                }
+            }
+            // ロックオン中の場合、右クリックを押し続けている限りロックオンを維持
+        }
+        else // 右クリックが押されていない、または離された瞬間
+        {
+            // 右クリックを離したらロックオンを解除
+            if (_lockOnTarget != null)
+            {
+                Debug.Log($"ロックオン解除: {_lockOnTarget.name}");
+                LockOnTarget = null;
+            }
+        }
+
+        // ロックオン対象がDestroyされた場合のチェック（念のため）
+        if (_lockOnTarget != null && (!_lockOnTarget.gameObject.activeInHierarchy || Vector3.Distance(target.position, _lockOnTarget.position) > maxLockOnRange * 1.5f))
+        {
+            // 敵が非アクティブになったり、範囲から大きく外れた場合も解除
+            LockOnTarget = null;
         }
     }
 
@@ -110,8 +189,28 @@ public class TPSCameraController : MonoBehaviour
     /// </summary>
     private void HandleTPSViewMode()
     {
-        // 1. マウス入力による回転の計算
-        Quaternion targetRotation = CalculateRotationFromInput();
+        // 1. 目標回転の計算
+        Quaternion targetRotation;
+
+        if (_lockOnTarget != null)
+        {
+            // --- ロックオン中: ターゲットを追尾する回転を計算 ---
+            Vector3 lookDirection = _lockOnTarget.position - transform.position;
+            targetRotation = Quaternion.LookRotation(lookDirection);
+
+            // ロックオン中はマウス入力を無効化し、現在の_pitchと_yawをターゲットの向きに更新
+            _yaw = targetRotation.eulerAngles.y;
+            _pitch = targetRotation.eulerAngles.x;
+            if (_pitch > 180) _pitch -= 360;
+
+            // スムーズな回転を適用
+            targetRotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * lockOnRotationSpeed);
+        }
+        else
+        {
+            // --- 通常時: マウス入力による回転を計算 ---
+            targetRotation = CalculateRotationFromInput();
+        }
 
         // 2. 目標位置の計算
         Vector3 targetPosition = CalculateTargetPosition(targetRotation);
@@ -120,8 +219,11 @@ public class TPSCameraController : MonoBehaviour
         Vector3 finalPosition = ApplyCollisionCheck(targetPosition);
 
         // 4. カメラの位置と回転をLerpでスムーズに補間
-        transform.position = Vector3.Lerp(transform.position, finalPosition, Time.deltaTime * smoothSpeed);
-        transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * smoothSpeed);
+        // ロックオン中はスムーズ速度を調整するか、smoothSpeedを使用
+        float currentSmoothSpeed = _lockOnTarget != null ? lockOnRotationSpeed : smoothSpeed;
+
+        transform.position = Vector3.Lerp(transform.position, finalPosition, Time.deltaTime * currentSmoothSpeed);
+        transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * currentSmoothSpeed);
     }
 
     /// <summary>
@@ -141,7 +243,8 @@ public class TPSCameraController : MonoBehaviour
     /// </summary>
     private Vector3 CalculateTargetPosition(Quaternion rotation)
     {
-        return target.position + Vector3.up * height - rotation * Vector3.forward * distance;
+        Vector3 camCenter = target.position + Vector3.up * height;
+        return camCenter - rotation * Vector3.forward * distance;
     }
 
     /// <summary>
@@ -167,9 +270,7 @@ public class TPSCameraController : MonoBehaviour
     /// カメラを特定の固定位置と回転に設定し、そのビューにスムーズに移動します。
     /// Time.timeScaleが0でも動作します。
     /// </summary>
-    /// <param name="position">カメラの目標ワールド位置。</param>
-    /// <param name="rotation">カメラの目標ワールド回転。</param>
-    /// <param name="smoothSpeedValue">目標位置・回転に到達するまでのスムーズ速度。</param>
+    // SetFixedCameraView のロジックは変更なし
     public void SetFixedCameraView(Vector3 position, Quaternion rotation, float smoothSpeedValue)
     {
         _isFixedViewMode = true;
@@ -185,7 +286,7 @@ public class TPSCameraController : MonoBehaviour
     /// <summary>
     /// カメラを通常のTPS追従モードに戻します。
     /// </summary>
-    /// <param name="smoothSpeedValue">通常の追従モードに戻るまでのスムーズ速度。</param>
+    // ResetToTPSView のロジックは変更なし
     public void ResetToTPSView(float smoothSpeedValue)
     {
         // TPSモードに戻る際の最初のフレームでは、スムーズに戻るために目標位置を設定
@@ -205,7 +306,8 @@ public class TPSCameraController : MonoBehaviour
     /// </summary>
     public void RotatePlayerToCameraDirection()
     {
-        if (target == null || _isFixedViewMode) return;
+        // ロックオン中はプレイヤーの回転を外部のPlayerControllerに任せるため、カメラ側からは回転させない
+        if (target == null || _isFixedViewMode || _lockOnTarget != null) return;
 
         // プレイヤーをY軸回転のみでカメラのY軸回転に合わせる
         Quaternion playerRotation = Quaternion.Euler(0, _yaw, 0);
@@ -223,6 +325,7 @@ public class TPSCameraController : MonoBehaviour
             Debug.LogError("Main Camera not found! Make sure your camera is tagged 'MainCamera'.");
             return new Ray(transform.position, transform.forward);
         }
+        // ViewportPointToRay(0.5f, 0.5f)で画面中央からRayを取得
         return mainCam.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
     }
 

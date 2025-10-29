@@ -2,21 +2,44 @@ using UnityEngine;
 using UnityEngine.UI;
 using System;
 using System.Collections;
-using System.Linq; // FindClosestEnemyで使用
+using System.Collections.Generic;
 
 /// <summary>
-/// プレイヤーの移動、エネルギー管理、攻撃を制御します。
+/// プレイヤーの移動、エネルギー管理、攻撃、およびアーマー制御を制御します。
 /// </summary>
 [RequireComponent(typeof(CharacterController))]
 public class PlayerController : MonoBehaviour
 {
+    // ★追加: 武器モードとアーマーモードの定義
+    public enum WeaponMode { Melee, Beam }
+    public enum ArmorMode { Normal, Defense, Speed }
+
+    // ★追加: アーマーのステータスを保持するクラス
+    [System.Serializable]
+    public class ArmorStats
+    {
+        public string name;
+        public float defenseMultiplier = 1.0f; // ダメージ軽減率 (例: 1.0 = 変更なし, 0.5 = ダメージ半減)
+        public float moveSpeedMultiplier = 1.0f; // 移動速度補正 (例: 1.5 = 1.5倍速)
+        public float energyRecoveryMultiplier = 1.0f; // エネルギー回復補正
+    }
+
     // 依存オブジェクト
     private CharacterController controller;
     private TPSCameraController tpsCamController;
 
+    // ★追加: UIアイコンの参照
+    [Header("Weapon UI")]
+    public Image meleeWeaponIcon; // 近接武器アイコンのImageコンポーネント
+    public Image beamWeaponIcon;  // ビーム武器アイコンのImageコンポーネント
+    public Color emphasizedColor = Color.white; // 強調時の色 (例: 白や明るい色)
+    public Color normalColor = new Color(0.5f, 0.5f, 0.5f); // 通常時の色 (例: グレー)
+
+
     // --- ベースとなる能力値 ---
     [Header("Base Stats")]
-    public float moveSpeed = 15.0f;
+    public float baseMoveSpeed = 15.0f; // ★変更: ベースの値を保持
+    public float moveSpeed = 15.0f; // 実行中の速度
     public float boostMultiplier = 2.0f;
     public float verticalSpeed = 10.0f;
     public float energyConsumptionRate = 15.0f;
@@ -28,11 +51,23 @@ public class PlayerController : MonoBehaviour
     public bool canFly = true;
     public float gravity = -9.81f;
 
+    // ★追加: アーマー設定
+    [Header("Armor Settings")]
+    public List<ArmorStats> armorConfigurations = new List<ArmorStats>
+    {
+        new ArmorStats { name = "Normal", defenseMultiplier = 1.0f, moveSpeedMultiplier = 1.0f, energyRecoveryMultiplier = 1.0f },
+        new ArmorStats { name = "Defense Mode", defenseMultiplier = 0.5f, moveSpeedMultiplier = 0.8f, energyRecoveryMultiplier = 0.8f },
+        new ArmorStats { name = "Speed Mode", defenseMultiplier = 1.2f, moveSpeedMultiplier = 1.5f, energyRecoveryMultiplier = 1.2f }
+    };
+    private ArmorMode _currentArmorMode = ArmorMode.Normal;
+    private ArmorStats _currentArmorStats;
+
+
     //[HPゲージ関連の追加]
     [Header("Health Settings")]
     public float maxHP = 100.0f; // 最大HP
-    [HideInInspector] public float currentHP; // 現在HP
-    public Slider hPSlider; // HPスライダー (UI)
+    [HideInInspector] public float currentHP; // 現在HP
+    public Slider hPSlider; // HPスライダー (UI)
 
     //エネルギーゲージ関連
     [Header("Energy Gauge Settings")]
@@ -43,23 +78,14 @@ public class PlayerController : MonoBehaviour
     public Slider energySlider;
     private bool hasTriggeredEnergyDepletedEvent = false;
 
-    // ロックオン関連の設定 
-    [Header("Lock-On Settings")]
-    public LayerMask enemyLayer;             // 敵のレイヤー
-    public float maxLockOnRange = 30.0f;     // ロックオン可能な最大距離
-    public float lockOnAngle = 120.0f;       // カメラ前方の視野角 (120度)
-
-    [Header("Lock-On UI Settings")]
-    public GameObject lockOnUIPrefab; // ロックオン強調表示用のUI (EnemyLockOnUIスクリプトを持つImage)
-    private GameObject currentLockOnUIInstance; // 現在表示中のUIインスタンスの参照
-
-    public Transform currentLockOnTarget { get; private set; } // 現在のロックオン対象
-
     // 内部状態と移動関連
     private Vector3 velocity;
     private bool isAttacking = false;
     private float attackTimer = 0.0f;
     public float attackFixedDuration = 0.8f;
+
+    // ★武器モード
+    private WeaponMode _currentWeaponMode = WeaponMode.Melee;
 
     // プレイヤー入力制御
     public bool canReceiveInput = true;
@@ -82,6 +108,13 @@ public class PlayerController : MonoBehaviour
         UpdateEnergyUI();
         currentHP = maxHP; // 現在HPを最大HPで初期化
         UpdateHPUI();
+        Debug.Log($"初期武器: {_currentWeaponMode}");
+
+        // ★追加: 初期アーマーを設定
+        SwitchArmor(ArmorMode.Normal);
+
+        // ★追加: 初期武器のアイコンを強調表示
+        UpdateWeaponUIEmphasis();
     }
 
     /// <summary>コンポーネントの初期化とエラーチェック</summary>
@@ -112,22 +145,114 @@ public class PlayerController : MonoBehaviour
         }
         else // 攻撃中でない場合
         {
-            //Lock-On処理を呼び出す
-            HandleLockOn();
+            // ロックオン機能がないため、常時カメラ方向に回転
+            tpsCamController?.RotatePlayerToCameraDirection();
 
-            // ロックオン対象がいなければカメラ方向に回転
-            if (currentLockOnTarget == null)
-            {
-                tpsCamController?.RotatePlayerToCameraDirection();
-            }
+            HandleAttackInputs();
+            HandleWeaponSwitchInput(); // Eキー
+
+            // ★追加: 1, 2, 3キーでのアーマー変更を処理
+            HandleArmorSwitchInput();
         }
 
-        //HandleAttackInputs();
         HandleEnergy();
 
         Vector3 finalMove = HandleVerticalMovement() + HandleHorizontalMovement();
         controller.Move(finalMove * Time.deltaTime);
     }
+
+    /// <summary>1, 2, 3キーでのアーマー切り替えを処理します。</summary>
+    private void HandleArmorSwitchInput()
+    {
+        if (Input.GetKeyDown(KeyCode.Alpha1))
+        {
+            SwitchArmor(ArmorMode.Normal);
+        }
+        else if (Input.GetKeyDown(KeyCode.Alpha2))
+        {
+            SwitchArmor(ArmorMode.Defense);
+        }
+        else if (Input.GetKeyDown(KeyCode.Alpha3))
+        {
+            SwitchArmor(ArmorMode.Speed);
+        }
+    }
+
+    /// <summary>指定されたアーマーモードに切り替え、ステータスを更新します。</summary>
+    private void SwitchArmor(ArmorMode newMode)
+    {
+        int index = (int)newMode;
+        if (index < 0 || index >= armorConfigurations.Count)
+        {
+            Debug.LogError($"アーマーモード {newMode} の設定が見つかりません。");
+            return;
+        }
+
+        _currentArmorMode = newMode;
+        _currentArmorStats = armorConfigurations[index];
+
+        // ステータスへの適用
+        moveSpeed = baseMoveSpeed * _currentArmorStats.moveSpeedMultiplier;
+
+        Debug.Log($"アーマーを切り替えました: **{_currentArmorStats.name}** " +
+                  $" (速度補正: x{_currentArmorStats.moveSpeedMultiplier}, 防御補正: x{_currentArmorStats.defenseMultiplier})");
+    }
+
+    /// <summary>Eキーでの武器切り替えを処理します。</summary>
+    private void HandleWeaponSwitchInput()
+    {
+        if (Input.GetKeyDown(KeyCode.E))
+        {
+            SwitchWeapon();
+        }
+    }
+
+    /// <summary>武器モードを切り替えます。</summary>
+    private void SwitchWeapon()
+    {
+        if (_currentWeaponMode == WeaponMode.Melee)
+        {
+            _currentWeaponMode = WeaponMode.Beam;
+        }
+        else
+        {
+            _currentWeaponMode = WeaponMode.Melee;
+        }
+        Debug.Log($"武器を切り替えました: **{_currentWeaponMode}**");
+
+        // ★追加: UIの強調表示を更新
+        UpdateWeaponUIEmphasis();
+    }
+
+    // ------------------------------------------------------------------
+    // ★追加: UIの強調表示ロジック
+    // ------------------------------------------------------------------
+    /// <summary>現在の武器モードに応じてUIアイコンを強調表示します。</summary>
+    private void UpdateWeaponUIEmphasis()
+    {
+        if (meleeWeaponIcon == null || beamWeaponIcon == null)
+        {
+            Debug.LogWarning("武器アイコンのImageコンポーネントが設定されていません。Inspectorを確認してください。");
+            return;
+        }
+
+        if (_currentWeaponMode == WeaponMode.Melee)
+        {
+            // 近接武器を強調
+            meleeWeaponIcon.color = emphasizedColor;
+            // ビーム武器を通常色に
+            beamWeaponIcon.color = normalColor;
+        }
+        else // WeaponMode.Beam
+        {
+            // ビーム武器を強調
+            beamWeaponIcon.color = emphasizedColor;
+            // 近接武器を通常色に
+            meleeWeaponIcon.color = normalColor;
+        }
+    }
+    // ------------------------------------------------------------------
+
 
     /// <summary>水平方向の移動処理</summary>
     private Vector3 HandleHorizontalMovement()
@@ -138,18 +263,21 @@ public class PlayerController : MonoBehaviour
         float h = Input.GetAxis("Horizontal");
         float v = Input.GetAxis("Vertical");
 
-        Vector3 moveDirection = tpsCamController != null
+        Vector3 moveDirection;
+        // ロックオン機能がないため、常にカメラ基準の移動
+        moveDirection = tpsCamController != null
             ? tpsCamController.transform.rotation * new Vector3(h, 0, v)
             : transform.right * h + transform.forward * v;
 
         moveDirection.y = 0;
         moveDirection.Normalize();
 
-        float currentSpeed = moveSpeed;
+        float currentSpeed = moveSpeed; // ★アーマー補正済みのmoveSpeedを使用
+
+        // ブースト処理 (Ctrlキー)
+        bool isBoosting = (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) && currentEnergy > 0;
         bool isConsumingEnergy = false;
 
-        // ブースト処理
-        bool isBoosting = (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) && currentEnergy > 0;
         if (isBoosting)
         {
             currentSpeed *= boostMultiplier;
@@ -166,7 +294,7 @@ public class PlayerController : MonoBehaviour
         Vector3 horizontalMove = moveDirection * currentSpeed;
 
         // チュートリアル用タイマー更新
-        WASDMoveTimer = horizontalMove.magnitude > moveSpeed * 0.1f ? WASDMoveTimer + Time.deltaTime : 0f;
+        WASDMoveTimer = horizontalMove.magnitude > baseMoveSpeed * 0.1f ? WASDMoveTimer + Time.deltaTime : 0f;
 
         if (isConsumingEnergy) lastEnergyConsumptionTime = Time.time;
 
@@ -231,13 +359,71 @@ public class PlayerController : MonoBehaviour
         return new Vector3(0, velocity.y, 0);
     }
 
+    /// <summary>攻撃入力の処理</summary>
+    private void HandleAttackInputs()
+    {
+        if (Input.GetMouseButtonDown(0) && !isAttacking)
+        {
+            switch (_currentWeaponMode)
+            {
+                case WeaponMode.Melee:
+                    HandleMeleeAttack();
+                    break;
+                case WeaponMode.Beam:
+                    HandleBeamAttack();
+                    break;
+            }
+        }
+    }
+
+    /// <summary>近接攻撃（デバッグ用）を実行</summary>
+    private void HandleMeleeAttack()
+    {
+        isAttacking = true;
+        attackTimer = 0f;
+
+        velocity.y = 0f; // 攻撃中の垂直移動を停止
+
+        // デバッグログ
+        Debug.Log("近接攻撃 (Melee Attack) を実行: " + meleeDamage + " ダメージ");
+
+        onMeleeAttackPerformed?.Invoke();
+    }
+
+    /// <summary>ビーム攻撃（デバッグ用）を実行</summary>
+    private void HandleBeamAttack()
+    {
+        if (currentEnergy < beamAttackEnergyCost)
+        {
+            Debug.LogWarning("ビーム攻撃に必要なエネルギーがありません！");
+            return;
+        }
+
+        isAttacking = true;
+        attackTimer = 0f;
+
+        velocity.y = 0f; // 攻撃中の垂直移動を停止
+
+        // エネルギー消費
+        currentEnergy -= beamAttackEnergyCost;
+        lastEnergyConsumptionTime = Time.time;
+        UpdateEnergyUI();
+
+        // デバッグログ
+        Debug.Log("ビーム攻撃 (Beam Attack) を実行: " + beamDamage + " ダメージ (エネルギー: " + beamAttackEnergyCost + "消費)");
+
+        onBeamAttackPerformed?.Invoke();
+    }
+
     /// <summary>エネルギー回復と枯渇イベントの処理</summary>
     private void HandleEnergy()
     {
         // エネルギー回復
+        // ★変更: アーマーの回復補正を適用
         if (Time.time >= lastEnergyConsumptionTime + recoveryDelay)
         {
-            currentEnergy += energyRecoveryRate * Time.deltaTime;
+            float recoveryRate = energyRecoveryRate * (_currentArmorStats != null ? _currentArmorStats.energyRecoveryMultiplier : 1.0f);
+            currentEnergy += recoveryRate * Time.deltaTime;
         }
 
         currentEnergy = Mathf.Clamp(currentEnergy, 0, maxEnergy);
@@ -279,165 +465,6 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    // ロックオン機能関連のメソッド
-
-    /// <summary>
-    /// カメラの視野角内の最も近い敵を検索し、ロックオン対象とする。
-    /// </summary>
-    private void HandleLockOn()
-    {
-        // ロックオン解除の入力処理 (例: Rキー)
-        if (Input.GetKeyDown(KeyCode.R)) // 例としてRキーを使用
-        {
-            currentLockOnTarget = null;
-            UpdateLockOnUI(null); // ロックオンUIを破棄
-            return;
-        }
-
-        // ロックオンキー (例: Qキー) が押されたら、新規ロックオンを試みる
-        if (Input.GetKeyDown(KeyCode.Q)) // 例としてQキーを使用
-        {
-            FindAndLockOnClosestEnemy();
-        }
-
-        // ロックオン対象が既にいる場合、有効性のチェック
-        if (currentLockOnTarget != null)
-        {
-            float distance = Vector3.Distance(transform.position, currentLockOnTarget.position);
-
-            // 1. 距離チェック
-            // ロックオンを維持できる距離は検索距離より少し長めに設定
-            if (distance > maxLockOnRange * 1.5f)
-            {
-                Debug.Log("ロックオン対象が遠すぎるため解除");
-                currentLockOnTarget = null; // 遠すぎたらロックオン解除
-                UpdateLockOnUI(null); // ロックオンUIを破棄
-                return;
-            }
-
-            // 2. 視野角チェック: lockOnAngle (120度) の範囲外に出たら解除
-            if (!IsTargetInCameraViewAngle(currentLockOnTarget, lockOnAngle))
-            {
-                Debug.Log("ロックオン対象がカメラの視野角外に出たため解除");
-                currentLockOnTarget = null;
-                UpdateLockOnUI(null); // ロックオンUIを破棄
-            }
-        }
-    }
-
-    /// <summary>
-    /// カメラの前方視野角内の最も近い敵を検索し、ロックオン対象に設定する。
-    /// </summary>
-    private void FindAndLockOnClosestEnemy()
-    {
-        if (tpsCamController == null)
-        {
-            Debug.LogWarning("TPSCameraControllerが見つからないため、ロックオンできません。");
-            return;
-        }
-
-        // SphereCastで敵を検索
-        Collider[] hitColliders = Physics.OverlapSphere(transform.position, maxLockOnRange, enemyLayer);
-
-        if (hitColliders.Length == 0)
-        {
-            currentLockOnTarget = null;
-            UpdateLockOnUI(null); // ターゲットが見つからなければUIを破棄
-            return;
-        }
-
-        Transform bestTarget = null;
-        float minDistance = float.MaxValue;
-
-        // 視野角内の最も近い敵を見つける
-        foreach (var hitCollider in hitColliders)
-        {
-            Transform target = hitCollider.transform;
-            if (target == transform) continue; // 自分自身を除く
-
-            float distance = Vector3.Distance(transform.position, target.position);
-
-            // 距離と視野角の条件を満たすかチェック (lockOnAngle = 120.0f)
-            if (distance <= maxLockOnRange && IsTargetInCameraViewAngle(target, lockOnAngle))
-            {
-                if (distance < minDistance)
-                {
-                    minDistance = distance;
-                    bestTarget = target;
-                }
-            }
-        }
-
-        currentLockOnTarget = bestTarget;
-
-        UpdateLockOnUI(currentLockOnTarget);
-
-        if (currentLockOnTarget != null)
-        {
-            Debug.Log($"ロックオン: {currentLockOnTarget.name}");
-        }
-    }
-
-    /// <summary>
-    /// 対象が現在のカメラの視野角内にいるかを判定する。
-    /// </summary>
-    private bool IsTargetInCameraViewAngle(Transform target, float angleLimit)
-    {
-        if (tpsCamController == null) return false;
-
-        // カメラからターゲットへのベクトル
-        Vector3 toTarget = (target.position - tpsCamController.transform.position).normalized;
-        // カメラの前方ベクトルとターゲットへのベクトルの角度を計算
-        float angle = Vector3.Angle(tpsCamController.transform.forward, toTarget);
-
-        // 許容角度の半分以内であれば視野角内と判定
-        return angle <= angleLimit / 2.0f;
-    }
-
-    /// <summary>
-    /// ロックオンUIの表示を更新する。
-    /// </summary>
-    private void UpdateLockOnUI(Transform target)
-    {
-        // ターゲットがない場合 (ロックオン解除時)
-        if (target == null)
-        {
-            if (currentLockOnUIInstance != null)
-            {
-                // UIインスタンスが存在すれば破棄
-                Destroy(currentLockOnUIInstance);
-                currentLockOnUIInstance = null;
-            }
-        }
-        // ターゲットがある場合 (新規ロックオンまたは継続時)
-        else
-        {
-            // 初回ロックオン時 (またはUIが破棄された後の再ロックオン時)
-            if (currentLockOnUIInstance == null && lockOnUIPrefab != null)
-            {
-                // UIを生成し、Canvasの子として配置されるように設定
-                // LockOnUIPrefabには EnemyLockOnUI がアタッチされている必要がある
-                currentLockOnUIInstance = Instantiate(lockOnUIPrefab);
-
-                // EnemyLockOnUIスクリプトを取得し、ターゲットを設定
-                EnemyLockOnUI uiScript = currentLockOnUIInstance.GetComponent<EnemyLockOnUI>();
-                if (uiScript != null)
-                {
-                    uiScript.SetTarget(target);
-                }
-                else
-                {
-                    Debug.LogError("LockOnUIPrefabにEnemyLockOnUIスクリプトがアタッチされていません。");
-                    Destroy(currentLockOnUIInstance); // スクリプトがない場合は破棄
-                    currentLockOnUIInstance = null;
-                }
-            }
-            // ターゲットが変わった場合 (もしあれば、ただしFindAndLockOnClosestEnemyでは最も近い敵にしかロックオンしないため、通常は起こらない)
-            // ここではターゲットの変更を検知するより、シンプルな構造を維持する。
-            // ターゲットが設定されていれば EnemyLockOnUI.cs が自動で追従する。
-        }
-    }
-
     // チュートリアル・UI関連のメソッド
 
     /// <summary>チュートリアル用の入力追跡フラグとタイマーをリセットする。</summary>
@@ -455,12 +482,34 @@ public class PlayerController : MonoBehaviour
     }
 
     /// <summary>HPスライダーを更新する。</summary>
-    void UpdateHPUI()
+    void UpdateHPUI()
     {
         if (hPSlider != null)
         {
-            // 現在HPを最大HPで割った値をスライダーの値として設定
-            hPSlider.value = currentHP / maxHP;
+            // 現在HPを最大HPで割った値をスライダーの値として設定
+            hPSlider.value = currentHP / maxHP;
+        }
+    }
+
+    /// <summary>外部からダメージを受けたときに呼び出されます。</summary>
+    public void TakeDamage(float damageAmount)
+    {
+        if (_currentArmorStats != null)
+        {
+            // ★アーマーの防御補正を適用したダメージ計算
+            damageAmount *= _currentArmorStats.defenseMultiplier;
+        }
+
+        currentHP -= damageAmount;
+        currentHP = Mathf.Clamp(currentHP, 0, maxHP);
+        UpdateHPUI();
+
+        Debug.Log($"ダメージを受けました。残りHP: {currentHP}");
+
+        if (currentHP <= 0)
+        {
+            Debug.Log("プレイヤーは破壊されました (Death Logic Here)");
+            // 死亡処理をここに追加
         }
     }
 }
