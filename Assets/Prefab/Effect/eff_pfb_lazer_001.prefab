@@ -9,6 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3645486915970987437}
+  - component: {fileID: -6991339834812337121}
   m_Layer: 0
   m_Name: eff_pfb_lazer_001
   m_TagString: Untagged
@@ -32,6 +33,19 @@ Transform:
   - {fileID: 1167264445953674978}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &-6991339834812337121
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 216633344060643235}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 758873984edd01e4da2d1309bb2869a5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  beamDuration: 0.5
 --- !u!1 &496617259193128599
 GameObject:
   m_ObjectHideFlags: 0

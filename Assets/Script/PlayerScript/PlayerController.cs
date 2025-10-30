@@ -90,6 +90,11 @@ public class PlayerController : MonoBehaviour
     // プレイヤー入力制御
     public bool canReceiveInput = true;
 
+    [Header("Beam VFX")]
+    public BeamController beamPrefab; // 作成したBeamControllerを持つプレハブ
+    public Transform beamFirePoint; // ビームの発射元となるTransform (例: プレイヤーの手や銃口)
+    public float beamMaxDistance = 100f; // ビームの最大到達距離
+
     // チュートリアル用イベントとプロパティ
     public Action onMeleeAttackPerformed;
     public Action onBeamAttackPerformed;
@@ -399,19 +404,54 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
+        // 攻撃状態へ移行... (既存のコード)
         isAttacking = true;
         attackTimer = 0f;
+        velocity.y = 0f;
 
-        velocity.y = 0f; // 攻撃中の垂直移動を停止
-
-        // エネルギー消費
+        // エネルギー消費... (既存のコード)
         currentEnergy -= beamAttackEnergyCost;
         lastEnergyConsumptionTime = Time.time;
         UpdateEnergyUI();
 
-        // デバッグログ
-        Debug.Log("ビーム攻撃 (Beam Attack) を実行: " + beamDamage + " ダメージ (エネルギー: " + beamAttackEnergyCost + "消費)");
+        // ===============================================
+        // ★追加: ビームエフェクトのロジック
+        // ===============================================
 
+        // 1. Raycastで着弾点を計算する
+        Vector3 origin = beamFirePoint.position;
+        Vector3 direction = beamFirePoint.forward; // カメラの向きなど、適切な方向を設定
+
+        RaycastHit hit;
+        Vector3 endPoint;
+
+        if (Physics.Raycast(origin, direction, out hit, beamMaxDistance))
+        {
+            // 何かに当たった場合
+            endPoint = hit.point;
+            // ※ ここで着弾エフェクト（Impact Particle System）を生成・再生する
+        }
+        else
+        {
+            // 何にも当たらなかった場合
+            endPoint = origin + direction * beamMaxDistance;
+        }
+
+        // 2. BeamControllerを生成し、発射処理を呼び出す
+        if (beamPrefab != null)
+        {
+            // beamPrefabをインスタンス化し、プレイヤーのTransformの子に設定
+            BeamController beamInstance = Instantiate(beamPrefab, transform);
+
+            // ビーム発射！
+            beamInstance.Fire(origin, endPoint);
+
+            // ※ ここで発射口エフェクト（Muzzle Flash Particle System）を再生する
+            // MuzzleFlash.Play();
+        }
+        // ===============================================
+
+        Debug.Log("ビーム攻撃 (Beam Attack) を実行: ...");
         onBeamAttackPerformed?.Invoke();
     }
 
