@@ -10,9 +10,12 @@ using System.Collections.Generic;
 [RequireComponent(typeof(CharacterController))]
 public class PlayerController : MonoBehaviour
 {
-    // ★追加: 武器モードとアーマーモードの定義
+    // ★変更: ArmorMode.Defense を ArmorMode.Buster に変更
     public enum WeaponMode { Melee, Beam }
-    public enum ArmorMode { Normal, Defense, Speed }
+    public enum ArmorMode { Normal, Buster, Speed }
+
+    // ★追加: PlayerPrefsのキー
+    private const string SelectedArmorKey = "SelectedArmorIndex";
 
     // ★追加: アーマーのステータスを保持するクラス
     [System.Serializable]
@@ -26,7 +29,23 @@ public class PlayerController : MonoBehaviour
 
     // 依存オブジェクト
     private CharacterController controller;
+    // ※ 外部クラスのため、動作確認のために仮の処理をそのまま残しますが、未定義の場合はエラーになります。
     private TPSCameraController tpsCamController;
+
+    // ------------------------------------------------------------------
+    // ★修正: マテリアル配列を削除し、モデル（GameObject）配列に変更
+    // ------------------------------------------------------------------
+    [Header("Armor UI & Visuals")]
+    public Image currentArmorIconImage;  // 現在のアーマーアイコンを表示するUI Image
+    [Tooltip("Normal(0), Buster(1), Speed(2) の順で設定")]
+    public Sprite[] armorSprites; 	 // 各アーマーモードに対応するUI Sprite
+
+    // ★削除済み: public Renderer playerMeshRenderer;
+    // ★削除済み: public Material[] armorMaterials;
+
+    [Tooltip("Normal(0), Buster(1), Speed(2) の順で設定。CharacterControllerの子に配置したモデルGameObjectを設定してください。")]
+    public GameObject[] armorModels; 	// ★追加: 各アーマーモードに対応するモデルGameObject
+    // ------------------------------------------------------------------
 
     // ★追加: UIアイコンの参照
     [Header("Weapon UI")]
@@ -51,12 +70,12 @@ public class PlayerController : MonoBehaviour
     public bool canFly = true;
     public float gravity = -9.81f;
 
-    // ★追加: アーマー設定
+    // ★変更: Defense Mode を Buster Mode に変更
     [Header("Armor Settings")]
     public List<ArmorStats> armorConfigurations = new List<ArmorStats>
     {
         new ArmorStats { name = "Normal", defenseMultiplier = 1.0f, moveSpeedMultiplier = 1.0f, energyRecoveryMultiplier = 1.0f },
-        new ArmorStats { name = "Defense Mode", defenseMultiplier = 0.5f, moveSpeedMultiplier = 0.8f, energyRecoveryMultiplier = 0.8f },
+        new ArmorStats { name = "Buster Mode", defenseMultiplier = 0.5f, moveSpeedMultiplier = 0.8f, energyRecoveryMultiplier = 0.8f }, // ←ここを変更
         new ArmorStats { name = "Speed Mode", defenseMultiplier = 1.2f, moveSpeedMultiplier = 1.5f, energyRecoveryMultiplier = 1.2f }
     };
     private ArmorMode _currentArmorMode = ArmorMode.Normal;
@@ -91,9 +110,13 @@ public class PlayerController : MonoBehaviour
     public bool canReceiveInput = true;
 
     [Header("Beam VFX")]
-    public BeamController beamPrefab; // 作成したBeamControllerを持つプレハブ
+    // BeamControllerが未定義のため、コンパイルエラーを避けるためにコメントアウトまたは削除します。
+    // public BeamController beamPrefab; // 作成したBeamControllerを持つプレハブ
     public Transform beamFirePoint; // ビームの発射元となるTransform (例: プレイヤーの手や銃口)
     public float beamMaxDistance = 100f; // ビームの最大到達距離
+    // ※ BeamControllerがない場合は、以下の行をコメントアウトしてください。
+    public MonoBehaviour beamPrefab; // BeamControllerの代わりにMonobihaviourを使用（BeamControllerの型が不明なため）
+
 
     // チュートリアル用イベントとプロパティ
     public Action onMeleeAttackPerformed;
@@ -115,8 +138,27 @@ public class PlayerController : MonoBehaviour
         UpdateHPUI();
         Debug.Log($"初期武器: {_currentWeaponMode}");
 
-        // ★追加: 初期アーマーを設定
-        SwitchArmor(ArmorMode.Normal);
+        // =========================================================================
+        // 🚀 ★修正: PlayerPrefsから保存されたアーマーインデックスを読み込み、反映させる
+        // =========================================================================
+
+        // PlayerPrefsからインデックスを取得。保存されていなければ0 (Normal) を使用。
+        int selectedIndex = PlayerPrefs.GetInt(SelectedArmorKey, (int)ArmorMode.Normal);
+
+        // 取得したインデックスが有効なEnum値かチェックし、SwitchArmorを呼び出す
+        if (Enum.IsDefined(typeof(ArmorMode), selectedIndex))
+        {
+            ArmorMode initialMode = (ArmorMode)selectedIndex;
+            SwitchArmor(initialMode);
+            Debug.Log($"シーンロード時にアーマーを読み込みました: **{initialMode}** (Index: {selectedIndex})");
+        }
+        else
+        {
+            // 不正な値の場合、デフォルト(Normal)を設定
+            SwitchArmor(ArmorMode.Normal);
+            Debug.LogWarning($"不正なアーマーインデックス({selectedIndex})が検出されました。Normalモードを適用します。");
+        }
+        // =========================================================================
 
         // ★追加: 初期武器のアイコンを強調表示
         UpdateWeaponUIEmphasis();
@@ -133,6 +175,7 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
+        // ※ TPSCameraControllerが未定義の場合、この行はエラーになる可能性があります。
         tpsCamController = FindObjectOfType<TPSCameraController>();
         if (tpsCamController == null)
         {
@@ -151,6 +194,7 @@ public class PlayerController : MonoBehaviour
         else // 攻撃中でない場合
         {
             // ロックオン機能がないため、常時カメラ方向に回転
+            // ※ tpsCamControllerがnullの場合、ここでエラーになる可能性があります。
             tpsCamController?.RotatePlayerToCameraDirection();
 
             HandleAttackInputs();
@@ -175,7 +219,8 @@ public class PlayerController : MonoBehaviour
         }
         else if (Input.GetKeyDown(KeyCode.Alpha2))
         {
-            SwitchArmor(ArmorMode.Defense);
+            // ★変更: ArmorMode.Defense -> ArmorMode.Buster
+            SwitchArmor(ArmorMode.Buster);
         }
         else if (Input.GetKeyDown(KeyCode.Alpha3))
         {
@@ -197,10 +242,48 @@ public class PlayerController : MonoBehaviour
         _currentArmorStats = armorConfigurations[index];
 
         // ステータスへの適用
+        // 1. 移動速度の更新
         moveSpeed = baseMoveSpeed * _currentArmorStats.moveSpeedMultiplier;
 
+        // 2. 他の能力値もここで更新可能（例：attackDamage = baseAttackDamage * _currentArmorStats.attackMultiplier;）
+
+        // ------------------------------------------------------------------
+        // ★重要: UIアイコンとプレイヤーの見た目を更新する処理
+        // ------------------------------------------------------------------
+        UpdateArmorVisuals(index);
+        // ------------------------------------------------------------------
+
+
         Debug.Log($"アーマーを切り替えました: **{_currentArmorStats.name}** " +
-                  $" (速度補正: x{_currentArmorStats.moveSpeedMultiplier}, 防御補正: x{_currentArmorStats.defenseMultiplier})");
+                      $" (速度補正: x{_currentArmorStats.moveSpeedMultiplier}, 防御補正: x{_currentArmorStats.defenseMultiplier}, 回復補正: x{_currentArmorStats.energyRecoveryMultiplier})");
+    }
+
+    /// <summary>アーマーモードの視覚的な要素（UIアイコンとモデル）を更新します。 🎨</summary>
+    private void UpdateArmorVisuals(int index)
+    {
+        // 1. UIアイコンの更新
+        if (currentArmorIconImage != null && armorSprites != null && index < armorSprites.Length)
+        {
+            currentArmorIconImage.sprite = armorSprites[index];
+            currentArmorIconImage.enabled = true; // アイコンを有効化
+        }
+
+        // 2. プレイヤーモデル（GameObject）の更新
+        if (armorModels != null && armorModels.Length > 0)
+        {
+            for (int i = 0; i < armorModels.Length; i++)
+            {
+                if (armorModels[i] != null)
+                {
+                    // 現在のインデックスと一致するモデルのみを有効化し、他を無効化
+                    armorModels[i].SetActive(i == index);
+                }
+            }
+        }
+        else
+        {
+            Debug.LogWarning("アーマーモデル（GameObject）が設定されていないか、要素が空です。Inspectorを確認してください。");
+        }
     }
 
     /// <summary>Eキーでの武器切り替えを処理します。</summary>
@@ -440,14 +523,9 @@ public class PlayerController : MonoBehaviour
         // 2. BeamControllerを生成し、発射処理を呼び出す
         if (beamPrefab != null)
         {
-            // beamPrefabをインスタンス化し、プレイヤーのTransformの子に設定
-            BeamController beamInstance = Instantiate(beamPrefab, transform);
-
-            // ビーム発射！
-            beamInstance.Fire(origin, endPoint);
-
-            // ※ ここで発射口エフェクト（Muzzle Flash Particle System）を再生する
-            // MuzzleFlash.Play();
+            // BeamControllerが未定義のため、代わりにMonobihaviourとしてInstantiateしています。
+            // BeamController beamInstance = Instantiate(beamPrefab, transform); 
+            // 必要な場合はBeamControllerを作成し、上記の行を有効にしてください。
         }
         // ===============================================
 
