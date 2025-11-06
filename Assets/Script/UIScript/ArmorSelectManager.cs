@@ -14,7 +14,6 @@ public class ArmorSelectManager : MonoBehaviour
     [Header("UI References")]
     public Text descriptionText;          // ナビゲーターの吹き出し内の説明文
     public Button decisionButton;         // 決定ボタン
-    public Button tutorialButton;         // チュートリアルボタン (※決定ボタンの機能の一部として扱うことも可能)
 
     [Header("Armor Buttons")]
     public Button[] armorButtons = new Button[4]; // 選択肢となるボタン (1, 2, 3, 4)
@@ -51,7 +50,6 @@ public class ArmorSelectManager : MonoBehaviour
 
     // 決定ボタンを押した後のシーン名
     private const string GameSceneName = "PlayerTestScene";
-    private const string TutorialSceneName = "TutorialScene";
 
     // 選択されたアーマーのデータを保持・引き継ぐためのキー (単一選択から変更が必要なら、ここも修正が必要)
     private const string SelectedArmorKey = "SelectedArmorIndex";
@@ -92,12 +90,6 @@ public class ArmorSelectManager : MonoBehaviour
         {
             decisionButton.onClick.RemoveAllListeners();
             decisionButton.onClick.AddListener(OnDecisionButtonClicked);
-        }
-
-        if (tutorialButton != null)
-        {
-            tutorialButton.onClick.RemoveAllListeners();
-            tutorialButton.onClick.AddListener(OnTutorialButtonClicked);
         }
 
         UpdateUIEmphasis(); // ボタンの強調表示を初期化
@@ -344,17 +336,6 @@ public class ArmorSelectManager : MonoBehaviour
 
         // メインゲームシーンへ遷移
         SceneManager.LoadScene(GameSceneName);
-    }
-
-    /// <summary>
-    /// チュートリアルボタンがクリックされたときに呼ばれます。
-    /// </summary>
-    public void OnTutorialButtonClicked()
-    {
-        isTutorialSelected = true;
-        // チュートリアルシーンへ遷移
-        Debug.Log("チュートリアルシーンへ遷移します。");
-        SceneManager.LoadScene(TutorialSceneName);
     }
 
     // 他のシーンから選択されたアーマーを取得するための静的メソッド
