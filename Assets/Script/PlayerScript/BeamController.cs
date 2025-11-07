@@ -1,55 +1,71 @@
 using UnityEngine;
-using System.Collections;
 
+/// <summary>
+/// ビームの視覚効果（エフェクト/モデル）と持続時間を制御します。
+/// ビーム本体はZ軸方向に伸びるように設計されている必要があります。
+/// </summary>
 public class BeamController : MonoBehaviour
 {
-    // ビームエフェクトのルートにある全てのParticle System
-    private ParticleSystem[] particles;
+    [Tooltip("ビームの持続時間")]
+    public float lifetime = 0.5f;
 
-    // 【設定項目】ビームの表示時間
-    [Header("ビームの持続時間")]
-    public float beamDuration = 0.1f;
+    //[Tooltip("ビームが当たった時に発生する着弾エフェクトのプレハブ (オプション)")]
+    //public GameObject impactEffectPrefab;
+
+    [Tooltip("ビーム本体のエフェクトまたはモデル（これをZ軸方向にスケールする）")]
+    public Transform beamVisual; // ビームの視覚要素（子オブジェクト）
 
     void Awake()
     {
-        // ゲームオブジェクトとその全ての子オブジェクトからParticleSystemを取得
-        particles = GetComponentsInChildren<ParticleSystem>();
-
-        if (particles.Length == 0)
+        // 必須参照の確認（エディタでの設定ミス防止）
+        if (beamVisual == null)
         {
-            Debug.LogError("BeamController: 子を含むParticleSystemが見つかりません。");
-            enabled = false;
-        }
-
-        // 初期状態でエフェクトを停止しておく
-        foreach (var ps in particles)
-        {
-            ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            Debug.LogError("BeamController: Beam Visual (ビーム本体) が設定されていません。");
+            // スクリプトを無効化する代わりに、エラーをログに出すだけに留めます
         }
     }
 
-    /// <summary>ビームを発射し、同時に自動消滅処理を開始します。</summary>
-    public void Fire(Vector3 startPoint, Vector3 endPoint)
+    /// <summary>
+    /// ビームの始点と終点を設定し、表示を開始します。
+    /// </summary>
+    /// <param name="startPoint">ビームの始点 (通常は銃口)</param>
+    /// <param name="endPoint">ビームの終点 (Raycastのヒット位置)</param>
+    /// <param name="didHit">何かに当たったかどうか</param>
+    public void Fire(Vector3 startPoint, Vector3 endPoint, bool didHit)
     {
-        // Line Rendererがないため、ビームの位置と方向を親オブジェクトで設定します
-        // startPoint (発射元) をこのゲームオブジェクトの位置として設定します
-        transform.position = startPoint;
-
-        // 方向を設定 (endPointが正確な着弾点の場合)
-        // ビームがstartPointからendPointを向くように回転させる
-        Vector3 direction = endPoint - startPoint;
-        transform.rotation = Quaternion.LookRotation(direction);
-
-        // ※ Particle Systemが持つ "Shape" モジュールの設定で、
-        // ビームが適切にstartPointからendPointまで伸びるように調整が必要です。
-
-        // 1. 全てのParticle Systemを再生開始
-        foreach (var ps in particles)
+        // 視覚要素が設定されていない場合は処理を中断
+        if (beamVisual == null)
         {
-            ps.Play();
+            Destroy(gameObject, 0.1f); // エラーの場合もすぐに破棄
+            return;
         }
 
-        // 2. 設定された時間後にこのゲームオブジェクト全体を破棄する
-        Destroy(gameObject, beamDuration);
+        // 1. ビームの長さを計算
+        float distance = Vector3.Distance(startPoint, endPoint);
+
+        // 2. ビーム本体の位置・回転・スケールを設定
+        Vector3 localScale = beamVisual.localScale;
+        localScale.z = distance;
+        beamVisual.localScale = localScale;
+
+        //// 3. 着弾エフェクトの生成
+        //if (didHit && impactEffectPrefab != null)
+        //{
+        //    // 終点位置にエフェクトを生成
+        //    // ビームの反対側を向かせることで、ヒット面に対して垂直になるようにする
+        //    GameObject impactInstance = Instantiate(
+        //        impactEffectPrefab,
+        //        endPoint,
+        //        Quaternion.LookRotation((startPoint - endPoint).normalized)
+        //    );
+
+        //    // ★修正点: 生成した着弾エフェクトを一定時間後に破棄します
+        //    // ParticleSystemのDurationに合わせて時間を設定するのが理想ですが、
+        //    // ここでは簡易的にビーム本体と同じ lifetime を使用します。
+        //    Destroy(impactInstance, lifetime);
+        //}
+
+        // 4. 一定時間後に自身を破棄
+        Destroy(gameObject, lifetime);
     }
 }

@@ -206,7 +206,7 @@ public class EnemyController : MonoBehaviour
         Vector3 beamEndPoint = rayOrigin + rayDirection * beamAttackRange; // ビームのデフォルト終点
 
         RaycastHit hit;
-        PlayerHealth playerHealth = null; // ヒットしたPlayerHealthを保持する変数
+        //PlayerHealth playerHealth = null; // ヒットしたPlayerHealthを保持する変数
 
         if (Physics.Raycast(rayOrigin, rayDirection, out hit, beamAttackRange))
         {
@@ -215,16 +215,16 @@ public class EnemyController : MonoBehaviour
 
             if (hit.collider.CompareTag(playerTag))
             {
-                playerHealth = hit.collider.GetComponent<PlayerHealth>();
-                if (playerHealth != null)
-                {
-                    playerHealth.TakeDamage(attackDamage);
-                    Debug.Log($"敵がプレイヤーに {attackDamage} ダメージを与えました。（Raycast）");
-                }
-                else
-                {
-                    Debug.LogWarning("Raycastがプレイヤーにヒットしましたが、PlayerHealthコンポーネントが見つかりません。");
-                }
+                //playerHealth = hit.collider.GetComponent<PlayerHealth>();
+                //if (playerHealth != null)
+                //{
+                //    playerHealth.TakeDamage(attackDamage);
+                //    Debug.Log($"敵がプレイヤーに {attackDamage} ダメージを与えました。（Raycast）");
+                //}
+                //else
+                //{
+                //    Debug.LogWarning("Raycastがプレイヤーにヒットしましたが、PlayerHealthコンポーネントが見つかりません。");
+                //}
             }
         }
         else

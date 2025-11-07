@@ -15,13 +15,13 @@ public class Cannonball : MonoBehaviour
     {
         if (other.CompareTag(targetTag))
         {
-            PlayerHealth playerHealth = other.GetComponent<PlayerHealth>();
-            if (playerHealth != null)
-            {
-                playerHealth.TakeDamage(damageAmount);
-                Debug.Log($"–C’e‚ª {other.name} ‚É {damageAmount} ƒ_ƒ[ƒW‚ğ—^‚¦‚Ü‚µ‚½B");
-            }
-            Destroy(gameObject); // Õ“Ë‚µ‚½‚çÁ–Å
+            //PlayerHealth playerHealth = other.GetComponent<PlayerHealth>();
+            //if (playerHealth != null)
+            //{
+            //    playerHealth.TakeDamage(damageAmount);
+            //    Debug.Log($"–C’e‚ª {other.name} ‚É {damageAmount} ƒ_ƒ[ƒW‚ğ—^‚¦‚Ü‚µ‚½B");
+            //}
+            //Destroy(gameObject); // Õ“Ë‚µ‚½‚çÁ–Å
         }
     }
 }

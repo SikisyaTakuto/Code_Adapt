@@ -61,12 +61,12 @@ public class HeavyMissile : MonoBehaviour
         // 衝突したオブジェクトのタグがターゲットタグと一致するか確認
         if (other.CompareTag(targetTag))
         {
-            PlayerHealth playerHealth = other.GetComponent<PlayerHealth>();
-            if (playerHealth != null)
-            {
-                playerHealth.TakeDamage(damageAmount);
-                Debug.Log($"ミサイルが {other.name} に {damageAmount} ダメージを与えました。");
-            }
+            //PlayerHealth playerHealth = other.GetComponent<PlayerHealth>();
+            //if (playerHealth != null)
+            //{
+            //    playerHealth.TakeDamage(damageAmount);
+            //    Debug.Log($"ミサイルが {other.name} に {damageAmount} ダメージを与えました。");
+            //}
             // ミサイルは衝突したら消滅
             Destroy(gameObject);
         }

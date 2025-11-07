@@ -317,12 +317,12 @@ public class EnemyHeavyController : MonoBehaviour
         // 着地時のダメージ判定 (円形判定など)
         if (playerTransform != null && Vector3.Distance(transform.position, playerTransform.position) <= meleeAttackRange)
         {
-            PlayerHealth playerHealth = playerTransform.GetComponent<PlayerHealth>();
-            if (playerHealth != null)
-            {
-                playerHealth.TakeDamage(stompDamage);
-                Debug.Log($"踏みつけ攻撃でプレイヤーに {stompDamage} ダメージ！");
-            }
+            //PlayerHealth playerHealth = playerTransform.GetComponent<PlayerHealth>();
+            //if (playerHealth != null)
+            //{
+            //    playerHealth.TakeDamage(stompDamage);
+            //    Debug.Log($"踏みつけ攻撃でプレイヤーに {stompDamage} ダメージ！");
+            //}
         }
 
         // Rigidbodyを元に戻す
@@ -373,12 +373,12 @@ public class EnemyHeavyController : MonoBehaviour
             {
                 if (hitCollider.CompareTag("Player"))
                 {
-                    PlayerHealth playerHealth = hitCollider.GetComponent<PlayerHealth>();
-                    if (playerHealth != null)
-                    {
-                        playerHealth.TakeDamage(chargeDamage);
-                        Debug.Log($"突進攻撃でプレイヤーに {chargeDamage} ダメージ！");
-                    }
+                    //PlayerHealth playerHealth = hitCollider.GetComponent<PlayerHealth>();
+                    //if (playerHealth != null)
+                    //{
+                    //    playerHealth.TakeDamage(chargeDamage);
+                    //    Debug.Log($"突進攻撃でプレイヤーに {chargeDamage} ダメージ！");
+                    //}
                     // ダメージを与えたら突進を中断するかどうか (今回は続ける)
                     // break;
                 }
