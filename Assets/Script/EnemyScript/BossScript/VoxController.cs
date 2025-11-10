@@ -1,95 +1,114 @@
 ﻿using UnityEngine;
+using System.Collections;
 
 public class VoxController : MonoBehaviour
 {
-    [System.Serializable]
-    private class ArmData
-    {
-        public GameObject arm;   // 実際のオブジェクト
-        public float targetZ;    // 目的Z座標
-        public bool isMoving;    // 動いているかどうか
-    }
-
     [SerializeField] private GameObject Arms1;
     [SerializeField] private GameObject Arms2;
     [SerializeField] private GameObject Arms3;
     [SerializeField] private GameObject Arms4;
+    [SerializeField] private GameObject Arms5;
+    [SerializeField] private GameObject Arms6;
+    [SerializeField] private GameObject Arms7;
+    [SerializeField] private GameObject Arms8;
 
-    private ArmData[] armsData;
+    [SerializeField] private GameObject bombPrefab;   // 落とす爆弾Prefab
+    [SerializeField] private GameObject enemyPrefab;  // 敵
+    [SerializeField] private float dropHeight = -2f;  // アームの位置からどれくらい上に爆弾を出すか
 
-    [SerializeField] private float moveSpeed = 6f;
+    [SerializeField] private float moveSpeed = 20f;   // 移動速度
 
-    //private GameObject[] armsArray;
-    //private GameObject activeArm;   // 現在選ばれているオブジェクト
-    //[SerializeField] private float moveSpeed = 2f; // 移動速度
-
-    //private float targetZ;   // 目標Z座標
-    //private bool isMoving = false;  // 移動中かどうか
+    private GameObject[] armsArray;
+    private float[] targetZs;   // 目標Z座標
+    private bool[] isMovingArray; // 移動中フラグ
 
     void Start()
     {
-        // 4つのアームを登録
-        armsData = new ArmData[4];
-        armsData[0] = new ArmData { arm = Arms1 };
-        armsData[1] = new ArmData { arm = Arms2 };
-        armsData[2] = new ArmData { arm = Arms3 };
-        armsData[3] = new ArmData { arm = Arms4 };
-        //// 配列にまとめる
-        //armsArray = new GameObject[] { Arms1, Arms2, Arms3, Arms4 };
+        armsArray = new GameObject[] { Arms1, Arms2, Arms3, Arms4,Arms5,Arms6,Arms7,Arms8 };
+        targetZs = new float[armsArray.Length];
+        isMovingArray = new bool[armsArray.Length];
 
-        //// 最初に1つランダム選択
-        //SelectRandomArm();
+        SetNewTargets(); // 開始時に全アームへランダム目標設定
     }
 
     void Update()
     {
-        // スペースキーを押すとランダムに選び直す
-        if (Input.GetKeyDown(KeyCode.P))
+        for (int i = 0; i < armsArray.Length; i++)
         {
-            {
-                ActivateRandomArm();
-            }
-
-            // 各アームを個別に移動処理
-            foreach (var data in armsData)
-            {
-                if (data.isMoving && data.arm != null)
-                {
-                    Vector3 pos = data.arm.transform.position;
-                    float step = moveSpeed * Time.deltaTime;
-                    pos.z = Mathf.MoveTowards(pos.z, data.targetZ, step);
-                    data.arm.transform.position = pos;
-
-                    if (Mathf.Approximately(pos.z, data.targetZ))
-                    {
-                        data.isMoving = false;
-                        Debug.Log($"{data.arm.name} が Z={data.targetZ:F2} に到達しました！");
-                    }
-                }
-            }
+            MoveArm(i);
         }
 
-    void ActivateRandomArm()
-    {
-        int index = Random.Range(0, armsData.Length);
-        var data = armsData[index];
-
-        // ランダムなZ座標（-110〜-255）
-        data.targetZ = Random.Range(-255f, -110f);
-        data.isMoving = true;
-
-        Debug.Log($"選ばれた: {data.arm.name} | 目標Z: {data.targetZ:F2}");
+        // Pキーで全アームの目標をリセット
+        if (Input.GetKeyDown(KeyCode.P))
+        {
+            SetNewTargets();
+        }
     }
-  
-        //int randomNumber = Random.Range(0, 4); // 0〜3
-        //activeArm = armsArray[randomNumber];
 
-        //// Z座標の目標値をランダムで決定（-110〜-255）
-        //targetZ = Random.Range(-255f, -110f);
+    void SetNewTargets()
+    {
+        for (int i = 0; i < armsArray.Length; i++)
+        {
+            targetZs[i] = Random.Range(-255f, -110f);
+            isMovingArray[i] = true;
+            Debug.Log($"{armsArray[i].name} の新しい目標Z: {targetZs[i]:F2}");
+        }
+    }
 
-        //// 移動を再開
-        //isMoving = true;
+    // 各アームを動かす処理
+    void MoveArm(int index)
+    {
+        GameObject arm = armsArray[index];
+        if (arm == null || !isMovingArray[index]) return;
 
-        //Debug.Log($"選ばれたオブジェクト: {activeArm.name} | 目標Z: {targetZ:F2}");
+        Vector3 pos = arm.transform.position;
+        float step = moveSpeed * Time.deltaTime;
+        pos.z = Mathf.MoveTowards(pos.z, targetZs[index], step);
+        arm.transform.position = pos;
+
+        if (Mathf.Approximately(pos.z, targetZs[index]))
+        {
+            isMovingArray[index] = false;
+            Debug.Log($"{arm.name} が Z={targetZs[index]:F2} に到達！");
+
+            // 到達したらランダムに爆弾 or 敵を落とす
+            DropRandomObject(arm);
+
+            // 少し待って次の目標を再設定
+            StartCoroutine(WaitAndRetarget(index));
+        }
+    }
+
+
+    // 爆弾 or 敵をランダムで落とす処理
+    void DropRandomObject(GameObject arm)
+    {
+        if (bombPrefab == null && enemyPrefab == null)
+        {
+            Debug.LogWarning("爆弾も敵も設定されていません！");
+            return;
+        }
+
+        int choice = Random.Range(0, 2); // 0=爆弾, 1=敵
+        GameObject prefab = (choice == 0 && bombPrefab != null) ? bombPrefab : enemyPrefab;
+        string typeName = (choice == 0) ? "爆弾" : "敵";
+
+        Vector3 spawnPos = arm.transform.position + Vector3.up * dropHeight;
+        GameObject dropped = Instantiate(prefab, spawnPos, Quaternion.identity);
+
+        Rigidbody rb = dropped.GetComponent<Rigidbody>();
+        if (rb == null) rb = dropped.AddComponent<Rigidbody>();
+        rb.useGravity = true;
+
+        Debug.Log($"{arm.name} が {typeName} を投下しました！");
+    }
+
+    // 少し待って次の移動を再スタート
+    IEnumerator WaitAndRetarget(int index)
+    {
+        yield return new WaitForSeconds(2f);
+        targetZs[index] = Random.Range(-255f, -110f);
+        isMovingArray[index] = true;
+        Debug.Log($"{armsArray[index].name} が次の目標Z={targetZs[index]:F2} へ移動開始！");
     }
 }
