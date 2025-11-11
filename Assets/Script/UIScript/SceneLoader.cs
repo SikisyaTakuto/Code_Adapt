@@ -1,35 +1,37 @@
 using UnityEngine;
-using UnityEngine.SceneManagement;
-using System.Collections; // Coroutineのために必要
+using UnityEngine.SceneManagement; // シーン管理のために必須
+using UnityEngine.UI;
 
+/// <summary>
+/// UIボタンからのシーン遷移を制御する汎用スクリプト。
+/// </summary>
 public class SceneLoader : MonoBehaviour
 {
-    // シーン切り替え時のSEの再生時間（SEの長さによる）
-    [SerializeField] private float sePlayDuration = 0.5f;
+    // --- シーン名の定数（UnityのBuild Settingsに登録された名前と一致させる） ---
+    // ここにすべてのシーン名を定義しておくと、コード内でタイプミスを防げます。
+    public const string TITLE_SCENE = "TitleScene";
+    public const string STAGE_SELECT_SCENE = "StageSelectScene";
+    public const string CLEAR_SCENE = "ClearScene";
+    public const string GAME_OVER_SCENE = "GameOverScene";
 
-    public void LoadStageSelectScene()
+    // 他のシーンもあれば、ここに追加してください。
+    // public const string GAME_SCENE_1 = "GameScene1";
+
+    /// <summary>
+    /// 指定された名前のシーンに遷移します。
+    /// UIボタンのOnClickイベントに設定するためのパブリックメソッドです。
+    /// </summary>
+    /// <param name="sceneName">遷移先のシーン名</param>
+    public void LoadSceneByName(string sceneName)
     {
-        // まずSEを再生
-        if (AudioManager.Instance != null)
+        if (string.IsNullOrEmpty(sceneName))
         {
-            AudioManager.Instance.PlayButtonClickSE();
-            // SEが再生されるのを待ってからシーンをロードするコルーチンを開始
-            StartCoroutine(LoadSceneAfterSE("StageSelectScene"));
+            Debug.LogError("遷移先のシーン名が設定されていません。");
+            return;
         }
-        else
-        {
-            Debug.LogError("AudioManager.Instance is null. Cannot play button click SE.");
-            // AudioManagerがない場合でもシーンはロードする
-            SceneManager.LoadScene("StageSelectScene");
-        }
-    }
 
-    private IEnumerator LoadSceneAfterSE(string sceneName)
-    {
-        // SEの再生を待つ
-        yield return new WaitForSeconds(sePlayDuration);
-
-        Debug.Log("ゲームスタートボタンが押されました。ステージセレクト画面に移行します。");
+        // シーン遷移の実行
         SceneManager.LoadScene(sceneName);
+        Debug.Log($"シーンを遷移します: {sceneName}");
     }
 }
