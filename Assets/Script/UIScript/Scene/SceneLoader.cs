@@ -7,16 +7,6 @@ using UnityEngine.UI;
 /// </summary>
 public class SceneLoader : MonoBehaviour
 {
-    // --- シーン名の定数（UnityのBuild Settingsに登録された名前と一致させる） ---
-    // ここにすべてのシーン名を定義しておくと、コード内でタイプミスを防げます。
-    public const string TITLE_SCENE = "TitleScene";
-    public const string STAGE_SELECT_SCENE = "StageSelectScene";
-    public const string CLEAR_SCENE = "ClearScene";
-    public const string GAME_OVER_SCENE = "GameOverScene";
-
-    // 他のシーンもあれば、ここに追加してください。
-    // public const string GAME_SCENE_1 = "GameScene1";
-
     /// <summary>
     /// 指定された名前のシーンに遷移します。
     /// UIボタンのOnClickイベントに設定するためのパブリックメソッドです。
