@@ -4,6 +4,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq; // LINQを使用するため追加
+using UnityEngine.SceneManagement; // ★ 1. SceneManagerを使用するために追加
 
 /// <summary>
 /// プレイヤーの移動、エネルギー管理、攻撃、およびアーマー制御を制御します。
@@ -17,6 +18,11 @@ public class PlayerController : MonoBehaviour
 
     // PlayerPrefsのキー
     private const string SelectedArmorKey = "SelectedArmorIndex";
+
+    // --- Scene Management ---
+    [Header("Game Over Settings")]
+    [Tooltip("ゲームオーバー時に移行するシーン名")]
+    private string gameOverSceneName = "GameOver"; // ★ ゲームオーバーシーンの名前
 
     // アーマーのステータスを保持するクラス
     [System.Serializable]
@@ -85,6 +91,7 @@ public class PlayerController : MonoBehaviour
     private WeaponMode _currentWeaponMode = WeaponMode.Melee;
     private float _lastEnergyConsumptionTime;
     private bool _hasTriggeredEnergyDepletedEvent = false;
+    private bool _isDead = false; // ★ 死亡状態を追跡するフラグ
 
     // 公開プロパティ (読み取り専用)
     [HideInInspector] public float currentHP { get => _currentHP; private set => _currentHP = value; }
@@ -188,6 +195,12 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
+        // ★ PキーでHPを0にするテスト
+        HandleTestInput(); // 追加
+
+        // ★ 死亡状態の場合は入力をすべてブロック
+        if (_isDead) return;
+
         // 攻撃中または入力無効化中は移動・攻撃入力をブロック
         if (!canReceiveInput || _isAttacking)
         {
@@ -209,6 +222,18 @@ public class PlayerController : MonoBehaviour
             // 処理順序を整理
             Vector3 finalMove = HandleVerticalMovement() + HandleHorizontalMovement();
             _controller.Move(finalMove * Time.deltaTime);
+        }
+    }
+
+    /// <summary>PキーでHPを0にするテスト</summary>
+    private void HandleTestInput()
+    {
+        if (Input.GetKeyDown(KeyCode.P))
+        {
+            Debug.LogWarning("Pキーが押されました: HPを0にして死亡処理を実行します。");
+            currentHP = 0;
+            UpdateHPUI(); // UIを更新
+            Die();        // 死亡処理を呼び出す
         }
     }
 
@@ -465,11 +490,11 @@ public class PlayerController : MonoBehaviour
 
             // 敵のダメージ処理コンポーネントを取得 (例: 'IDamageable' インターフェース)
             // if (hitCollider.TryGetComponent<EnemyHealth>(out var enemyHealth)) {
-            //      enemyHealth.TakeDamage(meleeDamage);
-            //      // 2. ヒットエフェクトを生成
-            //      if (hitEffectPrefab != null) {
-            //          Instantiate(hitEffectPrefab, hitCollider.transform.position, Quaternion.identity);
-            //      }
+            //     enemyHealth.TakeDamage(meleeDamage);
+            //     // 2. ヒットエフェクトを生成
+            //     if (hitEffectPrefab != null) {
+            //         Instantiate(hitEffectPrefab, hitCollider.transform.position, Quaternion.identity);
+            //     }
             // }
 
             // デバッグ用: EnemyHealthがなくてもエフェクトを生成するロジックを維持
@@ -523,7 +548,7 @@ public class PlayerController : MonoBehaviour
 
             // 敵にダメージを与える（必要に応じて）
             // if (hit.collider.TryGetComponent<EnemyHealth>(out var enemyHealth)) {
-            //      enemyHealth.TakeDamage(beamDamage);
+            //     enemyHealth.TakeDamage(beamDamage);
             // }
         }
         else
@@ -622,6 +647,8 @@ public class PlayerController : MonoBehaviour
     /// <summary>外部からダメージを受けたときに呼び出されます。</summary>
     public void TakeDamage(float damageAmount)
     {
+        if (_isDead) return; // 死亡状態なら処理しない
+
         float finalDamage = damageAmount;
 
         if (_currentArmorStats != null)
@@ -638,9 +665,35 @@ public class PlayerController : MonoBehaviour
 
         if (currentHP <= 0)
         {
-            Debug.Log("プレイヤーは破壊されました (Death Logic Here)");
-            // 死亡処理をここに追加
+            Die(); // HPが0になったら死亡処理を呼び出す
         }
+    }
+
+    /// <summary>プレイヤーの死亡処理とシーン移行</summary>
+    private void Die()
+    {
+        if (_isDead) return; // 二重に死亡処理を呼ばない
+
+        _isDead = true;
+        canReceiveInput = false; // 入力を無効化
+
+        Debug.Log("プレイヤーは破壊されました。ゲームオーバーシーンへ移行します。");
+
+        // オブジェクトの非表示、アニメーション再生、エフェクト表示などを行う
+
+        // ★ ゲームオーバーシーンへの移行
+        if (!string.IsNullOrEmpty(gameOverSceneName))
+        {
+            // シーンがBuild Settingsに追加されている必要があります
+            SceneManager.LoadScene(gameOverSceneName);
+        }
+        else
+        {
+            Debug.LogError("GameOverSceneNameが設定されていません。Inspectorを確認してください。");
+        }
+
+        // PlayerController自体を無効化（シーン移行が失敗した場合のフォールバック）
+        enabled = false;
     }
 
     // OnDrawGizmosSelectedは変更なし (意図されたデバッグ機能のため)
