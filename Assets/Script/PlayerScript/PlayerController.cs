@@ -19,7 +19,7 @@ public class PlayerController : MonoBehaviour
     // PlayerPrefsのキー
     private const string SelectedArmorKey = "SelectedArmorIndex";
 
-    // --- Scene Management ---
+    // Scene Management
     [Header("Game Over Settings")]
     // private string gameOverSceneName = "GameOverScene"; // ★ 削除: 遷移先はSceneBasedGameOverManagerが管理
     [Tooltip("シーンベースのゲームオーバーマネージャーを設定")]
@@ -43,7 +43,7 @@ public class PlayerController : MonoBehaviour
     // TPSCameraControllerは未定義のため、引き続き警告を残しつつOptionalとして扱う
     private TPSCameraController _tpsCamController;
 
-    // --- UI & Visuals ---
+    //UI & Visuals 
     [Header("Armor UI & Visuals")]
     public Image currentArmorIconImage;
     [Tooltip("Normal(0), Buster(1), Speed(2) の順で設定")]
@@ -57,7 +57,7 @@ public class PlayerController : MonoBehaviour
     public Color emphasizedColor = Color.white;
     public Color normalColor = new Color(0.5f, 0.5f, 0.5f);
 
-    // --- ベースとなる能力値 ---
+    // ベースとなる能力値 
     [Header("Base Stats")]
     public float baseMoveSpeed = 15.0f;
     public float boostMultiplier = 2.0f;
@@ -76,9 +76,9 @@ public class PlayerController : MonoBehaviour
     public List<ArmorStats> armorConfigurations = new List<ArmorStats>
     {
         new ArmorStats { name = "Normal", defenseMultiplier = 1.0f, moveSpeedMultiplier = 1.0f, energyRecoveryMultiplier = 1.0f },
-        // [修正] Buster Mode: 防御力を犠牲にして攻撃特化 (ダメージ軽減率を1.5f (ダメージ1.5倍)に)
+        //  Buster Mode: 防御力を犠牲にして攻撃特化 (ダメージ軽減率を1.5f (ダメージ1.5倍)に)
         new ArmorStats { name = "Buster Mode", defenseMultiplier = 1.5f, moveSpeedMultiplier = 0.8f, energyRecoveryMultiplier = 0.8f },
-        // [修正] Speed Mode: 防御力も高めに設定 (ダメージ軽減率を0.75f (ダメージ0.75倍)に)
+        //  Speed Mode: 防御力も高めに設定 (ダメージ軽減率を0.75f (ダメージ0.75倍)に)
         new ArmorStats { name = "Speed Mode", defenseMultiplier = 0.75f, moveSpeedMultiplier = 1.5f, energyRecoveryMultiplier = 1.2f }
     };
 
@@ -100,7 +100,7 @@ public class PlayerController : MonoBehaviour
     public ArmorMode currentArmorMode => _currentArmorMode;
     public WeaponMode currentWeaponMode => _currentWeaponMode;
 
-    // --- HP/Energy Gauge ---
+    // HP/Energy Gauge
     [Header("Health Settings")]
     public float maxHP = 100.0f;
     public Slider hPSlider;
@@ -110,7 +110,7 @@ public class PlayerController : MonoBehaviour
     public float recoveryDelay = 1.0f;
     public Slider energySlider;
 
-    // --- Attack Settings ---
+    // Attack Settings
     public float attackFixedDuration = 0.8f;
 
     [Header("Beam VFX")]
@@ -134,8 +134,6 @@ public class PlayerController : MonoBehaviour
     private Vector3 _velocity;
     private float _moveSpeed; // 実行中の速度
     public bool canReceiveInput = true;
-
-    // =========================================================================
 
     // Awakeでコンポーネント取得を確実に
     void Awake()
@@ -692,7 +690,7 @@ public class PlayerController : MonoBehaviour
 
         // オブジェクトの非表示、アニメーション再生、エフェクト表示などを行う
 
-        // ★ シーン遷移ロジックをSceneBasedGameOverManagerに委譲
+        // シーン遷移ロジックをSceneBasedGameOverManagerに委譲
         if (gameOverManager != null)
         {
             gameOverManager.GoToGameOverScene(); // ★ 適切なシーンへの遷移をマネージャーに依頼
