@@ -22,28 +22,31 @@ public class EnemyGun : MonoBehaviour
             Shoot();
         }
     }
-
-    void Shoot()
+    public void Shoot()
     {
-        // 発射に必要なオブジェクトが有効であることを確認
         if (muzzlePoint != null && bulletPrefab != null)
         {
-            // 1. 弾丸を生成する
+            Debug.Log("弾丸の生成を試みます: Time = " + Time.time); // ★ 追加
+
             GameObject bulletInstance = Instantiate(
                 bulletPrefab,
                 muzzlePoint.position,
                 muzzlePoint.rotation
             );
 
-            // 2. 弾丸に推進力を加える
             Rigidbody rb = bulletInstance.GetComponent<Rigidbody>();
 
             if (rb != null)
             {
-                // MuzzlePointの向いている前方 (forward) に速度を加える
-                rb.velocity = muzzlePoint.forward * shotSpeed; // ★ ここを修正
+                Debug.Log("弾丸に速度を設定しました。"); // ★ 追加
+                rb.velocity = muzzlePoint.forward * shotSpeed;
+            }
+            else
+            {
+                Debug.LogError("弾丸プレハブにRigidbodyがありません！"); // ★ 追加
             }
         }
-        // else の Debug.Log は、エラー回避の観点からコメントアウトを推奨します
     }
+
+
 }
