@@ -12,18 +12,18 @@ public class VoxController : MonoBehaviour
     [SerializeField] private GameObject Arms7;
     [SerializeField] private GameObject Arms8;
 
-    [SerializeField] private GameObject bombPrefab;    // 落とす爆弾Prefab
-    [SerializeField] private GameObject enemyPrefab;   // 敵
-    [SerializeField] private float dropHeight = -2f;   // アームの位置からどれくらい上に爆弾を出すか
+    [SerializeField] private GameObject bombPrefab;         // 落とす爆弾Prefab
+    [SerializeField] private GameObject[] enemyPrefabs;     // 敵プレハブを配列に変更！// 敵
+    [SerializeField] private float dropHeight = -2f;        // アームの位置からどれくらい上に爆弾を出すか
 
-    [SerializeField] private float moveSpeed = 20f;    // 移動速度
-    [SerializeField] private float rareChance = 0.05f; // 確率で特殊座標を選ぶ
+    [SerializeField] private float moveSpeed = 20f;         // 移動速度
+    [SerializeField] private float rareChance = 0.05f;      // 確率で特殊座標を選ぶ
 
     private GameObject[] armsArray;
-    private float[] targetZs;                          // 目標Z座標
-    private bool[] isMovingArray;                      // 移動中フラグ
-    private bool[] hasReachedSpecialZ;                 // 各アームが特殊Zに到達済みか
-    private bool[] canDropNow;                         // 各アームが「現在物を落とせる状態」か
+    private float[] targetZs;                               // 目標Z座標
+    private bool[] isMovingArray;                           // 移動中フラグ
+    private bool[] hasReachedSpecialZ;                      // 各アームが特殊Zに到達済みか
+    private bool[] canDropNow;                              // 各アームが「現在物を落とせる状態」か
 
     void Start()
     {
@@ -113,21 +113,31 @@ public class VoxController : MonoBehaviour
     // 爆弾 or 敵をランダムに落とす
     void DropRandomObject(GameObject arm)
     {
-        if (bombPrefab == null && enemyPrefab == null)
+        bool dropEnemy = (Random.value < 0.5f); // 50%で敵を選択
+        GameObject prefab = null;
+        string typeName = "";
+
+        // 複数の敵からランダム選択
+        if (dropEnemy && enemyPrefabs != null && enemyPrefabs.Length > 0)
         {
-            Debug.LogWarning("爆弾も敵も設定されていません！");
+            prefab = enemyPrefabs[Random.Range(0, enemyPrefabs.Length)];
+            typeName = prefab.name;
+        }
+        else if (bombPrefab != null)
+        {
+            prefab = bombPrefab;
+            typeName = "爆弾";
+        }
+
+        if (prefab == null)
+        {
+            Debug.LogWarning("Prefab が設定されていません！");
             return;
         }
 
-        int choice = Random.Range(0, 2); // 0=爆弾, 1=敵
-        GameObject prefab = (choice == 0 && bombPrefab != null) ? bombPrefab : enemyPrefab;
-        string typeName = (choice == 0) ? "爆弾" : "敵";
-
         Vector3 spawnPos = arm.transform.position + Vector3.up * dropHeight;
         GameObject dropped = Instantiate(prefab, spawnPos, Quaternion.identity);
-
-        Rigidbody rb = dropped.GetComponent<Rigidbody>();
-        if (rb == null) rb = dropped.AddComponent<Rigidbody>();
+        Rigidbody rb = dropped.GetComponent<Rigidbody>() ?? dropped.AddComponent<Rigidbody>();
         rb.useGravity = true;
 
         Debug.Log($"{arm.name} が {typeName} を投下しました！");
