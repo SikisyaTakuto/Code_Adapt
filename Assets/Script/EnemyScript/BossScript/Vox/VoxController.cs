@@ -13,17 +13,21 @@ public class VoxController : MonoBehaviour
     [SerializeField] private GameObject Arms8;
 
     [SerializeField] private GameObject bombPrefab;         // 落とす爆弾Prefab
-    [SerializeField] private GameObject[] enemyPrefabs;     // 敵プレハブを配列に変更！// 敵
-    [SerializeField] private float dropHeight = -2f;        // アームの位置からどれくらい上に爆弾を出すか
+    [SerializeField] private GameObject[] enemyPrefabs;     // 敵プレハブを配列に変更！
+    [SerializeField] private GameObject explosionEffect;    // 爆発エフェクト
 
+    [SerializeField] private float dropHeight = -2f;        // アームの位置からどれくらい上に爆弾を出すか
     [SerializeField] private float moveSpeed = 20f;         // 移動速度
     [SerializeField] private float rareChance = 0.05f;      // 確率で特殊座標を選ぶ
+    [SerializeField] private int maxHP = 5;                 // 各アームの初期HP
 
     private GameObject[] armsArray;
     private float[] targetZs;                               // 目標Z座標
     private bool[] isMovingArray;                           // 移動中フラグ
     private bool[] hasReachedSpecialZ;                      // 各アームが特殊Zに到達済みか
     private bool[] canDropNow;                              // 各アームが「現在物を落とせる状態」か
+    private int[] armHPs;                                   // 各アームのHP
+    private bool[] isDestroyed;                             // HP0で停止したアームを判定
 
     void Start()
     {
@@ -32,22 +36,74 @@ public class VoxController : MonoBehaviour
         isMovingArray = new bool[armsArray.Length];
         hasReachedSpecialZ = new bool[armsArray.Length];
         canDropNow = new bool[armsArray.Length];
+        armHPs = new int[armsArray.Length];
+        isDestroyed = new bool[armsArray.Length];
+
+        for (int i = 0; i < armsArray.Length; i++)
+        {
+            armHPs[i] = maxHP;
+            isDestroyed[i] = false;
+        }
 
         SetNewTargets(); // 開始時に全アームへランダム目標設定
     }
 
     void Update()
     {
+        // 壊れていないアームだけ動かす
         for (int i = 0; i < armsArray.Length; i++)
         {
-            MoveArm(i);
+            if (!isDestroyed[i]) 
+            {
+                MoveArm(i);
+            }
         }
 
-        // Pキーで全アームの目標をリセット
-        if (Input.GetKeyDown(KeyCode.P))
+        // アームにダメージ1
+        if (Input.GetKeyDown(KeyCode.K))
         {
-            SetNewTargets();
+            for (int i = 0; i < armsArray.Length; i++)
+            {
+                DamageArm(i, 1);
+            }
         }
+    }
+
+    // HPを減らす関数
+    public void DamageArm(int index, int damage)
+    {
+        if (isDestroyed[index]) return;
+
+        armHPs[index] -= damage;
+        Debug.Log($"{armsArray[index].name} が {damage} ダメージを受けた！残りHP: {armHPs[index]}");
+
+        if (armHPs[index] <= 0)
+        {
+            StartCoroutine(DestroyArm(index));
+        }
+    }
+
+    // 爆発＆停止
+    IEnumerator DestroyArm(int index)
+    {
+        isDestroyed[index] = true;
+        GameObject arm = armsArray[index];
+
+        Debug.Log($"{arm.name} が破壊されました！");
+
+        if (explosionEffect != null)
+        {
+            Instantiate(explosionEffect, arm.transform.position, Quaternion.identity);
+        }
+
+        // Rigidbodyがあれば物理挙動を止める
+        Rigidbody rb = arm.GetComponent<Rigidbody>();
+        if (rb) rb.isKinematic = true;
+
+        // アームを非表示にする
+        //arm.SetActive(false);
+
+        yield return null;
     }
 
     // 新しい目標Zを設定（低確率で特殊Z）
