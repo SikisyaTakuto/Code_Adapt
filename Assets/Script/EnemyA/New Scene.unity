@@ -131,6 +131,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: Bullet
       objectReference: {fileID: 0}
+    - target: {fileID: 1877806789679844970, guid: db7f14d806dc1ae49a069970642af97f, type: 3}
+      propertyPath: m_Layer
+      value: 11
+      objectReference: {fileID: 0}
+    - target: {fileID: 1877806789679844970, guid: db7f14d806dc1ae49a069970642af97f, type: 3}
+      propertyPath: m_TagString
+      value: Bullet
+      objectReference: {fileID: 0}
     - target: {fileID: 7996693215130209860, guid: db7f14d806dc1ae49a069970642af97f, type: 3}
       propertyPath: m_LocalScale.x
       value: 0.1
@@ -145,7 +153,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7996693215130209860, guid: db7f14d806dc1ae49a069970642af97f, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -88
+      value: -85.64
       objectReference: {fileID: 0}
     - target: {fileID: 7996693215130209860, guid: db7f14d806dc1ae49a069970642af97f, type: 3}
       propertyPath: m_LocalPosition.y
@@ -153,7 +161,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7996693215130209860, guid: db7f14d806dc1ae49a069970642af97f, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 29.2
+      value: 50.8
       objectReference: {fileID: 0}
     - target: {fileID: 7996693215130209860, guid: db7f14d806dc1ae49a069970642af97f, type: 3}
       propertyPath: m_LocalRotation.w
@@ -812,7 +820,7 @@ Transform:
   m_GameObject: {fileID: 1488161626}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.4, y: 1.464, z: 1.081}
+  m_LocalPosition: {x: 0.5, y: 1.4, z: 1.388}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1084,6 +1092,10 @@ MonoBehaviour:
   shootingDelay: 0.5
   bulletPrefab: {fileID: 7567824}
   firePoint: {fileID: 1488161627}
+  bulletSpeed: 100
+  bulletLifetime: 5
+  maxAmmo: 5
+  reloadTime: 3
 --- !u!65 &1731152448
 BoxCollider:
   m_ObjectHideFlags: 0

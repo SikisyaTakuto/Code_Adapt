@@ -22,12 +22,21 @@ public class EnemyAI : MonoBehaviour
     private float nextFireTime;
 
     [Tooltip("射撃アニメーション開始から弾が出るまでの時間(秒)")]
-    [SerializeField] private float shootingDelay = 0.2f; 
-
+    [SerializeField] private float shootingDelay = 0.2f;
 
     [Header("弾設定")]
-    public GameObject bulletPrefab; // Inspectorで弾のプレハブを設定
-    public Transform firePoint;      // Inspectorで銃口の位置を設定
+    public GameObject bulletPrefab;
+    public Transform firePoint;
+    [SerializeField] private float bulletSpeed = 100f;
+    [SerializeField] private float bulletLifetime = 5f;
+
+    // ★★★ リロード関連の追加フィールド ★★★
+    [Header("リロード設定")]
+    [SerializeField] private int maxAmmo = 10;        // 最大弾数
+    private int currentAmmo;                          // 現在の弾数
+    [SerializeField] private float reloadTime = 3.0f; // リロード時間
+    private bool isReloading = false;                 // リロード中フラグ
+
 
     // Animatorのパラメーター名
     private const string IsAimingParam = "IsAiming";
@@ -44,6 +53,7 @@ public class EnemyAI : MonoBehaviour
     {
         anim = GetComponent<Animator>();
         nextFireTime = Time.time;
+        currentAmmo = maxAmmo; // ★ 追加: 初期弾数を最大にする
 
         if (target == null && GameObject.FindWithTag("Player") != null)
         {
@@ -63,7 +73,12 @@ public class EnemyAI : MonoBehaviour
         if (distanceToTarget <= attackRange)
         {
             LookAtTarget();
-            anim.SetBool(IsAimingParam, true);
+
+            // ★ 修正: リロード中でないときだけ構えアニメーションをONにする
+            if (!isReloading)
+            {
+                anim.SetBool(IsAimingParam, true);
+            }
 
             if (distanceToTarget <= retreatRange)
             {
@@ -76,29 +91,29 @@ public class EnemyAI : MonoBehaviour
                 // 適切な距離（定点射撃範囲）の場合: 左右に移動 (ストレイフ)
                 currentSpeedZ = 0f;
 
-                // 左右ストレイフのロジック
+                // 左右ストレイフのロジック (省略)
                 Vector3 directionToTarget = target.position - transform.position;
                 float dotProductX = Vector3.Dot(directionToTarget.normalized, transform.right);
 
-                if (dotProductX > 0.1f) // プレイヤーが右側にいる
+                if (dotProductX > 0.1f)
                 {
                     currentSpeedX = moveSpeed;
                 }
-                else if (dotProductX < -0.1f) // プレイヤーが左側にいる
+                else if (dotProductX < -0.1f)
                 {
                     currentSpeedX = -moveSpeed;
                 }
-                else // ほぼ正面にいる
+                else
                 {
                     currentSpeedX = 0f;
                 }
 
-                // 実際に横に動かす
                 transform.Translate(Vector3.right * currentSpeedX * Time.deltaTime);
             }
 
             // 2. 射撃タイミングのチェック
-            if (Time.time >= nextFireTime)
+            // ★ 修正: リロード中でなく、弾があるときだけ射撃を許可
+            if (!isReloading && currentAmmo > 0 && Time.time >= nextFireTime)
             {
                 // 射撃トリガーをセットし、コルーチンを開始する
                 anim.SetTrigger(FireTriggerParam);
@@ -108,33 +123,25 @@ public class EnemyAI : MonoBehaviour
                 nextFireTime = Time.time + fireRate;
             }
         }
-        // 3. 攻撃範囲外の行動
+        // 3. 攻撃範囲外の行動 (省略)
         else
         {
-            // ★ 修正点: 攻撃範囲外に出たら、射撃コルーチンを停止する
+            // 攻撃範囲外に出たら、射撃コルーチンを停止する
             StopAllCoroutines();
+            // ... (その他の追跡ロジックは省略) ...
 
-            // ★ 追跡開始/停止の判定
             if (distanceToTarget > dashStartRange)
             {
-                // プレイヤーが非常に遠い場合: 待機
                 currentSpeedZ = 0f;
                 currentSpeedX = 0f;
-                anim.SetBool(IsAimingParam, false); // 構えを解除 (安全のため)
-
-                // 待機中は何もせず、移動アニメーションを全てOFFにする
-                // (アニメーションのBoolリセットロジックが担当するため、ここでは速度を0にするだけでOK)
+                anim.SetBool(IsAimingParam, false);
             }
             else
             {
-                // プレイヤーが追跡範囲内の場合 (attackRange < distance <= dashStartRange)
-
-                // 追跡（前進）
                 currentSpeedX = 0f;
-                anim.SetBool(IsAimingParam, false); // 構えを解除
+                anim.SetBool(IsAimingParam, false);
 
-                // 速度の切り替え（通常速度またはダッシュ）
-                if (distanceToTarget > (dashStartRange / 2f)) // 例: 10fより遠い場合をダッシュに
+                if (distanceToTarget > (dashStartRange / 2f))
                 {
                     currentSpeedZ = dashSpeed;
                 }
@@ -143,50 +150,71 @@ public class EnemyAI : MonoBehaviour
                     currentSpeedZ = moveSpeed;
                 }
 
-                // 実際に前に動かす
                 transform.Translate(Vector3.forward * currentSpeedZ * Time.deltaTime);
-
-                // 追跡中はターゲットを向き続けます
                 LookAtTarget();
             }
         }
 
-        // --- アニメーションのBoolパラメーター設定（ブレンドツリーなし） ---
+        // ★★★ リロード開始チェック ★★★
+        // 攻撃範囲内にいて、弾がなく、リロード中でない場合
+        if (distanceToTarget <= attackRange && currentAmmo <= 0 && !isReloading)
+        {
+            StartCoroutine(Reload());
+        }
 
-        // 全ての移動Boolを一旦リセット
+
+        // --- アニメーションのBoolパラメーター設定（省略） ---
         anim.SetBool(MoveForwardParam, false);
         anim.SetBool(MoveBackwardParam, false);
         anim.SetBool(MoveLeftParam, false);
         anim.SetBool(MoveRightParam, false);
-        anim.SetBool(IsDashingParam, false); 
+        anim.SetBool(IsDashingParam, false);
 
-        // 現在の移動方向と速度に基づいて、対応するBoolをtrueにする
-        if (currentSpeedZ > 0f) // 前進またはダッシュ
+        if (currentSpeedZ > 0f)
         {
-            if (currentSpeedZ > moveSpeed + 0.1f) 
+            if (currentSpeedZ > moveSpeed + 0.1f)
             {
-                anim.SetBool(IsDashingParam, true); // ダッシュアニメーションを有効化
+                anim.SetBool(IsDashingParam, true);
             }
-
             anim.SetBool(MoveForwardParam, true);
         }
-        else if (currentSpeedZ < 0f) // 後退
+        else if (currentSpeedZ < 0f)
         {
             anim.SetBool(MoveBackwardParam, true);
         }
-
-        // Z軸の移動がない場合のみ、X軸の左右移動をチェックする
         else if (currentSpeedZ == 0f)
         {
-            if (currentSpeedX > 0.1f) // 右ストレイフ
+            if (currentSpeedX > 0.1f)
             {
                 anim.SetBool(MoveRightParam, true);
             }
-            else if (currentSpeedX < -0.1f) // 左ストレイフ
+            else if (currentSpeedX < -0.1f)
             {
                 anim.SetBool(MoveLeftParam, true);
             }
         }
+    }
+
+    // ★★★ リロード処理コルーチン ★★★
+    private IEnumerator Reload()
+    {
+        isReloading = true;
+        // リロード中は構えを解除
+        anim.SetBool(IsAimingParam, false);
+
+        // TODO: リロードアニメーションの再生やSEの再生をここに入れる
+        // anim.SetTrigger("ReloadTrigger"); 
+
+        Debug.Log("リロード開始...");
+        yield return new WaitForSeconds(reloadTime);
+
+        // 弾数を回復
+        currentAmmo = maxAmmo;
+        isReloading = false;
+        Debug.Log("リロード完了。弾数: " + currentAmmo);
+
+        // 射撃モードに戻る
+        anim.SetBool(IsAimingParam, true);
     }
 
     /// <summary>
@@ -195,34 +223,65 @@ public class EnemyAI : MonoBehaviour
     private IEnumerator ShootWithDelay()
     {
         // shootingDelay秒待機する
-        yield return new WaitForSeconds(shootingDelay); 
+        yield return new WaitForSeconds(shootingDelay);
 
         // ディレイ後、弾を生成する関数を呼び出す
         ShootBullet();
     }
 
     /// <summary>
-    /// 弾を生成し、発射する
+    /// 弾を生成し、発射する (BulletControllerの機能と衝突回避を含む)
     /// </summary>
-    public void ShootBullet() // ★ これが正しい定義（重複を解消）
+    public void ShootBullet()
     {
-        if (bulletPrefab != null && firePoint != null)
+        // ★ 修正: 弾を発射するたびに弾数を減らす
+        if (bulletPrefab != null && firePoint != null && currentAmmo > 0)
         {
-            // 弾を生成 (銃口の位置と回転(方向)を使用)
+            currentAmmo--; // ★ 弾数減少
+
             GameObject bullet = Instantiate(bulletPrefab, firePoint.position, firePoint.rotation);
 
-            // ★ 確認: 弾に速度を与える処理がある場合、以下の処理を追加/修正します
-            // ----------------------------------------------------
+            // 1. 【消滅ロジック】時間経過による自動消滅を設定
+            Destroy(bullet, bulletLifetime);
 
-            // 例: 弾丸に速度を与える（Rigidbodyの場合）
+            // --- 2. 【最重要】衝突回避ロジック ---
+            Collider bulletCollider = bullet.GetComponent<Collider>();
+
+            // 敵のコライダーを、ルート or 子オブジェクトから取得を試みる
+            Collider enemyCollider = GetComponent<Collider>();
+            if (enemyCollider == null)
+            {
+                enemyCollider = GetComponentInChildren<Collider>();
+            }
+
+            if (bulletCollider != null && enemyCollider != null)
+            {
+                // 弾と敵自身の衝突判定を一時的に無視 (0.3秒間)
+                Physics.IgnoreCollision(bulletCollider, enemyCollider, true);
+                StartCoroutine(StopIgnoringCollision(bulletCollider, enemyCollider, 0.3f));
+            }
+            else
+            {
+                Debug.LogError("FATAL ERROR: Enemy or Bullet Collider is missing. Cannot ignore collision!");
+            }
+            // ------------------------------------
+
+            // 3. 弾丸に速度を与える（Rigidbodyの場合）
             Rigidbody rb = bullet.GetComponent<Rigidbody>();
             if (rb != null)
             {
-                // 弾のローカル前方（Z軸）に速度を与える
-                float bulletSpeed = 100f; // 適切な速度を設定
                 rb.velocity = bullet.transform.forward * bulletSpeed;
             }
-            // ----------------------------------------------------
+        }
+    }
+
+    // 衝突無視解除のコルーチン
+    private IEnumerator StopIgnoringCollision(Collider bulletCollider, Collider enemyCollider, float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        if (bulletCollider != null && enemyCollider != null)
+        {
+            Physics.IgnoreCollision(bulletCollider, enemyCollider, false);
         }
     }
 
