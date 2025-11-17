@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 public class Bullet : MonoBehaviour
@@ -21,5 +22,10 @@ public class Bullet : MonoBehaviour
             // プレイヤーにダメージを与える処理などをここに追加...
             Destroy(gameObject);
         }
+    }
+
+    internal void Initialize(Action<Bullet> returnBulletToPool)
+    {
+        throw new NotImplementedException();
     }
 }
