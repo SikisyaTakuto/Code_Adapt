@@ -1,52 +1,51 @@
-ï»¿using UnityEngine;
+using UnityEngine;
 using System.Collections;
 
 public class EnemyAI : MonoBehaviour
 {
     private Animator anim;
 
-    [Header("ã‚¿ãƒ¼ã‚²ãƒƒãƒˆè¨­å®š")]
+    [Header("ƒ^[ƒQƒbƒgİ’è")]
     [SerializeField] private Transform target;
     [SerializeField] private float attackRange = 10f;
     [SerializeField] private float rotationSpeed = 5f;
 
-    [Header("ç§»å‹•ãƒ»å¾Œé€€è¨­å®š")]
+    [Header("ˆÚ“®EŒã‘Şİ’è")]
     [SerializeField] private float moveSpeed = 3f;
     [SerializeField] private float dashSpeed = 6f;
     [SerializeField] private float retreatRange = 5f;
     [SerializeField] private float dashStartRange = 20f;
 
 
-    [Header("å°„æ’ƒè¨­å®š")]
+    [Header("ËŒ‚İ’è")]
     public float fireRate = 2.0f;
     private float nextFireTime;
 
-    [Tooltip("å°„æ’ƒã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³é–‹å§‹ã‹ã‚‰å¼¾ãŒå‡ºã‚‹ã¾ã§ã®æ™‚é–“(ç§’)")]
+    [Tooltip("ËŒ‚ƒAƒjƒ[ƒVƒ‡ƒ“ŠJn‚©‚ç’e‚ªo‚é‚Ü‚Å‚ÌŠÔ(•b)")]
     [SerializeField] private float shootingDelay = 0.2f;
 
-    [Header("å¼¾è¨­å®š")]
-    public GameObject bulletPrefab; // å¼¾ã®Prefab
+    [Header("’eİ’è")]
+    public GameObject bulletPrefab; // ’e‚ÌPrefab
     public Transform firePoint;
     [SerializeField] private float bulletSpeed = 100f;
-    [SerializeField] private float bulletLifetime = 5f; // Destroyã§æ¶ˆæ»…ã•ã›ã‚‹ã¾ã§ã®æ™‚é–“
+    [SerializeField] private float bulletLifetime = 5f; // Destroy‚ÅÁ–Å‚³‚¹‚é‚Ü‚Å‚ÌŠÔ
 
-    // ãƒªãƒ­ãƒ¼ãƒ‰é–¢é€£
-    [Header("ãƒªãƒ­ãƒ¼ãƒ‰è¨­å®š")]
+    // ƒŠƒ[ƒhŠÖ˜A
+    [Header("ƒŠƒ[ƒhİ’è")]
     [SerializeField] private int maxAmmo = 10;
     private int currentAmmo;
     [SerializeField] private float reloadTime = 3.0f;
     private bool isReloading = false;
 
 
-    // Animatorã®ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿ãƒ¼å
+    // Animator‚Ìƒpƒ‰ƒ[ƒ^[–¼
     private const string IsAimingParam = "IsAiming";
     private const string FireTriggerParam = "FireTrigger";
     private const string MoveForwardParam = "MoveForward";
     private const string MoveBackwardParam = "MoveBackward";
     private const string MoveLeftParam = "MoveLeft";
     private const string MoveRightParam = "MoveRight";
-    private const string IsDashingParam = "IsDashing";
-
+    private const string isDashingParam = "isDashing"; // šAnimator‘¤‚Ìƒpƒ‰ƒ[ƒ^[–¼‚Æˆê’v‚µ‚Ä‚¢‚é‚©—vŠm”F
 
     void Start()
     {
@@ -65,12 +64,16 @@ public class EnemyAI : MonoBehaviour
         if (target == null) return;
 
         float distanceToTarget = Vector3.Distance(transform.position, target.position);
-        float currentSpeedZ = 0f;
-        float currentSpeedX = 0f;
+        float currentMoveSpeed = moveSpeed; // ÀÛ‚ÌˆÚ“®‘¬“x‚ğ•Û
+        float currentSpeedZ = 0f;          // ƒAƒjƒ[ƒVƒ‡ƒ“§Œä—p‚Ì‘OŒãˆÚ“®‘¬“x (-:Œã‘Ş, +:‘Oi)
+        bool isDashing = false;            // ƒ_ƒbƒVƒ…ƒAƒjƒ[ƒVƒ‡ƒ“§Œä—p (ƒ[ƒJƒ‹•Ï”)
 
-        // 1. æ”»æ’ƒç¯„å›²å†…ã®è¡Œå‹•
+        // 1. UŒ‚”ÍˆÍ“à‚Ìs“® (ËŒ‚EŒã‘Ş)
         if (distanceToTarget <= attackRange)
         {
+            // ’ÇÕ’†‚Ì‰Â”\«‚Ì‚ ‚éƒRƒ‹[ƒ`ƒ“‚ğ’â~
+            StopAllCoroutines();
+
             LookAtTarget();
             if (!isReloading)
             {
@@ -79,16 +82,18 @@ public class EnemyAI : MonoBehaviour
 
             if (distanceToTarget <= retreatRange)
             {
-                currentSpeedZ = -moveSpeed;
+                // ƒvƒŒƒCƒ„[‚ª‹ß‚·‚¬‚éê‡: Œã‘Ş
+                currentSpeedZ = -moveSpeed; // ƒAƒjƒ[ƒVƒ‡ƒ“—p
                 transform.Translate(Vector3.forward * currentSpeedZ * Time.deltaTime);
             }
             else
             {
+                // “KØ‚È‹——£: ’â~ (’è“_ËŒ‚)
                 currentSpeedZ = 0f;
-                // ... (ã‚¹ãƒˆãƒ¬ã‚¤ãƒ•ã®ç§»å‹•ãƒ­ã‚¸ãƒƒã‚¯ã¯çœç•¥) ...
+                // (ƒXƒgƒŒƒCƒt‚ÌˆÚ“®ƒƒWƒbƒN‚ÍÈ—ª)
             }
 
-            // 2. å°„æ’ƒã‚¿ã‚¤ãƒŸãƒ³ã‚°ã®ãƒã‚§ãƒƒã‚¯
+            // 2. ËŒ‚ƒ^ƒCƒ~ƒ“ƒO‚Ìƒ`ƒFƒbƒN
             if (!isReloading && currentAmmo > 0 && Time.time >= nextFireTime)
             {
                 anim.SetTrigger(FireTriggerParam);
@@ -96,36 +101,80 @@ public class EnemyAI : MonoBehaviour
                 nextFireTime = Time.time + fireRate;
             }
         }
-        // 3. æ”»æ’ƒç¯„å›²å¤–ã®è¡Œå‹• (çœç•¥)
+        // 3. UŒ‚”ÍˆÍŠO‚Ìs“® (’ÇÕ/ƒ_ƒbƒVƒ…ƒƒWƒbƒN)
         else
         {
-            StopAllCoroutines();
+            // \‚¦‰ğœ
             anim.SetBool(IsAimingParam, false);
-            // ... (è¿½è·¡ãƒ­ã‚¸ãƒƒã‚¯ã¯çœç•¥) ...
-        }
 
-        // â˜… ãƒªãƒ­ãƒ¼ãƒ‰é–‹å§‹ãƒã‚§ãƒƒã‚¯ â˜…
+            LookAtTarget(); // ƒvƒŒƒCƒ„[‚Ì•ûŒü‚ğŒü‚­
+
+            // ’ÇÕ‘¬“x‚ÌŒˆ’è (ƒ_ƒbƒVƒ…ƒƒWƒbƒN)
+            if (distanceToTarget > dashStartRange)
+            {
+                currentMoveSpeed = dashSpeed;
+                isDashing = true;
+            }
+            else
+            {
+                currentMoveSpeed = moveSpeed;
+                isDashing = false;
+            }
+
+            // ‘OiˆÚ“®‚ğÀs
+            transform.Translate(Vector3.forward * currentMoveSpeed * Time.deltaTime);
+
+            // ššš C³Œã‚ÌƒƒWƒbƒN ššš
+            // isDashing‚ªTrue/False‚ÉŠÖ‚í‚ç‚¸A‘Oi‚µ‚Ä‚¢‚é‚±‚Æ‚ğ¦‚·‚½‚ß‚É
+            // currentSpeedZ‚ğ³‚Ì’l‚Éİ’è‚µ‚Ü‚·B
+            currentSpeedZ = currentMoveSpeed;
+        }
+        // ... (else ƒuƒƒbƒN‚ÌI—¹)
+
+        // š ƒŠƒ[ƒhŠJnƒ`ƒFƒbƒN (UŒ‚”ÍˆÍ“à‚Å‚Ì‚İƒ`ƒFƒbƒN) š
         if (distanceToTarget <= attackRange && currentAmmo <= 0 && !isReloading)
         {
+            StopCoroutine("ShootWithDelay");
             StartCoroutine(Reload());
         }
 
-        // --- ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ã®Boolãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿ãƒ¼è¨­å®šï¼ˆçœç•¥ï¼‰ ---
-        // (çœç•¥)
+        // --- ƒAƒjƒ[ƒVƒ‡ƒ“‚ÌBoolƒpƒ‰ƒ[ƒ^[İ’è ---
+        anim.SetBool(isDashingParam, isDashing); // ƒ_ƒbƒVƒ…/’ÊíˆÚ“®‚ÌØ‚è‘Ö‚¦
+
+        // ‘OŒãˆÚ“®ƒAƒjƒ[ƒVƒ‡ƒ“‚Ì§Œä
+        if (currentSpeedZ > 0.01f)
+        {
+            // ‘Oi (Run/Dash)
+            anim.SetBool(MoveForwardParam, true);
+            anim.SetBool(MoveBackwardParam, false);
+        }
+        else if (currentSpeedZ < -0.01f)
+        {
+            // Œã‘Ş (Retreat)
+            anim.SetBool(MoveForwardParam, false);
+            anim.SetBool(MoveBackwardParam, true);
+        }
+        else
+        {
+            // ’â~ (Idle)
+            anim.SetBool(MoveForwardParam, false);
+            anim.SetBool(MoveBackwardParam, false);
+        }
     }
+
 
     private IEnumerator Reload()
     {
         isReloading = true;
         anim.SetBool(IsAimingParam, false);
 
-        Debug.Log("ãƒªãƒ­ãƒ¼ãƒ‰é–‹å§‹...");
-        // TODO: ãƒªãƒ­ãƒ¼ãƒ‰ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³å†ç”Ÿ
+        Debug.Log("ƒŠƒ[ƒhŠJn...");
+        // TODO: ƒŠƒ[ƒhƒAƒjƒ[ƒVƒ‡ƒ“Ä¶
         yield return new WaitForSeconds(reloadTime);
 
         currentAmmo = maxAmmo;
         isReloading = false;
-        Debug.Log("ãƒªãƒ­ãƒ¼ãƒ‰å®Œäº†ã€‚å¼¾æ•°: " + currentAmmo);
+        Debug.Log("ƒŠƒ[ƒhŠ®—¹B’e”: " + currentAmmo);
 
         anim.SetBool(IsAimingParam, true);
     }
@@ -137,7 +186,7 @@ public class EnemyAI : MonoBehaviour
     }
 
     /// <summary>
-    /// å¼¾ã‚’Instantiateã§ç”Ÿæˆã—ã€Destroyã§æ¶ˆæ»…ã•ã›ã‚‹
+    /// ’e‚ğInstantiate‚Å¶¬‚µADestroy‚ÅÁ–Å‚³‚¹‚é
     /// </summary>
     public void ShootBullet()
     {
@@ -146,22 +195,22 @@ public class EnemyAI : MonoBehaviour
             return;
         }
 
-        // â˜…â˜…â˜… 1. Instantiate (ç”Ÿæˆ) â˜…â˜…â˜…
+        // ššš 1. Instantiate (¶¬) ššš
         GameObject bullet = Instantiate(bulletPrefab, firePoint.position, firePoint.rotation);
 
-        currentAmmo--; // å¼¾æ•°æ¸›å°‘
+        currentAmmo--; // ’e”Œ¸­
 
-        // â˜…â˜…â˜… 2. Destroy (æ¶ˆæ»…) â˜…â˜…â˜…
+        // ššš 2. Destroy (Á–Å) ššš
         Destroy(bullet, bulletLifetime);
 
-        // --- 3. è¡çªå›é¿ãƒ­ã‚¸ãƒƒã‚¯ ---
+        // --- 3. Õ“Ë‰ñ”ğƒƒWƒbƒN ---
         Collider bulletCollider = bullet.GetComponent<Collider>();
-        // æ•µã®ã‚³ãƒ©ã‚¤ãƒ€ãƒ¼ã‚’å–å¾—
+        // “G‚ÌƒRƒ‰ƒCƒ_[‚ğæ“¾
         Collider enemyCollider = GetComponent<Collider>() ?? GetComponentInChildren<Collider>();
 
         if (bulletCollider != null && enemyCollider != null)
         {
-            // å¼¾ã¨æ•µè‡ªèº«ã®è¡çªåˆ¤å®šã‚’ä¸€æ™‚çš„ã«ç„¡è¦– (0.3ç§’é–“)
+            // ’e‚Æ“G©g‚ÌÕ“Ë”»’è‚ğˆê“I‚É–³‹ (0.3•bŠÔ)
             Physics.IgnoreCollision(bulletCollider, enemyCollider, true);
             StartCoroutine(StopIgnoringCollision(bulletCollider, enemyCollider, 0.3f));
         }
@@ -171,7 +220,7 @@ public class EnemyAI : MonoBehaviour
         }
         // ------------------------------------
 
-        // 4. å¼¾ä¸¸ã«é€Ÿåº¦ã‚’ä¸ãˆã‚‹ï¼ˆRigidbodyã®å ´åˆï¼‰
+        // 4. ’eŠÛ‚É‘¬“x‚ğ—^‚¦‚éiRigidbody‚Ìê‡j
         Rigidbody rb = bullet.GetComponent<Rigidbody>();
         if (rb != null)
         {
@@ -179,11 +228,11 @@ public class EnemyAI : MonoBehaviour
         }
     }
 
-    // è¡çªç„¡è¦–è§£é™¤ã®ã‚³ãƒ«ãƒ¼ãƒãƒ³
+    // Õ“Ë–³‹‰ğœ‚ÌƒRƒ‹[ƒ`ƒ“
     private IEnumerator StopIgnoringCollision(Collider bulletCollider, Collider enemyCollider, float delay)
     {
         yield return new WaitForSeconds(delay);
-        // å¼¾ãŒç ´æ£„ã•ã‚Œã¦ã„ãªã„ã‹ç¢ºèªã—ã¦ã‹ã‚‰ç„¡è¦–ã‚’è§£é™¤
+        // ’e‚ª”jŠü‚³‚ê‚Ä‚¢‚È‚¢‚©Šm”F‚µ‚Ä‚©‚ç–³‹‚ğ‰ğœ
         if (bulletCollider != null && enemyCollider != null)
         {
             Physics.IgnoreCollision(bulletCollider, enemyCollider, false);

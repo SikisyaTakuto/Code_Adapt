@@ -1,50 +1,67 @@
 using UnityEngine;
-// using System; // Action<T>を使わないため、Systemを削除
+using System;
 
-public class bullet : MonoBehaviour
+[RequireComponent(typeof(Rigidbody))] // Rigidbodyを必須にする
+public class Bullet : MonoBehaviour
 {
-    // ★ 速度はEnemyAI側でRigidbodyに設定することが推奨されますが、ここではtransform移動として残します
-    public float moveSpeed = 10f;
+    // private float moveSpeed = 10f; // ★ 削除: EnemyAI側でRigidbodyの速度を設定するため不要
+    private Rigidbody rb;
+    private Action<Bullet> returnAction; // プールに返すためのデリゲート
 
-    // private Action<Bullet> returnAction; // ★ 削除: プールを使わないため不要
-
-    // 弾の寿命 (Destroyで使う)
-    // EnemyAI側で制御しているため、このスクリプトでは定義しないか、外部から設定されることを前提とする
-    // 今回は、EnemyAI側がDestroy(bullet, lifetime)で寿命を設定しているため、Initializeも不要です。
-
-    // public void Initialize(Action<Bullet> onReturn) // ★ 削除: プールを使わないため不要
-    // {
-    //     returnAction = onReturn;
-    //     Invoke("ReturnToPool", 5f);
-    // }
-
-    void Update()
+    void Awake()
     {
-        // 弾を前方に移動させる
-        // Rigidbodyを使用しない単純な移動。高速な弾では壁抜けの原因になることがあります。
-        transform.Translate(Vector3.forward * moveSpeed * Time.deltaTime);
+        rb = GetComponent<Rigidbody>();
+        // Rigidbodyを使用する場合、IsKinematicはオフ、Collision DetectionはContinuous/Continuous Speculative推奨
+        // ColliderはIsTriggerがオンになっていることを想定
     }
+
+    /// <summary>
+    /// 弾を発射する時に初期設定を行い、自動返却時間を設定する
+    /// </summary>
+    public void Initialize(Action<Bullet> onReturn, float speed, float lifetime)
+    {
+        returnAction = onReturn;
+
+        // 弾を一定時間後に自動で返す処理を呼び出す
+        Invoke("ReturnToPool", lifetime);
+
+        // ※ 弾の速度設定はEnemyAI.csのShootBullet()で行うため、ここでは処理を省略
+    }
+
+    // ★★★ 削除: Update()メソッドを削除しました。移動はRigidbodyが担当します。 ★★★
 
     // 敵や壁に当たった時の処理
     private void OnTriggerEnter(Collider other)
     {
         // 衝突処理（ダメージなど）
 
-        // ★ プールに返す代わりに、完全に破棄する
-        DestroyBullet();
+        // プールに返す
+        ReturnToPool();
     }
 
-    /// <summary>
-    /// 弾をゲームから完全に消滅させる (Destroyを使用)
-    /// </summary>
-    private void DestroyBullet()
+    // プールに返す処理
+    private void ReturnToPool()
     {
-        // Invokeで設定した自動破棄処理（もしあれば）をキャンセル
-        // ※ このInitializeメソッドが削除されたため、ここではキャンセル処理は不要です。
+        // Invokeで設定した自動返却をキャンセル（衝突で返却済みの場合に備える）
+        CancelInvoke("ReturnToPool");
 
-        // ★ オブジェクトを完全に破棄する
-        Destroy(gameObject);
+        // ★★★ リセット処理 ★★★
+        if (rb == null) rb = GetComponent<Rigidbody>();
+        if (rb != null)
+        {
+            // 弾丸の速度をゼロにリセット
+            rb.velocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+        }
+        // パーティクルシステムがある場合は停止
+        var ps = GetComponent<ParticleSystem>();
+        if (ps != null) ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        // ★★★ -------------------- ★★★
 
-        // Debug.Log("弾をDestroyしました。");
+        // 外部のPoolManagerに自身を返すように依頼
+        returnAction?.Invoke(this);
+
+        // 非アクティブにする（オブジェクトの「消滅」）
+        gameObject.SetActive(false);
     }
 }
