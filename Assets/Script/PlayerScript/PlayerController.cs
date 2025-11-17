@@ -3,8 +3,8 @@ using UnityEngine.UI;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq; // LINQを使用するため追加
-using UnityEngine.SceneManagement; // SceneManagerを使用するために追加
+using System.Linq;
+using UnityEngine.SceneManagement;
 
 /// <summary>
 /// プレイヤーの移動、エネルギー管理、攻撃、およびアーマー制御を制御します。
@@ -12,20 +12,13 @@ using UnityEngine.SceneManagement; // SceneManagerを使用するために追加
 [RequireComponent(typeof(CharacterController))]
 public class PlayerController : MonoBehaviour
 {
-    // 構造体/クラスの定義
     public enum WeaponMode { Melee, Beam }
-    public enum ArmorMode { Normal = 0, Buster = 1, Speed = 2 } // 明示的に値を設定 (インデックスと対応)
-
-    // PlayerPrefsのキー
+    public enum ArmorMode { Normal = 0, Buster = 1, Speed = 2 }
     private const string SelectedArmorKey = "SelectedArmorIndex";
 
-    // Scene Management
     [Header("Game Over Settings")]
-    // private string gameOverSceneName = "GameOverScene"; // ★ 削除: 遷移先はSceneBasedGameOverManagerが管理
-    [Tooltip("シーンベースのゲームオーバーマネージャーを設定")]
-    public SceneBasedGameOverManager gameOverManager; // ★ 追加: マネージャーへの参照
+    public SceneBasedGameOverManager gameOverManager;
 
-    // アーマーのステータスを保持するクラス
     [System.Serializable]
     public class ArmorStats
     {
@@ -38,17 +31,14 @@ public class PlayerController : MonoBehaviour
         public float energyRecoveryMultiplier = 1.0f;
     }
 
-    // 依存オブジェクト - Awakeで確実に取得
     private CharacterController _controller;
-    // TPSCameraControllerは未定義のため、引き続き警告を残しつつOptionalとして扱う
+    // TPSCameraControllerの参照を保持
     private TPSCameraController _tpsCamController;
 
-    //UI & Visuals 
+    //UI & Visuals (変更なし)
     [Header("Armor UI & Visuals")]
     public Image currentArmorIconImage;
-    [Tooltip("Normal(0), Buster(1), Speed(2) の順で設定")]
     public Sprite[] armorSprites;
-    [Tooltip("Normal(0), Buster(1), Speed(2) の順で設定。CharacterControllerの子に配置したモデルGameObjectを設定してください。")]
     public GameObject[] armorModels;
 
     [Header("Weapon UI")]
@@ -57,7 +47,7 @@ public class PlayerController : MonoBehaviour
     public Color emphasizedColor = Color.white;
     public Color normalColor = new Color(0.5f, 0.5f, 0.5f);
 
-    // ベースとなる能力値 
+    // ベースとなる能力値 (変更なし)
     [Header("Base Stats")]
     public float baseMoveSpeed = 15.0f;
     public float boostMultiplier = 2.0f;
@@ -71,18 +61,16 @@ public class PlayerController : MonoBehaviour
     public bool canFly = true;
     public float gravity = -9.81f;
 
-    // ArmrModeのインデックスと一致させる - 値を修正
+    // Armor Settings (変更なし)
     [Header("Armor Settings")]
     public List<ArmorStats> armorConfigurations = new List<ArmorStats>
     {
         new ArmorStats { name = "Normal", defenseMultiplier = 1.0f, moveSpeedMultiplier = 1.0f, energyRecoveryMultiplier = 1.0f },
-        //  Buster Mode: 防御力を犠牲にして攻撃特化 (ダメージ軽減率を1.5f (ダメージ1.5倍)に)
         new ArmorStats { name = "Buster Mode", defenseMultiplier = 1.5f, moveSpeedMultiplier = 0.8f, energyRecoveryMultiplier = 0.8f },
-        //  Speed Mode: 防御力も高めに設定 (ダメージ軽減率を0.75f (ダメージ0.75倍)に)
         new ArmorStats { name = "Speed Mode", defenseMultiplier = 0.75f, moveSpeedMultiplier = 1.5f, energyRecoveryMultiplier = 1.2f }
     };
 
-    // 内部状態をprivate fieldとpublic propertyに分離
+    // 内部状態 (変更なし)
     private ArmorMode _currentArmorMode = ArmorMode.Normal;
     private ArmorStats _currentArmorStats;
     private float _currentHP;
@@ -92,9 +80,9 @@ public class PlayerController : MonoBehaviour
     private WeaponMode _currentWeaponMode = WeaponMode.Melee;
     private float _lastEnergyConsumptionTime;
     private bool _hasTriggeredEnergyDepletedEvent = false;
-    private bool _isDead = false; // 死亡状態を追跡するフラグ
+    private bool _isDead = false;
 
-    // 公開プロパティ (読み取り専用)
+    // 公開プロパティ (変更なし)
     [HideInInspector] public float currentHP { get => _currentHP; private set => _currentHP = value; }
     [HideInInspector] public float currentEnergy { get => _currentEnergy; private set => _currentEnergy = value; }
     public ArmorMode currentArmorMode => _currentArmorMode;
@@ -102,27 +90,30 @@ public class PlayerController : MonoBehaviour
 
     // HP/Energy Gauge
     [Header("Health Settings")]
-    public float maxHP = 100.0f;
+    public float maxHP = 1000.0f; // 🎯 最大HPを1000に設定
     public Slider hPSlider;
+    public Text hPText; // 🎯 新たに追加: HPのテキスト表示用 (UnityEngine.UI.Text)
 
     [Header("Energy Gauge Settings")]
     public float maxEnergy = 100.0f;
     public float recoveryDelay = 1.0f;
     public Slider energySlider;
 
-    // Attack Settings
+    // Attack Settings (変更なし)
     public float attackFixedDuration = 0.8f;
 
     [Header("Beam VFX")]
     public BeamController beamPrefab;
     public Transform beamFirePoint;
     public float beamMaxDistance = 100f;
+    [Tooltip("ロックオン時に敵のColliderがない場合、ビームを狙う高さのオフセット。")]
+    public float lockOnTargetHeightOffset = 1.0f; // 🎯 新規追加: ロックオン時のオフセット
 
     [Header("Melee Attack Settings")]
     public GameObject hitEffectPrefab;
     public LayerMask enemyLayer;
 
-    // チュートリアル用イベントとプロパティ
+    // チュートリアル用イベントとプロパティ (変更なし)
     public Action onMeleeAttackPerformed;
     public Action onBeamAttackPerformed;
     public event Action onEnergyDepleted;
@@ -130,16 +121,15 @@ public class PlayerController : MonoBehaviour
     public float JumpTimer { get; private set; }
     public float DescendTimer { get; private set; }
 
-    // 移動関連の内部変数
+    // 移動関連の内部変数 (変更なし)
     private Vector3 _velocity;
-    private float _moveSpeed; // 実行中の速度
+    private float _moveSpeed;
     public bool canReceiveInput = true;
 
-    // Awakeでコンポーネント取得を確実に
+    // ... (Awake, Start, LoadAndSwitchArmor メソッドは変更なし) ...
     void Awake()
     {
         InitializeComponents();
-        // 初期ステータスの設定はStartで行う
     }
 
     void Start()
@@ -148,11 +138,10 @@ public class PlayerController : MonoBehaviour
         currentHP = maxHP;
 
         LoadAndSwitchArmor();
-        UpdateHPUI();
+        UpdateHPUI(); // UI更新の呼び出し
         UpdateEnergyUI();
         UpdateWeaponUIEmphasis();
 
-        // SceneBasedGameOverManagerがInspectorで設定されていない場合、シーンから取得を試みる
         if (gameOverManager == null)
         {
             gameOverManager = FindObjectOfType<SceneBasedGameOverManager>();
@@ -165,7 +154,6 @@ public class PlayerController : MonoBehaviour
         Debug.Log($"初期武器: {currentWeaponMode} | 初期アーマー: {currentArmorMode}");
     }
 
-    /// <summary>コンポーネントの初期化とエラーチェック</summary>
     private void InitializeComponents()
     {
         _controller = GetComponent<CharacterController>();
@@ -176,24 +164,23 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        // ※ TPSCameraControllerが未定義の場合、この行はエラーになる可能性があります。
+        // 🎯 修正: FindObjectOfType<TPSCameraController>() で参照を取得
         _tpsCamController = FindObjectOfType<TPSCameraController>();
         if (_tpsCamController == null)
         {
-            Debug.LogWarning($"{nameof(PlayerController)}: TPSCameraControllerが見つかりません。");
+            Debug.LogWarning($"{nameof(PlayerController)}: TPSCameraControllerが見つかりません。ビームのロックオン機能は無効になります。");
+            // FindObjectOfTypeは負荷が高いため、理想的にはStart()かInspectorで設定するのが望ましい
         }
     }
 
-    /// <summary>PlayerPrefsから保存されたアーマーインデックスを読み込み、反映させる</summary>
     private void LoadAndSwitchArmor()
     {
         int selectedIndex = PlayerPrefs.GetInt(SelectedArmorKey, (int)ArmorMode.Normal);
 
-        // 有効なEnum値か、また設定リストの範囲内かチェック
         if (Enum.IsDefined(typeof(ArmorMode), selectedIndex) && selectedIndex < armorConfigurations.Count)
         {
             ArmorMode initialMode = (ArmorMode)selectedIndex;
-            SwitchArmor(initialMode, false); // ロード時はログを出さない
+            SwitchArmor(initialMode, false);
         }
         else
         {
@@ -204,58 +191,53 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
-        // PキーでHPを0にするテスト
         HandleTestInput();
 
-        // 死亡状態の場合は入力をすべてブロック
         if (_isDead) return;
 
-        // 攻撃中または入力無効化中は移動・攻撃入力をブロック
         if (!canReceiveInput || _isAttacking)
         {
             HandleAttackState();
             WASDMoveTimer = JumpTimer = DescendTimer = 0f;
-            _controller.Move(Vector3.up * _velocity.y * Time.deltaTime); // 垂直移動のみ継続
+            _controller.Move(Vector3.up * _velocity.y * Time.deltaTime);
         }
-        else // 攻撃中でない場合
+        else
         {
-            // カメラ方向への回転
-            _tpsCamController?.RotatePlayerToCameraDirection();
+            // ロックオン中はTPSCameraControllerがプレイヤーの回転を制御します
+            if (_tpsCamController == null || _tpsCamController.LockOnTarget == null)
+            {
+                _tpsCamController?.RotatePlayerToCameraDirection();
+            }
 
             HandleAttackInputs();
-            HandleWeaponSwitchInput(); // Eキー
-            HandleArmorSwitchInput(); // 1, 2, 3キー
+            HandleWeaponSwitchInput();
+            HandleArmorSwitchInput();
 
             HandleEnergy();
 
-            // 処理順序を整理
             Vector3 finalMove = HandleVerticalMovement() + HandleHorizontalMovement();
             _controller.Move(finalMove * Time.deltaTime);
         }
     }
 
-    /// <summary>PキーでHPを0にするテスト</summary>
     private void HandleTestInput()
     {
         if (Input.GetKeyDown(KeyCode.P))
         {
             Debug.LogWarning("Pキーが押されました: HPを0にして死亡処理を実行します。");
             currentHP = 0;
-            UpdateHPUI(); // UIを更新
-            Die();       // 死亡処理を呼び出す
+            UpdateHPUI();
+            Die();
         }
     }
-
-    /// <summary>1, 2, 3キーでのアーマー切り替えを処理します。</summary>
+    // ... (他の移動、アーマー切り替えメソッドは変更なし) ...
     private void HandleArmorSwitchInput()
     {
-        // 最適化: ArmorModeのインデックスを利用して、汎用的に処理
         if (Input.GetKeyDown(KeyCode.Alpha1)) SwitchArmor(ArmorMode.Normal);
         else if (Input.GetKeyDown(KeyCode.Alpha2)) SwitchArmor(ArmorMode.Buster);
         else if (Input.GetKeyDown(KeyCode.Alpha3)) SwitchArmor(ArmorMode.Speed);
     }
 
-    /// <summary>指定されたアーマーモードに切り替え、ステータスを更新します。</summary>
     private void SwitchArmor(ArmorMode newMode, bool shouldLog = true)
     {
         int index = (int)newMode;
@@ -274,15 +256,11 @@ public class PlayerController : MonoBehaviour
         _currentArmorMode = newMode;
         _currentArmorStats = armorConfigurations[index];
 
-        // ステータスへの適用
-        // 1. 移動速度の更新 (baseMoveSpeed -> _moveSpeed)
         _moveSpeed = baseMoveSpeed * _currentArmorStats.moveSpeedMultiplier;
 
-        // PlayerPrefsに選択されたインデックスを保存
         PlayerPrefs.SetInt(SelectedArmorKey, index);
-        PlayerPrefs.Save(); // 書き込みを保証
+        PlayerPrefs.Save();
 
-        // 視覚的要素の更新
         UpdateArmorVisuals(index);
 
         if (shouldLog)
@@ -292,33 +270,26 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    /// <summary>アーマーモードの視覚的な要素（UIアイコンとモデル）を更新します。 🎨</summary>
     private void UpdateArmorVisuals(int index)
     {
-        // 1. UIアイコンの更新
         if (currentArmorIconImage != null && armorSprites != null && index < armorSprites.Length)
         {
             currentArmorIconImage.sprite = armorSprites[index];
             currentArmorIconImage.enabled = true;
         }
 
-        // 2. プレイヤーモデル（GameObject）の更新
         if (armorModels != null && armorModels.Length > 0)
         {
-            // NullチェックをforEachで抽象化
             for (int i = 0; i < armorModels.Length; i++)
             {
                 if (armorModels[i] != null)
                 {
-                    // 現在のインデックスと一致するモデルのみを有効化し、他を無効化
                     armorModels[i].SetActive(i == index);
                 }
             }
         }
-        // WarningはSwitchArmor関数で一度にログを出すようにする方がノイズが少ない
     }
 
-    /// <summary>Eキーでの武器切り替えを処理します。</summary>
     private void HandleWeaponSwitchInput()
     {
         if (Input.GetKeyDown(KeyCode.E))
@@ -327,7 +298,6 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    /// <summary>武器モードを切り替えます。</summary>
     private void SwitchWeapon()
     {
         _currentWeaponMode = (_currentWeaponMode == WeaponMode.Melee) ? WeaponMode.Beam : WeaponMode.Melee;
@@ -336,23 +306,19 @@ public class PlayerController : MonoBehaviour
         UpdateWeaponUIEmphasis();
     }
 
-    /// <summary>現在の武器モードに応じてUIアイコンを強調表示します。</summary>
     private void UpdateWeaponUIEmphasis()
     {
         if (meleeWeaponIcon == null || beamWeaponIcon == null)
         {
-            // Debug.LogWarning("武器アイコンのImageコンポーネントが設定されていません。Inspectorを確認してください。");
             return;
         }
 
         bool isMelee = (_currentWeaponMode == WeaponMode.Melee);
 
-        // 三項演算子で簡略化
         meleeWeaponIcon.color = isMelee ? emphasizedColor : normalColor;
         beamWeaponIcon.color = isMelee ? normalColor : emphasizedColor;
     }
 
-    /// <summary>水平方向の移動処理</summary>
     private Vector3 HandleHorizontalMovement()
     {
         if (_isAttacking) return Vector3.zero;
@@ -360,7 +326,6 @@ public class PlayerController : MonoBehaviour
         float h = Input.GetAxis("Horizontal");
         float v = Input.GetAxis("Vertical");
 
-        // 入力がない場合は早期リターン
         if (h == 0f && v == 0f)
         {
             WASDMoveTimer = 0f;
@@ -370,10 +335,8 @@ public class PlayerController : MonoBehaviour
         Vector3 inputDirection = new Vector3(h, 0, v);
         Vector3 moveDirection;
 
-        // カメラ基準の移動
         if (_tpsCamController != null)
         {
-            // カメラの回転を水平軸のみに適用
             Quaternion cameraRotation = Quaternion.Euler(0, _tpsCamController.transform.eulerAngles.y, 0);
             moveDirection = cameraRotation * inputDirection;
         }
@@ -384,25 +347,20 @@ public class PlayerController : MonoBehaviour
 
         moveDirection.Normalize();
 
-        float currentSpeed = _moveSpeed; // アーマー補正済みの_moveSpeedを使用
+        float currentSpeed = _moveSpeed;
         bool isConsumingEnergy = false;
 
-        // ブースト処理 (Ctrlキー)
         bool isBoosting = (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) && currentEnergy > 0.01f;
 
         if (isBoosting)
         {
             currentSpeed *= boostMultiplier;
-            currentEnergy -= energyConsumptionRate * Time.deltaTime; // set accessorで_currentEnergyが更新される
+            currentEnergy -= energyConsumptionRate * Time.deltaTime;
             isConsumingEnergy = true;
         }
 
-        // エネルギー枯渇時の速度制限
-        // if (currentEnergy <= 0.01f) { currentSpeed = _moveSpeed; } // 既にブースト判定で制限されているため不要
-
         Vector3 horizontalMove = moveDirection * currentSpeed;
 
-        // チュートリアル用タイマー更新
         WASDMoveTimer += Time.deltaTime;
 
         if (isConsumingEnergy) _lastEnergyConsumptionTime = Time.time;
@@ -410,16 +368,13 @@ public class PlayerController : MonoBehaviour
         return horizontalMove;
     }
 
-    /// <summary>垂直方向の移動処理と重力適用</summary>
     private Vector3 HandleVerticalMovement()
     {
         bool isGrounded = _controller.isGrounded;
         if (isGrounded && _velocity.y < 0) _velocity.y = -0.1f;
 
-        bool isConsumingEnergy = false;
         bool hasVerticalInput = false;
 
-        // 上昇/下降の入力処理
         if (canFly && currentEnergy > 0.01f && !_isAttacking)
         {
             if (Input.GetKey(KeyCode.Space))
@@ -427,36 +382,30 @@ public class PlayerController : MonoBehaviour
                 _velocity.y = verticalSpeed;
                 JumpTimer += Time.deltaTime;
                 DescendTimer = 0f;
-                hasVerticalInput = isConsumingEnergy = true;
+                hasVerticalInput = true;
             }
             else if (Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt))
             {
                 _velocity.y = -verticalSpeed;
                 DescendTimer += Time.deltaTime;
                 JumpTimer = 0f;
-                hasVerticalInput = isConsumingEnergy = true;
+                hasVerticalInput = true;
             }
         }
 
-        // 入力がない、またはエネルギーが枯渇した場合
         if (!hasVerticalInput)
         {
-            // キーアップ時のタイマーリセットは不要（Update内で継続的にJumpTimer=0fで上書きされるため）
-
-            // 重力適用
-            if (!isGrounded && !_isAttacking) // 攻撃中は垂直速度を固定する方が自然
+            if (!isGrounded && !_isAttacking)
             {
                 _velocity.y += gravity * Time.deltaTime;
             }
         }
         else
         {
-            // エネルギー消費
             currentEnergy -= energyConsumptionRate * Time.deltaTime;
             _lastEnergyConsumptionTime = Time.time;
         }
 
-        // エネルギー枯渇時の垂直方向の制御を停止 (急降下へ)
         if (currentEnergy <= 0.01f && _velocity.y > 0)
         {
             _velocity.y = 0;
@@ -466,7 +415,6 @@ public class PlayerController : MonoBehaviour
         return new Vector3(0, _velocity.y, 0);
     }
 
-    /// <summary>攻撃入力の処理</summary>
     private void HandleAttackInputs()
     {
         if (Input.GetMouseButtonDown(0) && !_isAttacking)
@@ -483,40 +431,78 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    /// <summary>近接攻撃を実行</summary>
+    /// <summary>
+    /// 衝突したColliderから、該当する敵コンポーネントを探してダメージを与える。
+    /// </summary>
+    private void ApplyDamageToEnemy(Collider hitCollider, float damageAmount)
+    {
+        // ターゲットのGameObjectを取得
+        GameObject target = hitCollider.gameObject;
+        bool isHit = false;
+
+        // 1. ScorpionEnemyを試す
+        ScorpionEnemy scorpion = target.GetComponent<ScorpionEnemy>();
+        if (scorpion != null)
+        {
+            // TakeDamageを呼び出す
+            scorpion.TakeDamage(damageAmount);
+            Debug.Log($"ScorpionEnemyにダメージ: {damageAmount}");
+            isHit = true;
+        }
+
+        // 2. SuicideEnemyを試す
+        SuicideEnemy suicide = target.GetComponent<SuicideEnemy>();
+        if (suicide != null)
+        {
+            // TakeDamageを呼び出す
+            suicide.TakeDamage(damageAmount);
+            Debug.Log($"SuicideEnemyにダメージ: {damageAmount}");
+            isHit = true;
+        }
+
+        // 3. DroneEnemyを試す
+        DroneEnemy drone = target.GetComponent<DroneEnemy>();
+        if (drone != null)
+        {
+            // TakeDamageを呼び出す
+            drone.TakeDamage(damageAmount);
+            Debug.Log($"DroneEnemyにダメージ: {damageAmount}");
+            isHit = true;
+        }
+
+        // 共通のヒットエフェクト処理
+        if (isHit && hitEffectPrefab != null)
+        {
+            // ヒットした場所にエフェクトを生成
+            Instantiate(hitEffectPrefab, hitCollider.transform.position, Quaternion.identity);
+        }
+    }
+
     private void HandleMeleeAttack()
     {
         _isAttacking = true;
         _attackTimer = 0f;
-        _velocity.y = 0f; // 攻撃中は垂直方向を固定
+        _velocity.y = 0f;
 
-        // Physics.OverlapSphereのコールはコストが高いため、ログは本番では削除/コメントアウトを推奨
         Collider[] hitColliders = Physics.OverlapSphere(transform.position, meleeAttackRange, enemyLayer);
 
         foreach (var hitCollider in hitColliders)
         {
+            // プレイヤー自身を除外
             if (hitCollider.transform == this.transform) continue;
 
-            // 敵のダメージ処理コンポーネントを取得 (例: 'IDamageable' インターフェース)
-            // if (hitCollider.TryGetComponent<EnemyHealth>(out var enemyHealth)) {
-            //    enemyHealth.TakeDamage(meleeDamage);
-            //    // 2. ヒットエフェクトを生成
-            //    if (hitEffectPrefab != null) {
-            //        Instantiate(hitEffectPrefab, hitCollider.transform.position, Quaternion.identity);
-            //    }
-            // }
+            // 🎯 修正: 個別の敵コンポーネントを判別してダメージを与える
+            ApplyDamageToEnemy(hitCollider, meleeDamage);
 
-            // デバッグ用: EnemyHealthがなくてもエフェクトを生成するロジックを維持
-            if (hitEffectPrefab != null)
-            {
-                Instantiate(hitEffectPrefab, hitCollider.transform.position, Quaternion.identity);
-            }
+            // エフェクト生成は ApplyDamageToEnemy 内に移動
         }
 
         onMeleeAttackPerformed?.Invoke();
     }
 
-    /// <summary>ビーム攻撃を実行</summary>
+    // =======================================================
+    // 🎯 修正された HandleBeamAttack メソッド
+    // =======================================================
     private void HandleBeamAttack()
     {
         if (currentEnergy < beamAttackEnergyCost)
@@ -535,48 +521,85 @@ public class PlayerController : MonoBehaviour
         _attackTimer = 0f;
         _velocity.y = 0f;
 
-        // エネルギー消費
         currentEnergy -= beamAttackEnergyCost;
         _lastEnergyConsumptionTime = Time.time;
         UpdateEnergyUI();
 
-        // Raycastで着弾点を計算する
         Vector3 origin = beamFirePoint.position;
-        // カメラの向きを使う方が自然だが、ここではbeamFirePointの前方を使用
-        Vector3 direction = beamFirePoint.forward;
+        Vector3 fireDirection;
+        Transform lockOnTarget = null;
+
+        // 1. ロックオンターゲットの確認
+        if (_tpsCamController != null)
+        {
+            lockOnTarget = _tpsCamController.LockOnTarget;
+        }
+
+
+        if (lockOnTarget != null)
+        {
+            // --- ロックオン中: ターゲットを狙う ---
+            Vector3 targetPosition;
+
+            // 敵のColliderがあれば、その中心を狙う (より正確な狙い)
+            Collider targetCollider = lockOnTarget.GetComponent<Collider>();
+            if (targetCollider != null)
+            {
+                targetPosition = targetCollider.bounds.center;
+            }
+            else
+            {
+                // Colliderがなければ、デフォルトの高さオフセットを適用
+                targetPosition = lockOnTarget.position + Vector3.up * lockOnTargetHeightOffset;
+            }
+
+            fireDirection = (targetPosition - origin).normalized;
+
+            // プレイヤーをターゲットの水平方向に向ける
+            Quaternion targetRotation = Quaternion.LookRotation(new Vector3(fireDirection.x, 0, fireDirection.z));
+            transform.rotation = targetRotation;
+
+            Debug.Log($"ビーム発射！ロックオンターゲット: {lockOnTarget.name} に向けて発射。");
+        }
+        else
+        {
+            // --- 通常時: 銃口の向いている方向を向く ---
+            fireDirection = beamFirePoint.forward;
+            Debug.Log("ビーム発射！正面に向けて発射。");
+        }
+        // ===========================================
 
         RaycastHit hit;
         Vector3 endPoint;
         bool didHit = false;
 
-        // Raycastでヒット確認 (すべてのレイヤーに当たるようにします)
-        if (Physics.Raycast(origin, direction, out hit, beamMaxDistance, ~0))
+        // Raycastで衝突をチェック
+        // 今回はビームの視覚化のために全てのレイヤーをチェック (~0)
+        if (Physics.Raycast(origin, fireDirection, out hit, beamMaxDistance, ~0))
         {
             endPoint = hit.point;
             didHit = true;
 
-            // 敵にダメージを与える（必要に応じて）
-            // if (hit.collider.TryGetComponent<EnemyHealth>(out var enemyHealth)) {
-            //    enemyHealth.TakeDamage(beamDamage);
-            // }
+            // ダメージ判定を実行 
+            ApplyDamageToEnemy(hit.collider, beamDamage);
         }
         else
         {
-            endPoint = origin + direction * beamMaxDistance;
+            endPoint = origin + fireDirection * beamMaxDistance;
         }
 
-        // BeamControllerを生成し、Fireメソッドを呼び出す
         BeamController beamInstance = Instantiate(
             beamPrefab,
             origin,
-            beamFirePoint.rotation
+            // 発射方向に向けてビームの回転を設定
+            Quaternion.LookRotation(fireDirection)
         );
+        // BeamControllerに始点と終点を渡し、ビジュアルを更新
         beamInstance.Fire(origin, endPoint, didHit);
 
         onBeamAttackPerformed?.Invoke();
     }
 
-    /// <summary>攻撃中のプレイヤーの状態を処理（移動ロックなど）</summary>
     void HandleAttackState()
     {
         if (!_isAttacking) return;
@@ -587,35 +610,29 @@ public class PlayerController : MonoBehaviour
             _isAttacking = false;
             _attackTimer = 0.0f;
 
-            // 攻撃終了時: 接地していなければ重力の影響を受け始める
             if (!_controller.isGrounded)
             {
-                _velocity.y = 0; // 急降下を防ぐ
+                _velocity.y = 0;
             }
             else
             {
-                _velocity.y = -0.1f; // 接地判定を維持
+                _velocity.y = -0.1f;
             }
         }
     }
 
-    /// <summary>エネルギー回復と枯渇イベントの処理</summary>
     private void HandleEnergy()
     {
-        // エネルギー回復
         if (Time.time >= _lastEnergyConsumptionTime + recoveryDelay)
         {
-            // _currentArmorStatsのNullチェックを不要にするため、Startで必ず初期化されるように保証
             float recoveryMultiplier = _currentArmorStats != null ? _currentArmorStats.energyRecoveryMultiplier : 1.0f;
             float recoveryRate = energyRecoveryRate * recoveryMultiplier;
             currentEnergy += recoveryRate * Time.deltaTime;
         }
 
-        // 値をクランプし、UIを更新
         currentEnergy = Mathf.Clamp(currentEnergy, 0, maxEnergy);
         UpdateEnergyUI();
 
-        // エネルギー枯渇イベントの発火とフラグの管理
         if (currentEnergy <= 0.1f && !_hasTriggeredEnergyDepletedEvent)
         {
             onEnergyDepleted?.Invoke();
@@ -629,13 +646,11 @@ public class PlayerController : MonoBehaviour
 
     // チュートリアル・UI関連のメソッド
 
-    /// <summary>チュートリアル用の入力追跡フラグとタイマーをリセットする。</summary>
     public void ResetInputTracking()
     {
         WASDMoveTimer = JumpTimer = DescendTimer = 0f;
     }
 
-    /// <summary>エネルギーゲージを更新する。UI更新は専用メソッドに集約</summary>
     void UpdateEnergyUI()
     {
         if (energySlider != null)
@@ -644,67 +659,70 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    /// <summary>HPスライダーを更新する。UI更新は専用メソッドに集約</summary>
+    /// <summary>HPスライダーとHPテキストを更新する。UI更新は専用メソッドに集約</summary>
     void UpdateHPUI()
     {
+        // 1. スライダーの更新
         if (hPSlider != null)
         {
             hPSlider.value = currentHP / maxHP;
         }
+
+        // 2. 🎯 HPテキストの更新
+        if (hPText != null)
+        {
+            // HPの値を整数に丸めて表示（小数点を非表示）
+            int currentHPInt = Mathf.CeilToInt(currentHP);
+            int maxHPInt = Mathf.CeilToInt(maxHP);
+
+            // 「現在のHP / 最大HP」形式の文字列をセット
+            hPText.text = $"{currentHPInt} / {maxHPInt}";
+        }
     }
 
-    /// <summary>外部からダメージを受けたときに呼び出されます。</summary>
     public void TakeDamage(float damageAmount)
     {
-        if (_isDead) return; // 死亡状態なら処理しない
+        if (_isDead) return;
 
         float finalDamage = damageAmount;
 
         if (_currentArmorStats != null)
         {
-            // アーマーの防御補正を適用したダメージ計算 (値が小さいほどダメージ軽減)
             finalDamage *= _currentArmorStats.defenseMultiplier;
         }
 
         currentHP -= finalDamage;
         currentHP = Mathf.Clamp(currentHP, 0, maxHP);
-        UpdateHPUI();
+        UpdateHPUI(); // HPが変化したらUIを更新
 
         Debug.Log($"ダメージを受けました。残りHP: {currentHP} (元のダメージ: {damageAmount}, 最終ダメージ: {finalDamage})");
 
         if (currentHP <= 0)
         {
-            Die(); // HPが0になったら死亡処理を呼び出す
+            Die();
         }
     }
 
-    /// <summary>プレイヤーの死亡処理とシーン移行</summary>
     private void Die()
     {
-        if (_isDead) return; // 二重に死亡処理を呼ばない
+        if (_isDead) return;
 
         _isDead = true;
-        canReceiveInput = false; // 入力を無効化
+        canReceiveInput = false;
 
         Debug.Log("プレイヤーは破壊されました。ゲームオーバー処理をマネージャーに委譲します。");
 
-        // オブジェクトの非表示、アニメーション再生、エフェクト表示などを行う
-
-        // シーン遷移ロジックをSceneBasedGameOverManagerに委譲
         if (gameOverManager != null)
         {
-            gameOverManager.GoToGameOverScene(); // ★ 適切なシーンへの遷移をマネージャーに依頼
+            gameOverManager.GoToGameOverScene();
         }
         else
         {
             Debug.LogError("SceneBasedGameOverManagerが設定されていません。Inspectorを確認してください。");
         }
 
-        // PlayerController自体を無効化（シーン移行が失敗した場合のフォールバック）
         enabled = false;
     }
-
-    // OnDrawGizmosSelectedは変更なし (意図されたデバッグ機能のため)
     private void OnDrawGizmosSelected()
     {
         // 1. 近接攻撃の範囲 (球体)
@@ -716,10 +734,26 @@ public class PlayerController : MonoBehaviour
         {
             Vector3 origin = beamFirePoint.position;
             Vector3 direction = beamFirePoint.forward;
+
+            // 🎯 Gizmos表示の際もロックオン状態を確認して方向を決定
+            Vector3 fireDirection = beamFirePoint.forward;
+            Transform lockOnTarget = _tpsCamController != null ? _tpsCamController.LockOnTarget : null;
+
+            if (lockOnTarget != null)
+            {
+                // ロックオンターゲットの中心を狙う
+                Collider targetCollider = lockOnTarget.GetComponent<Collider>();
+                Vector3 targetPosition = targetCollider != null
+                    ? targetCollider.bounds.center
+                    : lockOnTarget.position + Vector3.up * lockOnTargetHeightOffset;
+
+                fireDirection = (targetPosition - origin).normalized;
+            }
+
             RaycastHit hit;
             Vector3 endPoint;
 
-            if (Physics.Raycast(origin, direction, out hit, beamMaxDistance, ~0))
+            if (Physics.Raycast(origin, fireDirection, out hit, beamMaxDistance, ~0))
             {
                 Gizmos.color = Color.red;
                 endPoint = hit.point;
@@ -728,11 +762,11 @@ public class PlayerController : MonoBehaviour
             else
             {
                 Gizmos.color = Color.cyan;
-                endPoint = origin + direction * beamMaxDistance;
+                endPoint = origin + fireDirection * beamMaxDistance;
             }
             Gizmos.DrawLine(origin, endPoint);
             Gizmos.color = Color.yellow;
-            Gizmos.DrawWireSphere(origin + direction * beamMaxDistance, 0.05f);
+            Gizmos.DrawWireSphere(origin + fireDirection * beamMaxDistance, 0.05f);
         }
     }
 }

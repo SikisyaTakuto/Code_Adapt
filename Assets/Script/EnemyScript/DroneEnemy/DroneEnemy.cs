@@ -3,47 +3,53 @@ using System.Collections; // コルーチンを使用するために必要
 
 public class DroneEnemy : MonoBehaviour
 {
-    // --- ?? HP設定 ---
+    // --- HP設定 ---
     [Header("ヘルス設定")]
     public float maxHealth = 100f; // 最大HP
     private float currentHealth;   // 現在のHP
     private bool isDead = false;   // 死亡フラグ
 
+    // ?? 新規追加: 爆発エフェクトのPrefab
+    [Header("エフェクト設定")]
+    public GameObject explosionPrefab;
+
     // --- 公開パラメータ ---
     [Header("ターゲット設定")]
-    public Transform playerTarget;               // PlayerのTransformをここに設定
-    public float detectionRange = 15f;           // Playerを検出する範囲
-    public Transform beamOrigin;                 // 弾の発射元となるTransform
+    public Transform playerTarget;             // PlayerのTransformをここに設定
+    public float detectionRange = 15f;         // Playerを検出する範囲
+    public Transform beamOrigin;               // 弾の発射元となるTransform
 
     [Range(0, 180)]
-    public float attackAngle = 30f;              // 攻撃可能な正面視野角（全角）
+    public float attackAngle = 30f;            // 攻撃可能な正面視野角（全角）
 
     [Header("攻撃設定")]
-    public float attackRate = 5f;                // 弾と弾の間の間隔計算に使用 (例: 1/5 = 0.2秒間隔)
-    public GameObject beamPrefab;                // 発射する弾のPrefab
-    public float beamSpeed = 40f;                // 弾の速度
+    public float attackRate = 5f;              // 弾と弾の間の間隔計算に使用 (例: 1/5 = 0.2秒間隔)
+    public GameObject beamPrefab;              // 発射する弾のPrefab
+    public float beamSpeed = 40f;              // 弾の速度
 
-    [Header("バースト攻撃設定")] // ?? バースト制御
-    public int bulletsPerBurst = 5;         // 1回のバーストで発射する弾数
-    public float burstCooldownTime = 2f;    // バースト終了後のクールタイム（秒）
+    [Header("バースト攻撃設定")]
+    public int bulletsPerBurst = 5;
+    public float burstCooldownTime = 2f;
 
     [Header("硬直設定")]
-    public float hardStopDuration = 0.5f;        // 攻撃後の硬直時間を短縮 (現在は未使用)
+    public float hardStopDuration = 0.5f;
 
     [Header("浮遊移動設定")]
-    public float rotationSpeed = 5f;             // Player追跡時の回転速度
-    public float hoverAltitude = 5f;             // ドローンが常に飛ぶ高さ（Y座標）
-    public float driftSpeed = 1f;                // 横方向への浮遊速度
-    public float driftRange = 5f;                // 浮遊移動する範囲の半径
-    public float altitudeCorrectionSpeed = 2f;   // 高さを一定に保つための補正速度
+    public float rotationSpeed = 5f;             // Player追跡時の回転速度（ドローン本体用）
+    // ?? 銃口の回転速度を本体と分ける (必要であれば)
+    public float gunRotationSpeed = 20f;
+    public float hoverAltitude = 5f;
+    public float driftSpeed = 1f;
+    public float driftRange = 5f;
+    public float altitudeCorrectionSpeed = 2f;
 
     // --- 内部変数 ---
-    private float nextAttackTime = 0f;           // 現在は未使用
-    private float hardStopEndTime = 0f;          // 硬直が解除される時間
-    private Animator animator;                   // Animatorコンポーネントへの参照
-    private Vector3 currentDriftTarget;          // 浮遊移動の目標地点
+    private float nextAttackTime = 0f;
+    private float hardStopEndTime = 0f;
+    private Animator animator;
+    private Vector3 currentDriftTarget;
 
-    private bool isAttacking = false;           // バースト攻撃中かどうかのフラグ
+    private bool isAttacking = false;
 
     private void Awake()
     {
@@ -73,12 +79,15 @@ public class DroneEnemy : MonoBehaviour
             return;
         }
 
+        // ?? 銃口を常にPlayerに向ける
+        RotateGunToPlayer();
+
         float distanceToPlayer = Vector3.Distance(transform.position, playerTarget.position);
 
         // 2. Playerが攻撃範囲内にいるか？
         if (distanceToPlayer <= detectionRange)
         {
-            // --- プレイヤー発見時の挙動（攻撃優先） ---
+            // ドローン本体をPlayerに向ける
             LookAtPlayer();
 
             // 攻撃中でなければ、バースト攻撃を開始
@@ -93,37 +102,76 @@ public class DroneEnemy : MonoBehaviour
     }
 
     // -------------------------------------------------------------------
-    //                         攻撃処理 (バーストシステム)
+    //               ドローン本体の回転 (Y軸のみ)
     // -------------------------------------------------------------------
 
     /// <summary>
-    /// 5連射とクールタイムを制御するコルーチン
+    /// ドローン本体の向きをPlayerの方向へ向ける（スムーズな回転）
     /// </summary>
+    private void LookAtPlayer()
+    {
+        // ... (元のコードと変更なし。ドローン本体のY軸回転) ...
+        Vector3 targetDirection = playerTarget.position - transform.position;
+        targetDirection.y = 0; // 空中敵なので、水平回転のみ
+
+        Quaternion targetRotation = Quaternion.LookRotation(targetDirection);
+
+        transform.rotation = Quaternion.Slerp(
+            transform.rotation,
+            targetRotation,
+            Time.deltaTime * rotationSpeed
+        );
+    }
+
+    // -------------------------------------------------------------------
+    //              ?? 銃口の回転処理 (新規追加)
+    // -------------------------------------------------------------------
+
+    /// <summary>
+    /// 銃口 (beamOrigin) をPlayerのTransformへ向けて回転させる（全軸回転）
+    /// </summary>
+    private void RotateGunToPlayer()
+    {
+        if (beamOrigin == null || playerTarget == null) return;
+
+        // Playerの位置から銃口の位置を引いて、方向ベクトルを取得
+        Vector3 targetDirection = playerTarget.position - beamOrigin.position;
+
+        // 目標とする回転 (Playerの方を向く)
+        Quaternion targetRotation = Quaternion.LookRotation(targetDirection);
+
+        // スムーズに回転させる
+        beamOrigin.rotation = Quaternion.Slerp(
+            beamOrigin.rotation,
+            targetRotation,
+            Time.deltaTime * gunRotationSpeed
+        );
+    }
+
+    // -------------------------------------------------------------------
+    //                 攻撃処理 (バーストシステム)
+    // -------------------------------------------------------------------
+
     private IEnumerator BurstAttackSequence()
     {
-        isAttacking = true; // 攻撃開始フラグを立てる
+        isAttacking = true;
 
-        float shotDelay = 0.5f / attackRate; // 弾と弾の間の間隔 (例: 1/5 = 0.2秒)
+        float shotDelay = 0.5f / attackRate;
 
         // 1. バースト攻撃
         for (int i = 0; i < bulletsPerBurst; i++)
         {
-            AttackSingleBullet(); // 弾を1発発射
+            AttackSingleBullet();
 
-            // 弾と弾の間のウェイト (連続発射の間隔)
             yield return new WaitForSeconds(shotDelay);
         }
 
         // 2. バースト後のクールタイム
         yield return new WaitForSeconds(burstCooldownTime);
 
-        isAttacking = false; // 攻撃シーケンス終了
+        isAttacking = false;
     }
 
-
-    /// <summary>
-    /// 弾を1発発射する処理（単発）
-    /// </summary>
     private void AttackSingleBullet()
     {
         if (beamOrigin == null || beamPrefab == null)
@@ -132,8 +180,8 @@ public class DroneEnemy : MonoBehaviour
             return;
         }
 
-        Vector3 directionToPlayer = playerTarget.position - beamOrigin.position;
-        Quaternion bulletRotation = Quaternion.LookRotation(directionToPlayer);
+        // ?? 銃口が既にPlayerの方向を向いているため、beamOrigin.forwardを直接使用
+        Quaternion bulletRotation = beamOrigin.rotation;
 
         GameObject bullet = Instantiate(beamPrefab, beamOrigin.position, bulletRotation);
 
@@ -149,12 +197,9 @@ public class DroneEnemy : MonoBehaviour
     }
 
     // -------------------------------------------------------------------
-    //                         空中移動処理
+    //                        空中移動処理
     // -------------------------------------------------------------------
 
-    /// <summary>
-    /// ドローンを一定高度に維持しつつ、ランダムな目標に向けて浮遊移動させる
-    /// </summary>
     private void DriftHover()
     {
         Vector3 currentPos = transform.position;
@@ -179,9 +224,6 @@ public class DroneEnemy : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// 新しいランダムな浮遊目標地点を設定する
-    /// </summary>
     private void SetNewDriftTarget()
     {
         Vector2 randomCircle = Random.insideUnitCircle * driftRange;
@@ -194,12 +236,9 @@ public class DroneEnemy : MonoBehaviour
     }
 
     // -------------------------------------------------------------------
-    //                       ヘルスとダメージ処理
+    //                 ヘルスとダメージ処理
     // -------------------------------------------------------------------
 
-    /// <summary>
-    /// 外部からダメージを受け取るための公開メソッド
-    /// </summary>
     public void TakeDamage(float damageAmount)
     {
         if (isDead) return;
@@ -217,43 +256,41 @@ public class DroneEnemy : MonoBehaviour
     /// </summary>
     private void Die()
     {
+        if (isDead) return;
+
         isDead = true;
         Debug.Log(gameObject.name + "は破壊されました！");
+
+        // ?? 爆発エフェクトのインスタンス化と再生
+        if (explosionPrefab != null)
+        {
+            // ドローンの位置に生成
+            Instantiate(explosionPrefab, transform.position, Quaternion.identity);
+        }
 
         if (animator != null)
         {
             animator.SetBool("Dead", true);
         }
 
-        Destroy(gameObject, 3f);
+        // コルーチンを停止して、弾が連射されるのを防ぐ
+        StopAllCoroutines();
+
+        // 死亡後、即座にドローン本体のレンダラーやコライダーを無効化
+        // (ここでは簡単なDestroyを使用)
+        Destroy(gameObject, 0.1f); // エフェクトが生成されたらすぐにドローン本体を削除
     }
 
     // -------------------------------------------------------------------
-    //                         その他ユーティリティ
+    //                       その他ユーティリティ
     // -------------------------------------------------------------------
-
-    /// <summary>
-    /// ドローン本体の向きをPlayerの方向へ向ける（スムーズな回転）
-    /// </summary>
-    private void LookAtPlayer()
-    {
-        Vector3 targetDirection = playerTarget.position - transform.position;
-        targetDirection.y = 0; // 空中敵なので、水平回転のみ
-
-        Quaternion targetRotation = Quaternion.LookRotation(targetDirection);
-
-        transform.rotation = Quaternion.Slerp(
-            transform.rotation,
-            targetRotation,
-            Time.deltaTime * rotationSpeed
-        );
-    }
 
     /// <summary>
     /// Playerがエネミーの前方視野角内にいるかをチェックする
     /// </summary>
     private bool IsPlayerInFrontView()
     {
+        // ... (変更なし) ...
         Vector3 directionToTarget = playerTarget.position - transform.position;
         directionToTarget.y = 0;
 
@@ -265,9 +302,6 @@ public class DroneEnemy : MonoBehaviour
         return angle <= attackAngle / 2f;
     }
 
-    // -------------------------------------------------------------------
-    //                            デバッグ補助
-    // -------------------------------------------------------------------
 
     private void OnDrawGizmosSelected()
     {
@@ -276,7 +310,6 @@ public class DroneEnemy : MonoBehaviour
 
         if (Application.isEditor && transform != null)
         {
-            // 攻撃可能な角度の視錐台を描画
             Quaternion leftRayRotation = Quaternion.AngleAxis(-attackAngle / 2, Vector3.up);
             Quaternion rightRayRotation = Quaternion.AngleAxis(attackAngle / 2, Vector3.up);
 
@@ -287,7 +320,6 @@ public class DroneEnemy : MonoBehaviour
             Gizmos.DrawRay(transform.position, leftRayDirection * detectionRange);
             Gizmos.DrawRay(transform.position, rightRayDirection * detectionRange);
 
-            // 浮遊移動の目標点を描画
             Gizmos.color = Color.cyan;
             Gizmos.DrawWireSphere(transform.position, driftRange);
             Gizmos.DrawSphere(currentDriftTarget, 0.5f);

@@ -1,8 +1,15 @@
 using UnityEngine;
-using UnityEngine.AI; // NavMeshAgentを使うために必要
+using UnityEngine.AI;
 
 public class SuicideEnemy : MonoBehaviour
 {
+    // ?? 新規追加: HP設定
+    [Header("Health Settings")]
+    [Tooltip("敵の最大HP")]
+    public float maxHP = 100f;
+    private float currentHP;
+
+
     // プレイヤーのTransform (Inspectorから設定)
     public Transform playerTarget;
 
@@ -24,8 +31,14 @@ public class SuicideEnemy : MonoBehaviour
     // 爆発エフェクトのPrefab (Inspectorから設定)
     public GameObject explosionEffectPrefab;
 
+    // ?? 攻撃中/自爆準備中かどうかを判別するフラグ
+    private bool isSuiciding = false;
+
     void Start()
     {
+        // ?? HPを最大値で初期化
+        currentHP = maxHP;
+
         // NavMeshAgentコンポーネントを取得
         agent = GetComponent<NavMeshAgent>();
         if (agent != null)
@@ -34,7 +47,6 @@ public class SuicideEnemy : MonoBehaviour
         }
 
         // プレイヤーオブジェクトを検索して設定 (タグが"Player"の場合)
-        // ※より確実な方法で設定することをお勧めします
         GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
         if (playerObj != null)
         {
@@ -44,8 +56,8 @@ public class SuicideEnemy : MonoBehaviour
 
     void Update()
     {
-        // プレイヤーが設定されているか確認
-        if (playerTarget == null) return;
+        // ?? 自爆準備中またはプレイヤーがいなければ処理を停止
+        if (playerTarget == null || isSuiciding) return;
 
         // プレイヤーまでの距離を計算
         float distanceToPlayer = Vector3.Distance(transform.position, playerTarget.position);
@@ -59,37 +71,66 @@ public class SuicideEnemy : MonoBehaviour
         else
         {
             // プレイヤーを追いかける
-            if (agent != null)
+            if (agent != null && agent.enabled)
             {
                 agent.SetDestination(playerTarget.position);
             }
         }
     }
 
+    /// <summary>
+    /// 外部（プレイヤーの攻撃など）からダメージを受け付けるメソッド。
+    /// </summary>
+    /// <param name="damageAmount">受けるダメージ量。</param>
+    public void TakeDamage(float damageAmount)
+    {
+        if (isSuiciding) return; // 自爆準備中は追加のダメージを無視
+
+        currentHP -= damageAmount;
+        Debug.Log($"SuicideEnemyが {damageAmount} ダメージを受けた。残りHP: {currentHP}");
+
+        if (currentHP <= 0)
+        {
+            // HPがゼロになったら自爆攻撃を実行
+            SuicideAttack();
+        }
+    }
+
     void SuicideAttack()
     {
+        if (isSuiciding) return;
+        isSuiciding = true; // フラグを立てて、UpdateやTakeDamageを停止させる
+
         // 敵の動きを止める
         if (agent != null)
         {
             agent.isStopped = true;
+            agent.enabled = false; // NavMeshAgentを無効化
         }
 
         // 爆発エフェクトの生成
         if (explosionEffectPrefab != null)
         {
-            Instantiate(explosionEffectPrefab, transform.position, Quaternion.identity);
+            GameObject explosion = Instantiate(explosionEffectPrefab, transform.position, Quaternion.identity);
+            Destroy(explosion, 3f);
         }
 
         // --- 爆発のダメージ処理 ---
-        // 爆発範囲内のオブジェクトを探す (Physics.OverlapSphereを使う)
         Collider[] hitColliders = Physics.OverlapSphere(transform.position, explosionRadius);
         foreach (var hitCollider in hitColliders)
         {
-            // プレイヤーかどうかの判定 (タグやコンポーネントで確認)
+            // プレイヤーかどうかの判定
             if (hitCollider.CompareTag("Player"))
             {
-                // プレイヤーのHealthコンポーネントなどを取得し、ダメージを与える処理
-                // 例: hitCollider.GetComponent<PlayerHealth>().TakeDamage(explosionDamage);
+                // PlayerControllerコンポーネントを取得
+                PlayerController player = hitCollider.GetComponent<PlayerController>();
+
+                if (player != null)
+                {
+                    // PlayerControllerのTakeDamageメソッドを呼び出す
+                    player.TakeDamage(explosionDamage);
+                    Debug.Log("Playerに " + explosionDamage + " ダメージを与えました！");
+                }
             }
         }
 
