@@ -1,55 +1,66 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 using System.Collections;
+using UnityEngine.AI;
 
+// NavMeshAgentã‚³ãƒ³ãƒãƒ¼ãƒãƒ³ãƒˆãŒå¿…é ˆã§ã‚ã‚‹ã“ã¨ã‚’ä¿è¨¼
+[RequireComponent(typeof(NavMeshAgent))]
 public class EnemyAI : MonoBehaviour
 {
     private Animator anim;
+    private NavMeshAgent agent;
 
-    [Header("ƒ^[ƒQƒbƒgİ’è")]
+    [Header("ã‚¿ãƒ¼ã‚²ãƒƒãƒˆè¨­å®š")]
     [SerializeField] private Transform target;
     [SerializeField] private float attackRange = 10f;
-    [SerializeField] private float rotationSpeed = 5f;
+    [SerializeField] private float rotationSpeed = 10f; // LookAtTargetã§ã®å›è»¢é€Ÿåº¦
 
-    [Header("ˆÚ“®EŒã‘Şİ’è")]
+    [Header("ç§»å‹•ãƒ»å¾Œé€€è¨­å®š")]
     [SerializeField] private float moveSpeed = 3f;
     [SerializeField] private float dashSpeed = 6f;
     [SerializeField] private float retreatRange = 5f;
     [SerializeField] private float dashStartRange = 20f;
 
 
-    [Header("ËŒ‚İ’è")]
+    [Header("å°„æ’ƒè¨­å®š")]
     public float fireRate = 2.0f;
     private float nextFireTime;
 
-    [Tooltip("ËŒ‚ƒAƒjƒ[ƒVƒ‡ƒ“ŠJn‚©‚ç’e‚ªo‚é‚Ü‚Å‚ÌŠÔ(•b)")]
+    [Tooltip("å°„æ’ƒã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³é–‹å§‹ã‹ã‚‰å¼¾ãŒå‡ºã‚‹ã¾ã§ã®æ™‚é–“(ç§’)")]
     [SerializeField] private float shootingDelay = 0.2f;
 
-    [Header("’eİ’è")]
-    public GameObject bulletPrefab; // ’e‚ÌPrefab
+    [Header("å¼¾è¨­å®š")]
+    public GameObject bulletPrefab; // å¼¾ã®Prefab
     public Transform firePoint;
     [SerializeField] private float bulletSpeed = 100f;
-    [SerializeField] private float bulletLifetime = 5f; // Destroy‚ÅÁ–Å‚³‚¹‚é‚Ü‚Å‚ÌŠÔ
+    [SerializeField] private float bulletLifetime = 5f; // Destroyã§æ¶ˆæ»…ã•ã›ã‚‹ã¾ã§ã®æ™‚é–“
 
-    // ƒŠƒ[ƒhŠÖ˜A
-    [Header("ƒŠƒ[ƒhİ’è")]
+    // ãƒªãƒ­ãƒ¼ãƒ‰é–¢é€£
+    [Header("ãƒªãƒ­ãƒ¼ãƒ‰è¨­å®š")]
     [SerializeField] private int maxAmmo = 10;
     private int currentAmmo;
     [SerializeField] private float reloadTime = 3.0f;
     private bool isReloading = false;
 
 
-    // Animator‚Ìƒpƒ‰ƒ[ƒ^[–¼
+    // Animatorã®ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿ãƒ¼å (ãƒ–ãƒ¬ãƒ³ãƒ‰ãƒ„ãƒªãƒ¼ç”¨)
+    private const string SpeedParam = "Speed";
     private const string IsAimingParam = "IsAiming";
-    private const string FireTriggerParam = "FireTrigger";
-    private const string MoveForwardParam = "MoveForward";
-    private const string MoveBackwardParam = "MoveBackward";
-    private const string MoveLeftParam = "MoveLeft";
-    private const string MoveRightParam = "MoveRight";
-    private const string isDashingParam = "isDashing"; // šAnimator‘¤‚Ìƒpƒ‰ƒ[ƒ^[–¼‚Æˆê’v‚µ‚Ä‚¢‚é‚©—vŠm”F
+    private const string IsBackpedalingParam = "IsBackpedaling";
+    private const string FireTriggerParam = "Shoot";
+    private const string ReloadTriggerParam = "Reload";
+
 
     void Start()
     {
         anim = GetComponent<Animator>();
+        agent = GetComponent<NavMeshAgent>();
+
+        // Agentã®å›è»¢ã‚’ç„¡åŠ¹ã«ã—ã€LookAtTarget()ã§è‡ªåˆ†ã§å›è»¢ã‚’åˆ¶å¾¡ã™ã‚‹
+        if (agent != null)
+        {
+            agent.updateRotation = false;
+        }
+
         nextFireTime = Time.time;
         currentAmmo = maxAmmo;
 
@@ -63,120 +74,172 @@ public class EnemyAI : MonoBehaviour
     {
         if (target == null) return;
 
-        float distanceToTarget = Vector3.Distance(transform.position, target.position);
-        float currentMoveSpeed = moveSpeed; // ÀÛ‚ÌˆÚ“®‘¬“x‚ğ•Û
-        float currentSpeedZ = 0f;          // ƒAƒjƒ[ƒVƒ‡ƒ“§Œä—p‚Ì‘OŒãˆÚ“®‘¬“x (-:Œã‘Ş, +:‘Oi)
-        bool isDashing = false;            // ƒ_ƒbƒVƒ…ƒAƒjƒ[ƒVƒ‡ƒ“§Œä—p (ƒ[ƒJƒ‹•Ï”)
+        // å¿…é ˆãƒã‚§ãƒƒã‚¯: AgentãŒå­˜åœ¨ã—ãªã„ã€ã¾ãŸã¯ç„¡åŠ¹ãªå ´åˆã¯å‡¦ç†ã‚’ä¸­æ–­
+        if (agent == null || !agent.isActiveAndEnabled)
+        {
+            return;
+        }
 
-        // 1. UŒ‚”ÍˆÍ“à‚Ìs“® (ËŒ‚EŒã‘Ş)
+        // ãƒªãƒ­ãƒ¼ãƒ‰ä¸­ã¯ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ã®é€Ÿåº¦ã‚’0ã«å›ºå®šã—ã€ä»–ã®è¡Œå‹•ã‚’åœæ­¢
+        if (isReloading)
+        {
+            anim.SetFloat(SpeedParam, 0f);
+            return;
+        }
+
+        float distanceToTarget = Vector3.Distance(transform.position, target.position);
+        LookAtTarget(); // å¸¸ã«ã‚¿ãƒ¼ã‚²ãƒƒãƒˆã®æ–¹ã‚’å‘ã
+
         if (distanceToTarget <= attackRange)
         {
-            // ’ÇÕ’†‚Ì‰Â”\«‚Ì‚ ‚éƒRƒ‹[ƒ`ƒ“‚ğ’â~
-            StopAllCoroutines();
+            HandleCombat(distanceToTarget);
+        }
+        else
+        {
+            HandleChase(distanceToTarget);
+        }
 
-            LookAtTarget();
-            if (!isReloading)
+        UpdateAnimatorParameters();
+    }
+
+
+    /// <summary>
+    /// ã‚¿ãƒ¼ã‚²ãƒƒãƒˆã®æ–¹ã‚’æ»‘ã‚‰ã‹ã«å‘ã
+    /// </summary>
+    void LookAtTarget()
+    {
+        Vector3 direction = target.position - transform.position;
+        direction.y = 0;
+        Quaternion lookRotation = Quaternion.LookRotation(direction);
+        transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.deltaTime * rotationSpeed);
+    }
+
+    // --------------------------------------------------------------------------------
+    // â­ï¸ AIè¡Œå‹•ãƒ­ã‚¸ãƒƒã‚¯ï¼ˆNavMeshAgentä½¿ç”¨ï¼‰
+    // --------------------------------------------------------------------------------
+
+    void HandleChase(float distanceToTarget)
+    {
+        // æ§‹ãˆè§£é™¤ (Movement Blend Treeã¸ç§»è¡Œ)
+        anim.SetBool(IsAimingParam, false);
+        anim.SetBool(IsBackpedalingParam, false);
+
+        float currentSpeed;
+
+        // ãƒ€ãƒƒã‚·ãƒ¥ãƒ­ã‚¸ãƒƒã‚¯
+        currentSpeed = (distanceToTarget > dashStartRange) ? dashSpeed : moveSpeed;
+
+        // â­ï¸ NavMesh Agentæ“ä½œã®é˜²å¾¡çš„ãƒã‚§ãƒƒã‚¯ â­ï¸
+        if (agent.isOnNavMesh)
+        {
+            agent.speed = currentSpeed;
+            // ç›®çš„åœ°ã‚’è¨­å®šã—ã€Agentã«ç§»å‹•ã•ã›ã‚‹
+            agent.SetDestination(target.position);
+        }
+    }
+
+    void HandleCombat(float distanceToTarget)
+    {
+        // æˆ¦é—˜ãƒ¢ãƒ¼ãƒ‰ã«å…¥ã‚‹
+        anim.SetBool(IsAimingParam, true);
+
+        // å°„æ’ƒãƒ»ãƒªãƒ­ãƒ¼ãƒ‰ãƒã‚§ãƒƒã‚¯
+        if (currentAmmo <= 0)
+        {
+            StartCoroutine(Reload());
+            return;
+        }
+
+        // è·é›¢ã«ã‚ˆã‚‹ç§»å‹•è¡Œå‹•æ±ºå®š
+        if (distanceToTarget <= retreatRange)
+        {
+            // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ãŒè¿‘ã™ãã‚‹å ´åˆ: å¾Œé€€
+            anim.SetBool(IsBackpedalingParam, true);
+
+            // â­ï¸ NavMesh Agentæ“ä½œã®é˜²å¾¡çš„ãƒã‚§ãƒƒã‚¯ â­ï¸
+            if (agent.isOnNavMesh)
             {
-                anim.SetBool(IsAimingParam, true);
+                // å¾Œé€€æ–¹å‘ã¸ã®ç›®çš„åœ°ã‚’è¨­å®š
+                Vector3 retreatDir = (transform.position - target.position).normalized;
+                Vector3 retreatPos = transform.position + retreatDir * retreatRange;
+
+                agent.speed = moveSpeed;
+                agent.SetDestination(retreatPos);
+            }
+        }
+        else
+        {
+            // é©åˆ‡ãªè·é›¢: åœæ­¢ (å®šç‚¹å°„æ’ƒ)
+            anim.SetBool(IsBackpedalingParam, false);
+
+            // â­ï¸ NavMesh Agentæ“ä½œã®é˜²å¾¡çš„ãƒã‚§ãƒƒã‚¯ â­ï¸
+            if (agent.isOnNavMesh)
+            {
+                agent.speed = 0f;
+                // ç¾åœ¨ä½ç½®ã‚’ç›®çš„åœ°ã«è¨­å®šã—ã¦åœæ­¢ã‚’ç¶­æŒ
+                agent.SetDestination(transform.position);
             }
 
-            if (distanceToTarget <= retreatRange)
-            {
-                // ƒvƒŒƒCƒ„[‚ª‹ß‚·‚¬‚éê‡: Œã‘Ş
-                currentSpeedZ = -moveSpeed; // ƒAƒjƒ[ƒVƒ‡ƒ“—p
-                transform.Translate(Vector3.forward * currentSpeedZ * Time.deltaTime);
-            }
-            else
-            {
-                // “KØ‚È‹——£: ’â~ (’è“_ËŒ‚)
-                currentSpeedZ = 0f;
-                // (ƒXƒgƒŒƒCƒt‚ÌˆÚ“®ƒƒWƒbƒN‚ÍÈ—ª)
-            }
-
-            // 2. ËŒ‚ƒ^ƒCƒ~ƒ“ƒO‚Ìƒ`ƒFƒbƒN
-            if (!isReloading && currentAmmo > 0 && Time.time >= nextFireTime)
+            // å°„æ’ƒã‚¢ã‚¯ã‚·ãƒ§ãƒ³ã‚’ãƒˆãƒªã‚¬ãƒ¼
+            if (Time.time >= nextFireTime)
             {
                 anim.SetTrigger(FireTriggerParam);
                 StartCoroutine(ShootWithDelay());
                 nextFireTime = Time.time + fireRate;
             }
         }
-        // 3. UŒ‚”ÍˆÍŠO‚Ìs“® (’ÇÕ/ƒ_ƒbƒVƒ…ƒƒWƒbƒN)
-        else
+    }
+
+    // --------------------------------------------------------------------------------
+    // â­ï¸ ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿ã®æ›´æ–°ãƒ­ã‚¸ãƒƒã‚¯
+    // --------------------------------------------------------------------------------
+
+    void UpdateAnimatorParameters()
+    {
+        // NavMeshAgentã®ç¾åœ¨ã®æ°´å¹³é€Ÿåº¦ã®å¤§ãã•
+        float speedForAnim = agent.velocity.magnitude;
+
+        // å¾Œé€€ä¸­ã¯ç§»å‹•ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ã‚’åœæ­¢ã—ã€Idle_Shootã«ç•™ã‚ã‚‹
+        if (anim.GetBool(IsBackpedalingParam))
         {
-            // \‚¦‰ğœ
-            anim.SetBool(IsAimingParam, false);
-
-            LookAtTarget(); // ƒvƒŒƒCƒ„[‚Ì•ûŒü‚ğŒü‚­
-
-            // ’ÇÕ‘¬“x‚ÌŒˆ’è (ƒ_ƒbƒVƒ…ƒƒWƒbƒN)
-            if (distanceToTarget > dashStartRange)
-            {
-                currentMoveSpeed = dashSpeed;
-                isDashing = true;
-            }
-            else
-            {
-                currentMoveSpeed = moveSpeed;
-                isDashing = false;
-            }
-
-            // ‘OiˆÚ“®‚ğÀs
-            transform.Translate(Vector3.forward * currentMoveSpeed * Time.deltaTime);
-
-            // ššš C³Œã‚ÌƒƒWƒbƒN ššš
-            // isDashing‚ªTrue/False‚ÉŠÖ‚í‚ç‚¸A‘Oi‚µ‚Ä‚¢‚é‚±‚Æ‚ğ¦‚·‚½‚ß‚É
-            // currentSpeedZ‚ğ³‚Ì’l‚Éİ’è‚µ‚Ü‚·B
-            currentSpeedZ = currentMoveSpeed;
-        }
-        // ... (else ƒuƒƒbƒN‚ÌI—¹)
-
-        // š ƒŠƒ[ƒhŠJnƒ`ƒFƒbƒN (UŒ‚”ÍˆÍ“à‚Å‚Ì‚İƒ`ƒFƒbƒN) š
-        if (distanceToTarget <= attackRange && currentAmmo <= 0 && !isReloading)
-        {
-            StopCoroutine("ShootWithDelay");
-            StartCoroutine(Reload());
-        }
-
-        // --- ƒAƒjƒ[ƒVƒ‡ƒ“‚ÌBoolƒpƒ‰ƒ[ƒ^[İ’è ---
-        anim.SetBool(isDashingParam, isDashing); // ƒ_ƒbƒVƒ…/’ÊíˆÚ“®‚ÌØ‚è‘Ö‚¦
-
-        // ‘OŒãˆÚ“®ƒAƒjƒ[ƒVƒ‡ƒ“‚Ì§Œä
-        if (currentSpeedZ > 0.01f)
-        {
-            // ‘Oi (Run/Dash)
-            anim.SetBool(MoveForwardParam, true);
-            anim.SetBool(MoveBackwardParam, false);
-        }
-        else if (currentSpeedZ < -0.01f)
-        {
-            // Œã‘Ş (Retreat)
-            anim.SetBool(MoveForwardParam, false);
-            anim.SetBool(MoveBackwardParam, true);
+            anim.SetFloat(SpeedParam, 0f);
         }
         else
         {
-            // ’â~ (Idle)
-            anim.SetBool(MoveForwardParam, false);
-            anim.SetBool(MoveBackwardParam, false);
+            // é€šå¸¸ã®ç§»å‹•/è¿½è·¡æ™‚ã¯ã€å®Ÿéš›ã®é€Ÿåº¦ã‚’æ¸¡ã™
+            anim.SetFloat(SpeedParam, speedForAnim);
         }
     }
 
+
+    // --- ãƒªãƒ­ãƒ¼ãƒ‰/å°„æ’ƒé–¢é€£ã®ã‚³ãƒ«ãƒ¼ãƒãƒ³ ---
 
     private IEnumerator Reload()
     {
         isReloading = true;
         anim.SetBool(IsAimingParam, false);
 
-        Debug.Log("ƒŠƒ[ƒhŠJn...");
-        // TODO: ƒŠƒ[ƒhƒAƒjƒ[ƒVƒ‡ƒ“Ä¶
+        // â­ï¸ NavMesh Agentæ“ä½œã®é˜²å¾¡çš„ãƒã‚§ãƒƒã‚¯ (isStoppedã‚¨ãƒ©ãƒ¼å›é¿) â­ï¸
+        if (agent.isOnNavMesh)
+        {
+            agent.isStopped = true;
+            agent.velocity = Vector3.zero; // å®Œå…¨ã«åœæ­¢
+        }
+
+        anim.SetTrigger(ReloadTriggerParam);
+        Debug.Log("ãƒªãƒ­ãƒ¼ãƒ‰é–‹å§‹...");
+
         yield return new WaitForSeconds(reloadTime);
 
         currentAmmo = maxAmmo;
         isReloading = false;
-        Debug.Log("ƒŠƒ[ƒhŠ®—¹B’e”: " + currentAmmo);
+        Debug.Log("ãƒªãƒ­ãƒ¼ãƒ‰å®Œäº†ã€‚å¼¾æ•°: " + currentAmmo);
 
-        anim.SetBool(IsAimingParam, true);
+        // â­ï¸ NavMesh Agentæ“ä½œã®é˜²å¾¡çš„ãƒã‚§ãƒƒã‚¯ (isStoppedã‚¨ãƒ©ãƒ¼å›é¿) â­ï¸
+        if (agent.isOnNavMesh)
+        {
+            agent.isStopped = false;
+        }
     }
 
     private IEnumerator ShootWithDelay()
@@ -185,8 +248,10 @@ public class EnemyAI : MonoBehaviour
         ShootBullet();
     }
 
+    // --- å¼¾ã®ç”Ÿæˆã¨ç‰©ç†å‡¦ç† ---
+
     /// <summary>
-    /// ’e‚ğInstantiate‚Å¶¬‚µADestroy‚ÅÁ–Å‚³‚¹‚é
+    /// å¼¾ã‚’Instantiateã§ç”Ÿæˆã—ã€Rigidbodyã«é€Ÿåº¦ã‚’ä¸ãˆã€Destroyã§æ¶ˆæ»…ã•ã›ã‚‹
     /// </summary>
     public void ShootBullet()
     {
@@ -195,22 +260,21 @@ public class EnemyAI : MonoBehaviour
             return;
         }
 
-        // ššš 1. Instantiate (¶¬) ššš
+        // 1. Instantiate (ç”Ÿæˆ)
         GameObject bullet = Instantiate(bulletPrefab, firePoint.position, firePoint.rotation);
 
-        currentAmmo--; // ’e”Œ¸­
+        currentAmmo--; // å¼¾æ•°æ¸›å°‘
 
-        // ššš 2. Destroy (Á–Å) ššš
+        // 2. Destroy (æ¶ˆæ»…)
         Destroy(bullet, bulletLifetime);
 
-        // --- 3. Õ“Ë‰ñ”ğƒƒWƒbƒN ---
+        // 3. è¡çªå›é¿ãƒ­ã‚¸ãƒƒã‚¯
         Collider bulletCollider = bullet.GetComponent<Collider>();
-        // “G‚ÌƒRƒ‰ƒCƒ_[‚ğæ“¾
         Collider enemyCollider = GetComponent<Collider>() ?? GetComponentInChildren<Collider>();
 
         if (bulletCollider != null && enemyCollider != null)
         {
-            // ’e‚Æ“G©g‚ÌÕ“Ë”»’è‚ğˆê“I‚É–³‹ (0.3•bŠÔ)
+            // å¼¾ã¨æ•µè‡ªèº«ã®è¡çªåˆ¤å®šã‚’ä¸€æ™‚çš„ã«ç„¡è¦–
             Physics.IgnoreCollision(bulletCollider, enemyCollider, true);
             StartCoroutine(StopIgnoringCollision(bulletCollider, enemyCollider, 0.3f));
         }
@@ -218,9 +282,8 @@ public class EnemyAI : MonoBehaviour
         {
             Debug.LogError("FATAL ERROR: Enemy or Bullet Collider is missing.");
         }
-        // ------------------------------------
 
-        // 4. ’eŠÛ‚É‘¬“x‚ğ—^‚¦‚éiRigidbody‚Ìê‡j
+        // 4. å¼¾ä¸¸ã«é€Ÿåº¦ã‚’ä¸ãˆã‚‹ï¼ˆRigidbodyã®å ´åˆï¼‰
         Rigidbody rb = bullet.GetComponent<Rigidbody>();
         if (rb != null)
         {
@@ -228,22 +291,16 @@ public class EnemyAI : MonoBehaviour
         }
     }
 
-    // Õ“Ë–³‹‰ğœ‚ÌƒRƒ‹[ƒ`ƒ“
+    /// <summary>
+    /// å¼¾ãŒæ•µã‚’ã™ã‚ŠæŠœã‘ãŸå¾Œã€è¡çªç„¡è¦–ã‚’è§£é™¤ã™ã‚‹ã‚³ãƒ«ãƒ¼ãƒãƒ³
+    /// </summary>
     private IEnumerator StopIgnoringCollision(Collider bulletCollider, Collider enemyCollider, float delay)
     {
         yield return new WaitForSeconds(delay);
-        // ’e‚ª”jŠü‚³‚ê‚Ä‚¢‚È‚¢‚©Šm”F‚µ‚Ä‚©‚ç–³‹‚ğ‰ğœ
+        // å¼¾ãŒç ´æ£„ã•ã‚Œã¦ã„ãªã„ã‹ç¢ºèªã—ã¦ã‹ã‚‰ç„¡è¦–ã‚’è§£é™¤
         if (bulletCollider != null && enemyCollider != null)
         {
             Physics.IgnoreCollision(bulletCollider, enemyCollider, false);
         }
-    }
-
-    void LookAtTarget()
-    {
-        Vector3 direction = target.position - transform.position;
-        direction.y = 0;
-        Quaternion lookRotation = Quaternion.LookRotation(direction);
-        transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.deltaTime * rotationSpeed);
     }
 }

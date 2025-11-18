@@ -15,28 +15,39 @@ public class Bullet : MonoBehaviour
         // ColliderはIsTriggerがオンになっていることを想定
     }
 
-    /// <summary>
-    /// 弾を発射する時に初期設定を行い、自動返却時間を設定する
-    /// </summary>
     public void Initialize(Action<Bullet> onReturn, float speed, float lifetime)
     {
         returnAction = onReturn;
 
-        // 弾を一定時間後に自動で返す処理を呼び出す
+        // ?? 【追加】発射前に念のためRigidbodyをクリア
+        if (rb != null)
+        {
+            rb.velocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+        }
+        // ---------------------------------------- ??
+
         Invoke("ReturnToPool", lifetime);
 
-        // ※ 弾の速度設定はEnemyAI.csのShootBullet()で行うため、ここでは処理を省略
+        // 速度設定はEnemyAI.csのShootBullet()で行うため、ここでは処理を省略
     }
 
     // ★★★ 削除: Update()メソッドを削除しました。移動はRigidbodyが担当します。 ★★★
 
-    // 敵や壁に当たった時の処理
     private void OnTriggerEnter(Collider other)
     {
-        // 衝突処理（ダメージなど）
+        // 衝突相手が「プレイヤー」または「環境オブジェクト」（壁や地面）であるか確認
+        // ※ 衝突レイヤー設定やタグ、またはレイヤーマスクで制御するのが最も効率的です。
 
-        // プールに返す
-        ReturnToPool();
+        // 例：タグによるチェック
+        if (other.CompareTag("Player") || other.CompareTag("Wall"))
+        {
+            // 衝突処理（ダメージなど）
+
+            // プールに返す
+            ReturnToPool();
+        }
+        // ※ 衝突相手が「Enemy」タグだったら何もしない、など
     }
 
     // プールに返す処理

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-[RequireComponent(typeof(Rigidbody))] // Rigidbodyコンポーネントが必須であることを指定
+//[RequireComponent(typeof(Rigidbody))] // Rigidbodyコンポーネントが必須であることを指定
 public class Player : MonoBehaviour
 {
     [Header("移動設定")]
