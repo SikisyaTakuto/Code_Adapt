@@ -1,22 +1,23 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 using UnityEngine.AI;
 
 public class TutController : MonoBehaviour
 {
     [Header("Settings")]
-    public float attackRange = 3f;        // UŒ‚”ÍˆÍ
-    public float prepareTime = 2f;        // UŒ‚‘O‚É’â~‚·‚éŠÔ
-    public float cooldownTime = 1f;       // ƒ_ƒ[ƒWŒã‘Ò‹@ŠÔ
-    public int damage = 10;               // —^‚¦‚éƒ_ƒ[ƒW
+    public float attackRange = 3f;        // æ”»æ’ƒç¯„å›²
+    public float prepareTime = 2f;        // æ”»æ’ƒå‰ã«åœæ­¢ã™ã‚‹æ™‚é–“
+    public float cooldownTime = 1f;       // ãƒ€ãƒ¡ãƒ¼ã‚¸å¾Œå¾…æ©Ÿæ™‚é–“
+    public int damage = 10;               // ä¸ãˆã‚‹ãƒ€ãƒ¡ãƒ¼ã‚¸
+    public float stopDistance = 2f;       // ã“ã®è·é›¢ä»¥å†…ãªã‚‰æ­¢ã¾ã‚‹
 
     private Transform player;
     private NavMeshAgent agent;
 
     private enum State
     {
-        Chase,      // ’ÇÕ
-        Preparing,  // UŒ‚€”õ
-        Cooldown    // UŒ‚Œã‚Ì‘Ò‹@
+        Chase,      // è¿½è·¡
+        Preparing,  // æ”»æ’ƒæº–å‚™
+        Cooldown    // æ”»æ’ƒå¾Œã®å¾…æ©Ÿ
     }
 
     private State state = State.Chase;
@@ -33,59 +34,95 @@ public class TutController : MonoBehaviour
         switch (state)
         {
             case State.Chase:
-                ChasePlayer();   // ’ÇÕˆ—
+                ChasePlayer();      // è¿½è·¡å‡¦ç†
                 break;
 
             case State.Preparing:
-                PreparingAttack();  // UŒ‚€”õ
+                PreparingAttack();  // æ”»æ’ƒæº–å‚™
                 break;
 
             case State.Cooldown:
-                Cooldown();  // UŒ‚Œã‘Ò‹@
+                Cooldown();         // æ”»æ’ƒå¾Œå¾…æ©Ÿ
                 break;
         }
     }
 
-    // ƒvƒŒƒCƒ„[’ÇÕˆ—
+    // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼è¿½è·¡å‡¦ç†
     private void ChasePlayer()
     {
-        // ƒvƒŒƒCƒ„[‚ÉŒü‚©‚Á‚ÄˆÚ“®
-        agent.isStopped = false;
-        agent.SetDestination(player.position);
+        float distance = Vector3.Distance(transform.position, player.position);
 
-        // ‹——£‚ªUŒ‚”ÍˆÍˆÈ“à ¨ UŒ‚€”õ‚Ö
-        if (Vector3.Distance(transform.position, player.position) <= attackRange)
+        // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ãŒåœæ­¢è·é›¢ä»¥ä¸Šãªã‚‰è¿½è·¡ã‚’ç¶šã‘ã‚‹
+        if (distance > stopDistance)
+        {
+            agent.isStopped = false;
+            agent.SetDestination(player.position);
+        }
+        else
+        {
+            // åœæ­¢è·é›¢ä»¥å†…ãªã‚‰ãã®å ´ã§æ­¢ã¾ã‚‹
+            agent.isStopped = true;
+
+            Vector3 dir = (player.position - transform.position).normalized;
+            dir.y = 0; // æ°´å¹³æ–¹å‘ã®ã¿ã§å›è»¢
+
+            Quaternion targetRot = Quaternion.LookRotation(dir);
+            transform.rotation = Quaternion.Slerp(
+                transform.rotation,
+                targetRot,
+                Time.deltaTime * 3f   // å›è»¢ã‚¹ãƒ”ãƒ¼ãƒ‰
+            );
+        }
+
+        // å‰æ–¹åˆ¤å®š
+        Vector3 dirToPlayer = (player.position - transform.position).normalized;
+        float dot = Vector3.Dot(transform.forward, dirToPlayer);
+        bool isInFront = dot > 0.7f;
+
+        // æ”»æ’ƒæº–å‚™ã«ç§»è¡Œã™ã‚‹æ¡ä»¶
+        if (distance <= attackRange && isInFront)
         {
             state = State.Preparing;
             timer = 0f;
-            agent.isStopped = true; // ‚»‚Ìê‚Å’â~
+            agent.isStopped = true;
         }
     }
 
-    // UŒ‚€”õ
+    // æ”»æ’ƒæº–å‚™
     private void PreparingAttack()
     {
         timer += Time.deltaTime;
 
-        // €”õŠÔ‚ªŒo‰ß‚µ‚½‚çUŒ‚‚µ‚ÄƒN[ƒ‹ƒ_ƒEƒ“‚Ö
+        // æº–å‚™æ™‚é–“ãŒçµŒéã—ãŸã‚‰æ”»æ’ƒã—ã¦ã‚¯ãƒ¼ãƒ«ãƒ€ã‚¦ãƒ³ã¸
         if (timer >= prepareTime)
         {
-            Debug.Log("ƒ_ƒ[ƒW: " + damage);  // ƒ_ƒ[ƒWˆ—
+            Vector3 dirToPlayer = (player.position - transform.position).normalized;
+            float dot = Vector3.Dot(transform.forward, dirToPlayer);
+
+            if (dot > 0.7f)
+            {
+                Debug.Log("ãƒ€ãƒ¡ãƒ¼ã‚¸: " + damage);
+            }
+            else
+            {
+                Debug.Log("å‰æ–¹ã«ã„ãªã„ã®ã§ãƒŸã‚¹");
+            }
+
             timer = 0f;
-            state = State.Cooldown;  // UŒ‚Œã‘Ò‹@‚Ö
+            state = State.Cooldown;
         }
     }
 
-    // UŒ‚Œã‚Ì‘Ò‹@
+    // æ”»æ’ƒå¾Œã®å¾…æ©Ÿ
     private void Cooldown()
     {
         timer += Time.deltaTime;
 
-        // ƒN[ƒ‹ƒ_ƒEƒ“I—¹
+        // ã‚¯ãƒ¼ãƒ«ãƒ€ã‚¦ãƒ³çµ‚äº†
         if (timer >= cooldownTime)
         {
             timer = 0f;
-            state = State.Chase;  // Ä’ÇÕ
+            state = State.Chase;  // å†è¿½è·¡
         }
     }
 }
