@@ -33,19 +33,28 @@ public class BeamDestroyer : MonoBehaviour
         transform.position += transform.forward * beamSpeed * Time.deltaTime;
 
         // 2. Raycastingによる衝突判定
-        // 前フレームの位置から現在の位置までの間に衝突が発生したかをチェック
-        float distance = Vector3.Distance(previousPosition, transform.position);
 
-        // RaycastNonAllocを使用して、メモリ割り当てを抑えることもできますが、
-        // ここでは最もシンプルな Raycast を使用します。
+        // Rayの始点: 前フレームの位置
+        Vector3 rayStart = previousPosition;
+
+        // Rayの方向: 前フレームの位置から現在の位置へ向かうベクトル
+        Vector3 rayDirection = transform.position - previousPosition;
+
+        // Rayの距離: 2点間の距離 (今回の移動距離)
+        float distance = rayDirection.magnitude;
+
+        // 進行方向の単位ベクトルを取得
+        rayDirection.Normalize();
+
         RaycastHit hit;
 
         // Raycast(始点, 方向, 衝突情報, 距離)
-        if (Physics.Raycast(previousPosition, transform.forward, out hit, distance))
+        if (Physics.Raycast(rayStart, rayDirection, out hit, distance))
         {
-            // Playerに当たった場合の処理
+            // Playerタグのオブジェクトに当たった場合の処理
             if (hit.collider.CompareTag("Player"))
             {
+                // ?? ダメージ処理を呼び出す
                 ApplyDamage(hit.collider.gameObject);
             }
 
@@ -60,19 +69,33 @@ public class BeamDestroyer : MonoBehaviour
 
     /// <summary>
     /// 衝突したオブジェクトにダメージを与える処理。
+    /// PlayerControllerまたはTutorialPlayerControllerに対応します。
     /// </summary>
     private void ApplyDamage(GameObject target)
     {
-        // プレイヤーのHealthコンポーネントを取得 (PlayerHealthは自作が必要です)
+        // 1. PlayerControllerコンポーネントを探す
         PlayerController player = target.GetComponent<PlayerController>();
 
         if (player != null)
         {
+            // ?? PlayerControllerにTakeDamageがある場合
             player.TakeDamage(damageAmount);
+            Debug.Log($"PlayerControllerに{damageAmount}ダメージを与えました。", target);
+            return; // ダメージ処理が完了したので終了
         }
-        else
+
+        // 2. PlayerControllerが見つからなかった場合、TutorialPlayerControllerコンポーネントを探す
+        TutorialPlayerController tutorialPlayer = target.GetComponent<TutorialPlayerController>();
+
+        if (tutorialPlayer != null)
         {
-            Debug.LogWarning("PlayerタグのオブジェクトにPlayerHealthコンポーネントが見つかりません。", target);
+            // ?? TutorialPlayerControllerにTakeDamageがある場合
+            tutorialPlayer.TakeDamage(damageAmount);
+            Debug.Log($"TutorialPlayerControllerに{damageAmount}ダメージを与えました。", target);
+            return; // ダメージ処理が完了したので終了
         }
+
+        // どちらも見つからなかった場合
+        Debug.LogWarning("Playerタグのオブジェクトにダメージ処理を行う (PlayerController または TutorialPlayerController) コンポーネントが見つかりません。", target);
     }
 }

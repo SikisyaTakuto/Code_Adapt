@@ -51,7 +51,6 @@ public class DroneEnemy : MonoBehaviour
     // --- 内部変数 ---
     private float nextAttackTime = 0f;
     private float hardStopEndTime = 0f;
-    private Animator animator;
     private Vector3 currentDriftTarget;
 
     private bool isAttacking = false;
@@ -59,12 +58,6 @@ public class DroneEnemy : MonoBehaviour
     private void Awake()
     {
         currentHealth = maxHealth;
-
-        animator = GetComponent<Animator>();
-        if (animator == null)
-        {
-            Debug.LogWarning("Animator componentが見つかりません。敵にAnimatorをアタッチしてください。");
-        }
 
         SetNewDriftTarget();
     }
@@ -337,11 +330,6 @@ public class DroneEnemy : MonoBehaviour
         {
             // ドローンの位置に生成
             Instantiate(explosionPrefab, transform.position, Quaternion.identity);
-        }
-
-        if (animator != null)
-        {
-            animator.SetBool("Dead", true);
         }
 
         // コルーチンを停止して、弾が連射されるのを防ぐ
