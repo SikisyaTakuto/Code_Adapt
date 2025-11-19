@@ -1,4 +1,4 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 using System.Collections;
 using UnityEngine.UI;
 using System;
@@ -6,68 +6,122 @@ using System.Linq;
 using UnityEngine.SceneManagement;
 
 /// <summary>
-/// ƒ`ƒ…[ƒgƒŠƒAƒ‹‚Ìis‚ğ§Œä‚µAƒvƒŒƒCƒ„[‚Ì‘€ì§ŒÀ‚ğŠÇ—‚·‚éi—ß“ƒƒNƒ‰ƒXB
+/// ãƒãƒ¥ãƒ¼ãƒˆãƒªã‚¢ãƒ«ã®é€²è¡Œã‚’åˆ¶å¾¡ã—ã€ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®æ“ä½œåˆ¶é™ã‚’ç®¡ç†ã™ã‚‹å¸ä»¤å¡”ã‚¯ãƒ©ã‚¹ã€‚
+/// ä¿®æ­£: ãƒŠãƒ“ã‚²ãƒ¼ã‚·ãƒ§ãƒ³ã‚¢ã‚¤ã‚³ãƒ³ã®è¡¨ç¤º/éè¡¨ç¤ºåˆ¶å¾¡ã‚’è¿½åŠ ã€‚ã‚ªãƒšãƒ¬ãƒ¼ã‚¿ãƒ¼AIã®å£èª¿ã‚’çœŸé¢ç›®ã«ä¿®æ­£ã€‚
 /// </summary>
 public class TutorialManager : MonoBehaviour
 {
-    // ... (ŠO•”QÆ, İ’è, “à•”ó‘Ô, Start(), InitializePlayerState(), StartTutorial() ‚Í•ÏX‚È‚µ) ...
-    // --- ŠO•”QÆ ---
-    [Header("ƒRƒ“ƒ|[ƒlƒ“ƒgQÆ")]
-    [Tooltip("ƒV[ƒ““à‚Ì TutorialPlayerController ‚ğƒAƒ^ƒbƒ`")]
+Â  Â  // --- å¤–éƒ¨å‚ç…§ ---
+Â  Â  [Header("ã‚³ãƒ³ãƒãƒ¼ãƒãƒ³ãƒˆå‚ç…§")]
+    [Tooltip("ã‚·ãƒ¼ãƒ³å†…ã® TutorialPlayerController ã‚’ã‚¢ã‚¿ãƒƒãƒ")]
     public TutorialPlayerController player;
-    [Tooltip("w¦ƒƒbƒZ[ƒW‚ğ•\¦‚·‚é‚½‚ß‚ÌUI Text (‚Ü‚½‚Í TextMeshProUGUI)")]
+    [Tooltip("æŒ‡ç¤ºãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã‚’è¡¨ç¤ºã™ã‚‹ãŸã‚ã®UI Text (ã¾ãŸã¯ TextMeshProUGUI)")]
     public Text tutorialTextUI;
-    [Tooltip("ƒƒbƒZ[ƒW‚ğŠi”[‚·‚éƒpƒlƒ‹i”CˆÓj")]
+    [Tooltip("ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã‚’æ ¼ç´ã™ã‚‹ãƒ‘ãƒãƒ«ï¼ˆä»»æ„ï¼‰")]
     public GameObject messagePanel;
 
-    // --- İ’è ---
-    [Header("İ’è")]
-    [Tooltip("ƒƒbƒZ[ƒW‚ª•\¦‚³‚ê‚éÅ¬ŠÔiƒvƒŒƒCƒ„[‚Ì“ü—Í‚ÉŠÖ‚í‚ç‚¸j")]
-    public float minDisplayTime = 1.5f;
+Â  Â  // ğŸ’¡ NEW: ãƒŠãƒ“ã‚²ãƒ¼ã‚·ãƒ§ãƒ³ã‚¢ã‚¤ã‚³ãƒ³ã®GameObject
+Â  Â  [Tooltip("ã‚ªãƒšãƒ¬ãƒ¼ã‚¿ãƒ¼AIã®ã‚¢ã‚¤ã‚³ãƒ³ã‚„ç«‹ã¡çµµãªã©ã€è¡¨ç¤º/éè¡¨ç¤ºã‚’åˆ‡ã‚Šæ›¿ãˆã‚‹GameObject")]
+    public GameObject navIconObject;
 
-    // --- “à•”ó‘Ô ---
-    private bool isTutorialRunning = false;
+Â  Â  // ğŸŒŸ ã‚¹ãƒ†ãƒƒãƒ—åˆ¥æ™‚é–“è¨­å®š ğŸŒŸ
+Â  Â  // =======================================================
+Â  Â  [Header("ã‚¹ãƒ†ãƒƒãƒ—åˆ¥æ™‚é–“è¨­å®š (Inspectorã§å€‹åˆ¥ã«è¨­å®š)")]
+
+    [Tooltip("ç§»å‹•ãƒãƒ¥ãƒ¼ãƒˆãƒªã‚¢ãƒ«ã®æœ€å°è¡¨ç¤ºæ™‚é–“")]
+    public float MinDisplay_Move = 2.0f;
+    [Tooltip("ç§»å‹•ãƒãƒ¥ãƒ¼ãƒˆãƒªã‚¢ãƒ«å®Œäº†å¾Œã®å¾…æ©Ÿæ™‚é–“")]
+    public float Delay_Move = 1.0f;
+
+    [Tooltip("å‚ç›´ç§»å‹• (æµ®ä¸Šãƒ»é™ä¸‹) ã®æœ€å°è¡¨ç¤ºæ™‚é–“")]
+    public float MinDisplay_Vertical = 3.0f;
+    [Tooltip("æµ®ä¸Šâ†’é™ä¸‹é–“ã®å¾…æ©Ÿæ™‚é–“")]
+    public float Delay_Vertical_Mid = 0.5f;
+    [Tooltip("å‚ç›´ç§»å‹•å®Œäº†å¾Œã®å¾…æ©Ÿæ™‚é–“")]
+    public float Delay_Vertical_End = 1.5f;
+
+    [Tooltip("æ­¦å™¨åˆ‡ã‚Šæ›¿ãˆãƒãƒ¥ãƒ¼ãƒˆãƒªã‚¢ãƒ«ã®æœ€å°è¡¨ç¤ºæ™‚é–“")]
+    public float MinDisplay_WeaponSwitch = 2.0f;
+    [Tooltip("æ­¦å™¨åˆ‡ã‚Šæ›¿ãˆå®Œäº†å¾Œã®å¾…æ©Ÿæ™‚é–“")]
+    public float Delay_WeaponSwitch = 1.0f;
+
+    [Tooltip("è¿‘æ¥æ”»æ’ƒãƒãƒ¥ãƒ¼ãƒˆãƒªã‚¢ãƒ«ã®æœ€å°è¡¨ç¤ºæ™‚é–“")]
+    public float MinDisplay_MeleeAttack = 2.5f;
+    [Tooltip("è¿‘æ¥æ”»æ’ƒå®Œäº†å¾Œã®å¾…æ©Ÿæ™‚é–“")]
+    public float Delay_MeleeAttack = 1.2f;
+
+    [Tooltip("ãƒ“ãƒ¼ãƒ æ”»æ’ƒãƒãƒ¥ãƒ¼ãƒˆãƒªã‚¢ãƒ«ã®æœ€å°è¡¨ç¤ºæ™‚é–“")]
+    public float MinDisplay_BeamAttack = 2.5f;
+    [Tooltip("ãƒ“ãƒ¼ãƒ æ”»æ’ƒå®Œäº†å¾Œã®å¾…æ©Ÿæ™‚é–“")]
+    public float Delay_BeamAttack = 1.2f;
+
+    [Tooltip("ã‚¢ãƒ¼ãƒãƒ¼åˆ‡ã‚Šæ›¿ãˆãƒãƒ¥ãƒ¼ãƒˆãƒªã‚¢ãƒ«ã®æœ€å°è¡¨ç¤ºæ™‚é–“")]
+    public float MinDisplay_ArmorSwitch = 3.5f;
+    [Tooltip("ã‚­ãƒ¼èª¬æ˜â†’æ“ä½œé–“ã®å¾…æ©Ÿæ™‚é–“")]
+    public float Delay_ArmorSwitch_Mid = 0.5f;
+    [Tooltip("ã‚¢ãƒ¼ãƒãƒ¼åˆ‡ã‚Šæ›¿ãˆå®Œäº†å¾Œã®å¾…æ©Ÿæ™‚é–“")]
+    public float Delay_ArmorSwitch_End = 1.8f;
+
+    [Tooltip("ãƒãƒ¥ãƒ¼ãƒˆãƒªã‚¢ãƒ«çµ‚äº†ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã®è¡¨ç¤ºæ™‚é–“")]
+    public float EndMessageDisplayTime = 3.0f;
+Â  Â  // =======================================================
+
+Â  Â  // --- å†…éƒ¨çŠ¶æ…‹ ---
+Â  Â  private bool isTutorialRunning = false;
     private bool isWaitingForPlayerAction = false;
 
-    // =======================================================
-    // ‰Šú‰»
-    // =======================================================
+Â  Â  // =======================================================
+Â  Â  // åˆæœŸåŒ–
+Â  Â  // =======================================================
 
-    void Start()
+Â  Â  void Start()
     {
         if (player == null)
         {
-            Debug.LogError("TutorialPlayerController‚ªİ’è‚³‚ê‚Ä‚¢‚Ü‚¹‚ñBInspector‚Åİ’è‚µ‚Ä‚­‚¾‚³‚¢B");
-            // FindObjectOfType<TutorialPlayerController>()‚Å©“®æ“¾‚ğ‚İ‚é‚Ì‚à—Ç‚¢
+            Debug.LogError("TutorialPlayerControllerãŒè¨­å®šã•ã‚Œã¦ã„ã¾ã›ã‚“ã€‚Inspectorã§è¨­å®šã—ã¦ãã ã•ã„ã€‚");
             return;
         }
 
-        // ‰Šúó‘Ô‚Å‘S‚Ä‚Ì‘€ì‚ğƒƒbƒN‚µAƒ`ƒ…[ƒgƒŠƒAƒ‹‚ğŠJn
-        InitializePlayerState();
+Â  Â  Â  Â  // ğŸ’¡ NEW: ãƒŠãƒ“ã‚²ãƒ¼ã‚·ãƒ§ãƒ³ã‚¢ã‚¤ã‚³ãƒ³ã‚’åˆæœŸçŠ¶æ…‹ã§éè¡¨ç¤ºã«ã™ã‚‹
+Â  Â  Â  Â  SetNavIconVisible(false);
+
+Â  Â  Â  Â  // åˆæœŸçŠ¶æ…‹ã§å…¨ã¦ã®æ“ä½œã‚’ãƒ­ãƒƒã‚¯ã—ã€ãƒãƒ¥ãƒ¼ãƒˆãƒªã‚¢ãƒ«ã‚’é–‹å§‹
+Â  Â  Â  Â  InitializePlayerState();
         StartTutorial();
     }
 
-    /// <summary>
-    /// ƒ`ƒ…[ƒgƒŠƒAƒ‹ŠJn‘O‚ÌƒvƒŒƒCƒ„[‚Ìó‘Ô‚ğİ’è‚·‚éB
-    /// </summary>
-    private void InitializePlayerState()
+Â  Â  /// <summary>
+Â  Â  /// ãƒãƒ¥ãƒ¼ãƒˆãƒªã‚¢ãƒ«é–‹å§‹å‰ã®ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®çŠ¶æ…‹ã‚’è¨­å®šã™ã‚‹ã€‚
+Â  Â  /// </summary>
+Â  Â  private void InitializePlayerState()
     {
-        // ƒvƒŒƒCƒ„[‚Ì‘S‚Ä‚Ì“ü—Í‚ğƒƒbƒN
-        player.isInputLocked = true;
+Â  Â  Â  Â  // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®å…¨ã¦ã®å…¥åŠ›ã‚’ãƒ­ãƒƒã‚¯
+Â  Â  Â  Â  player.isInputLocked = true;
         player.allowHorizontalMove = false;
         player.allowVerticalMove = false;
         player.allowWeaponSwitch = false;
         player.allowArmorSwitch = false;
         player.allowAttack = false;
 
-        // “ü—Íƒgƒ‰ƒbƒLƒ“ƒO‚ğƒŠƒZƒbƒg
-        player.ResetInputTracking();
+Â  Â  Â  Â  // å…¥åŠ›ãƒˆãƒ©ãƒƒã‚­ãƒ³ã‚°ã‚’ãƒªã‚»ãƒƒãƒˆ
+Â  Â  Â  Â  player.ResetInputTracking();
     }
 
-    /// <summary>
-    /// ƒ`ƒ…[ƒgƒŠƒAƒ‹‚Ìis‚ğŠJn‚·‚éB
-    /// </summary>
-    public void StartTutorial()
+Â  Â  /// <summary>
+Â  Â  /// ãƒŠãƒ“ã‚²ãƒ¼ã‚·ãƒ§ãƒ³ã‚¢ã‚¤ã‚³ãƒ³ï¼ˆç«‹ã¡çµµãªã©ï¼‰ã®è¡¨ç¤º/éè¡¨ç¤ºã‚’åˆ‡ã‚Šæ›¿ãˆã‚‹ã€‚
+Â  Â  /// </summary>
+Â  Â  private void SetNavIconVisible(bool isVisible)
+    {
+        if (navIconObject != null)
+        {
+            navIconObject.SetActive(isVisible);
+        }
+    }
+
+Â  Â  /// <summary>
+Â  Â  /// ãƒãƒ¥ãƒ¼ãƒˆãƒªã‚¢ãƒ«ã®é€²è¡Œã‚’é–‹å§‹ã™ã‚‹ã€‚
+Â  Â  /// </summary>
+Â  Â  public void StartTutorial()
     {
         if (!isTutorialRunning)
         {
@@ -78,173 +132,179 @@ public class TutorialManager : MonoBehaviour
         }
     }
 
-    // =======================================================
-    // ƒ`ƒ…[ƒgƒŠƒAƒ‹‚ÌƒƒCƒ“‚Ì—¬‚ê (ƒRƒ‹[ƒ`ƒ“)
-    // =======================================================
+Â  Â  // =======================================================
+Â  Â  // ãƒãƒ¥ãƒ¼ãƒˆãƒªã‚¢ãƒ«ã®ãƒ¡ã‚¤ãƒ³ã®æµã‚Œ (ã‚³ãƒ«ãƒ¼ãƒãƒ³)
+Â  Â  // =======================================================
 
-    private IEnumerator TutorialFlow()
+Â  Â  private IEnumerator TutorialFlow()
     {
-        Debug.Log("--- ƒ`ƒ…[ƒgƒŠƒAƒ‹ŠJn ---");
+        Debug.Log("--- ãƒãƒ¥ãƒ¼ãƒˆãƒªã‚¢ãƒ«é–‹å§‹ (ã‚ªãƒšãƒ¬ãƒ¼ã‚¿ãƒ¼AIèµ·å‹•) ---");
 
-        // ƒXƒeƒbƒv 1: ˆÚ“®‚Ìƒ`ƒ…[ƒgƒŠƒAƒ‹
-        yield return StartCoroutine(RunMovementTutorial());
+Â  Â  Â  Â  // ã‚¹ãƒ†ãƒƒãƒ— 1: ç§»å‹•ã®ãƒãƒ¥ãƒ¼ãƒˆãƒªã‚¢ãƒ«
+Â  Â  Â  Â  yield return StartCoroutine(RunMovementTutorial(MinDisplay_Move, Delay_Move));
 
-        // ƒXƒeƒbƒv 2: •‚—V/~‰º‚Ìƒ`ƒ…[ƒgƒŠƒAƒ‹
-        yield return StartCoroutine(RunVerticalMovementTutorial());
+Â  Â  Â  Â  // ã‚¹ãƒ†ãƒƒãƒ— 2: æµ®éŠ/é™ä¸‹ã®ãƒãƒ¥ãƒ¼ãƒˆãƒªã‚¢ãƒ«
+Â  Â  Â  Â  yield return StartCoroutine(RunVerticalMovementTutorial(MinDisplay_Vertical, Delay_Vertical_Mid, Delay_Vertical_End));
 
-        // ƒXƒeƒbƒv 3: •ŠíØ‚è‘Ö‚¦‚Ìƒ`ƒ…[ƒgƒŠƒAƒ‹
-        yield return StartCoroutine(RunWeaponSwitchTutorial());
+Â  Â  Â  Â  // ã‚¹ãƒ†ãƒƒãƒ— 3: æ­¦å™¨åˆ‡ã‚Šæ›¿ãˆã®ãƒãƒ¥ãƒ¼ãƒˆãƒªã‚¢ãƒ«
+Â  Â  Â  Â  yield return StartCoroutine(RunWeaponSwitchTutorial(MinDisplay_WeaponSwitch, Delay_WeaponSwitch));
 
-        // ƒXƒeƒbƒv 4: ‹ßÚUŒ‚‚Ìƒ`ƒ…[ƒgƒŠƒAƒ‹
-        yield return StartCoroutine(RunMeleeAttackTutorial());
+Â  Â  Â  Â  // ã‚¹ãƒ†ãƒƒãƒ— 4: è¿‘æ¥æ”»æ’ƒã®ãƒãƒ¥ãƒ¼ãƒˆãƒªã‚¢ãƒ«
+Â  Â  Â  Â  yield return StartCoroutine(RunMeleeAttackTutorial(MinDisplay_MeleeAttack, Delay_MeleeAttack));
 
-        // ƒXƒeƒbƒv 5: ƒr[ƒ€UŒ‚‚Ìƒ`ƒ…[ƒgƒŠƒAƒ‹
-        yield return StartCoroutine(RunBeamAttackTutorial());
+Â  Â  Â  Â  // ã‚¹ãƒ†ãƒƒãƒ— 5: ãƒ“ãƒ¼ãƒ æ”»æ’ƒã®ãƒãƒ¥ãƒ¼ãƒˆãƒªã‚¢ãƒ«
+Â  Â  Â  Â  yield return StartCoroutine(RunBeamAttackTutorial(MinDisplay_BeamAttack, Delay_BeamAttack));
 
-        // ƒXƒeƒbƒv 6: ƒA[ƒ}[Ø‚è‘Ö‚¦‚Ìƒ`ƒ…[ƒgƒŠƒAƒ‹
-        yield return StartCoroutine(RunArmorSwitchTutorial());
+Â  Â  Â  Â  // ã‚¹ãƒ†ãƒƒãƒ— 6: ã‚¢ãƒ¼ãƒãƒ¼åˆ‡ã‚Šæ›¿ãˆã®ãƒãƒ¥ãƒ¼ãƒˆãƒªã‚¢ãƒ«
+Â  Â  Â  Â  yield return StartCoroutine(RunArmorSwitchTutorial(MinDisplay_ArmorSwitch, Delay_ArmorSwitch_Mid, Delay_ArmorSwitch_End));
 
-        // ƒ`ƒ…[ƒgƒŠƒAƒ‹I—¹
-        yield return StartCoroutine(EndTutorial());
+Â  Â  Â  Â  // ãƒãƒ¥ãƒ¼ãƒˆãƒªã‚¢ãƒ«çµ‚äº†
+Â  Â  Â  Â  yield return StartCoroutine(EndTutorial());
     }
 
-    // --- ƒXƒeƒbƒv‚²‚Æ‚ÌƒRƒ‹[ƒ`ƒ“ (RunMovementTutorial, RunVerticalMovementTutorial, RunWeaponSwitchTutorial, RunMeleeAttackTutorial, RunBeamAttackTutorial, RunArmorSwitchTutorial ‚Í•ÏX‚È‚µ) ---
+Â  Â  // --- ã‚¹ãƒ†ãƒƒãƒ—ã”ã¨ã®ã‚³ãƒ«ãƒ¼ãƒãƒ³ (ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã‚’ã‚­ãƒ£ãƒ©å£èª¿ã«å¤‰æ›´) ---
 
-    private IEnumerator RunMovementTutorial()
+Â  Â  private IEnumerator RunMovementTutorial(float minTime, float nextStepDelay)
     {
-        // €”õ: ˆÚ“®‚Ì‚İ‹–‰Â
-        player.isInputLocked = false;
+Â  Â  Â  Â  // æº–å‚™: ç§»å‹•ã®ã¿è¨±å¯
+Â  Â  Â  Â  player.isInputLocked = false;
         player.allowHorizontalMove = true;
         player.ResetInputTracking();
 
-        // w¦
-        yield return StartCoroutine(ShowMessageAndWaitForAction("ˆÚ“®‘€ì‚ğŠwK‚µ‚Ü‚·B**[WASD]ƒL[**‚ğ‰Ÿ‚µ‚ÄˆÚ“®‚µ‚Ä‚­‚¾‚³‚¢B",
-                                                               () => player.HasMovedHorizontally,
-                                                               minDisplayTime));
+Â  Â  Â  Â  // æŒ‡ç¤º (çœŸé¢ç›®ãªå£èª¿ã«ä¿®æ­£)
+Â  Â  Â  Â  yield return StartCoroutine(ShowMessageAndWaitForAction("ç¾åœ¨ã‚ˆã‚Šãƒãƒ¥ãƒ¼ãƒˆãƒªã‚¢ãƒ«ã‚’é–‹å§‹ã—ã¾ã™ã€‚ã¾ãšã¯åŸºæœ¬ç§»å‹•ã‹ã‚‰é–‹å§‹ã—ã¦ãã ã•ã„ã€‚**[WASD]ã‚­ãƒ¼**ã«ã¦è‡ªç”±ã«ç§»å‹•æ“ä½œã‚’å®Ÿè¡Œã—ã¦ãã ã•ã„ã€‚",
+                              () => player.HasMovedHorizontally,
+                              minTime,
+                              nextStepDelay));
 
         player.allowHorizontalMove = false;
-        Debug.Log("ˆÚ“®ƒ`ƒ…[ƒgƒŠƒAƒ‹Š®—¹B");
+        Debug.Log("ç§»å‹•ãƒãƒ¥ãƒ¼ãƒˆãƒªã‚¢ãƒ«å®Œäº†ã€‚");
     }
 
-    private IEnumerator RunVerticalMovementTutorial()
+    private IEnumerator RunVerticalMovementTutorial(float minTime, float midStepDelay, float nextStepDelay)
     {
-        // €”õ: ‚’¼ˆÚ“®‚Ì‚İ‹–‰Â
-        player.allowVerticalMove = true;
+Â  Â  Â  Â  // æº–å‚™: å‚ç›´ç§»å‹•ã®ã¿è¨±å¯
+Â  Â  Â  Â  player.allowVerticalMove = true;
         player.ResetInputTracking();
 
-        // w¦ (•‚ã)
-        yield return StartCoroutine(ShowMessageAndWaitForAction("ƒGƒlƒ‹ƒM[‚ğg‚Á‚Ä•‚ã‚Å‚«‚Ü‚·B**[Space]ƒL[**‚ğ’·‰Ÿ‚µ‚µ‚Ä‚­‚¾‚³‚¢B",
-                                                               () => player.HasJumped,
-                                                               minDisplayTime));
+Â  Â  Â  Â  // æŒ‡ç¤º (æµ®ä¸Š) (çœŸé¢ç›®ãªå£èª¿ã«ä¿®æ­£)
+Â  Â  Â  Â  yield return StartCoroutine(ShowMessageAndWaitForAction("æ¬¡ã«å‚ç›´ç§»å‹•ã®æ“ä½œã§ã™ã€‚ã‚¨ãƒãƒ«ã‚®ãƒ¼ã‚’å……å¡«ã—ã€æµ®ä¸Šã—ã¦ãã ã•ã„ã€‚**[Space]ã‚­ãƒ¼**ã‚’é•·æŠ¼ã—ã—ã¦ãã ã•ã„ã€‚",
+                              () => player.HasJumped,
+                              minTime,
+                              midStepDelay)); // æµ®ä¸Šâ†’é™ä¸‹é–“ã®å¾…æ©Ÿ
 
-        // w¦ (~‰º)
-        yield return StartCoroutine(ShowMessageAndWaitForAction("~‰º‚·‚é‚É‚Í**[Alt]ƒL[**‚ğ’·‰Ÿ‚µ‚µ‚Ä‚­‚¾‚³‚¢B",
-                                                               () => player.HasDescended,
-                                                               minDisplayTime));
+Â  Â  Â  Â  // æŒ‡ç¤º (é™ä¸‹) (çœŸé¢ç›®ãªå£èª¿ã«ä¿®æ­£)
+Â  Â  Â  Â  yield return StartCoroutine(ShowMessageAndWaitForAction("æ¬¡ã¯é™ä¸‹æ“ä½œã§ã™ã€‚**[Alt]ã‚­ãƒ¼**ã‚’é•·æŠ¼ã—ã—ã¦ãã ã•ã„ã€‚",
+                              () => player.HasDescended,
+                              minTime,
+                              nextStepDelay)); // ã‚¹ãƒ†ãƒƒãƒ—çµ‚äº†æ™‚ã®å¾…æ©Ÿ
 
-        player.allowVerticalMove = false;
-        Debug.Log("‚’¼ˆÚ“®ƒ`ƒ…[ƒgƒŠƒAƒ‹Š®—¹B");
+Â  Â  Â  Â  player.allowVerticalMove = false;
+        Debug.Log("å‚ç›´ç§»å‹•ãƒãƒ¥ãƒ¼ãƒˆãƒªã‚¢ãƒ«å®Œäº†ã€‚");
     }
 
-    private IEnumerator RunWeaponSwitchTutorial()
+    private IEnumerator RunWeaponSwitchTutorial(float minTime, float nextStepDelay)
     {
-        // €”õ: •ŠíØ‚è‘Ö‚¦‚Ì‚İ‹–‰Â
-        player.allowWeaponSwitch = true;
+Â  Â  Â  Â  // æº–å‚™: æ­¦å™¨åˆ‡ã‚Šæ›¿ãˆã®ã¿è¨±å¯
+Â  Â  Â  Â  player.allowWeaponSwitch = true;
 
         TutorialPlayerController.WeaponMode initialMode = player.currentWeaponMode;
 
-        // w¦
-        yield return StartCoroutine(ShowMessageAndWaitForAction($"Œ»İ‚Ì•Ší‚Í**[{initialMode}]**‚Å‚·B**[E]ƒL[**‚ğ‰Ÿ‚µ‚Ä•Ší‚ğØ‚è‘Ö‚¦‚Ä‚­‚¾‚³‚¢B",
-                                                               () => player.currentWeaponMode != initialMode,
-                                                               minDisplayTime));
+Â  Â  Â  Â  // æŒ‡ç¤º (çœŸé¢ç›®ãªå£èª¿ã«ä¿®æ­£)
+Â  Â  Â  Â  yield return StartCoroutine(ShowMessageAndWaitForAction($"æ­¦å™¨ã®åˆ‡ã‚Šæ›¿ãˆæ“ä½œã§ã™ã€‚ç¾åœ¨ã®ãƒ¢ãƒ¼ãƒ‰ã¯**[{initialMode}]**ã§ã™ã€‚**[E]ã‚­ãƒ¼**ã«ã¦ãƒ¢ãƒ¼ãƒ‰ã‚’åˆ‡ã‚Šæ›¿ãˆã¦ãã ã•ã„ã€‚",
+                              () => player.currentWeaponMode != initialMode,
+                              minTime,
+                              nextStepDelay));
 
         player.allowWeaponSwitch = false;
-        Debug.Log("•ŠíØ‚è‘Ö‚¦ƒ`ƒ…[ƒgƒŠƒAƒ‹Š®—¹B");
+        Debug.Log("æ­¦å™¨åˆ‡ã‚Šæ›¿ãˆãƒãƒ¥ãƒ¼ãƒˆãƒªã‚¢ãƒ«å®Œäº†ã€‚");
     }
 
-    private IEnumerator RunMeleeAttackTutorial()
+    private IEnumerator RunMeleeAttackTutorial(float minTime, float nextStepDelay)
     {
-        // €”õ: ‹ßÚUŒ‚‚Ì‚İ‹–‰Â
-        player.allowAttack = true;
+Â  Â  Â  Â  // æº–å‚™: è¿‘æ¥æ”»æ’ƒã®ã¿è¨±å¯
+Â  Â  Â  Â  player.allowAttack = true;
         player.allowWeaponSwitch = false;
 
-        // •Ší‚ğ‹ßÚƒ‚[ƒh‚É‹­§İ’è‚·‚é (TutorialPlayerController‚É public SwitchWeaponMode ‚ª•K—v)
-        player.SwitchWeaponMode(TutorialPlayerController.WeaponMode.Melee);
+Â  Â  Â  Â  // æ­¦å™¨ã‚’è¿‘æ¥ãƒ¢ãƒ¼ãƒ‰ã«å¼·åˆ¶è¨­å®šã™ã‚‹
+Â  Â  Â  Â  player.SwitchWeaponMode(TutorialPlayerController.WeaponMode.Melee);
 
-        // UŒ‚ƒCƒxƒ“ƒg‚ª”­¶‚·‚é‚Ü‚Å‘Ò‹@‚·‚é
-        bool attackPerformed = false;
-        // ƒAƒNƒVƒ‡ƒ“‚ğƒ[ƒJƒ‹•Ï”‚ÉŠi”[‚µA‰ğœ‚ÉŠmÀ‚É“¯‚¶ƒCƒ“ƒXƒ^ƒ“ƒX‚ğQÆ‚·‚é‚æ‚¤‚ÉC³
+Â  Â  Â  Â  // æ”»æ’ƒã‚¤ãƒ™ãƒ³ãƒˆãŒç™ºç”Ÿã™ã‚‹ã¾ã§å¾…æ©Ÿã™ã‚‹
+Â  Â  Â  Â  bool attackPerformed = false;
         Action handler = () => attackPerformed = true;
         player.onMeleeAttackPerformed += handler;
 
-        // w¦
-        yield return StartCoroutine(ShowMessageAndWaitForAction("‹ßÚUŒ‚‚ğ‚µ‚Ü‚·B**[¶ƒNƒŠƒbƒN]**‚ÅUŒ‚‚µ‚Ä‚­‚¾‚³‚¢B–Ú‚Ì‘O‚ÌƒIƒuƒWƒFƒNƒg‚ğUŒ‚‚µ‚Ä‚İ‚Ü‚µ‚å‚¤B",
-                                                               () => attackPerformed,
-                                                               minDisplayTime));
+Â  Â  Â  Â  // æŒ‡ç¤º (çœŸé¢ç›®ãªå£èª¿ã«ä¿®æ­£)
+Â  Â  Â  Â  yield return StartCoroutine(ShowMessageAndWaitForAction("è¿‘æ¥ãƒ¢ãƒ¼ãƒ‰ã¸ã®è¨­å®šã‚’å®Œäº†ã—ã¾ã—ãŸã€‚**[å·¦ã‚¯ãƒªãƒƒã‚¯]**ã§æ”»æ’ƒã‚’å®Ÿè¡Œã—ã¦ãã ã•ã„ã€‚çœ¼å‰ã®ã‚¿ãƒ¼ã‚²ãƒƒãƒˆã‚’æ”»æ’ƒç›®æ¨™ã¨ã—ã¾ã™ã€‚",
+                              () => attackPerformed,
+                              minTime,
+                              nextStepDelay));
 
         player.onMeleeAttackPerformed -= handler;
         player.allowAttack = false;
-        Debug.Log("‹ßÚUŒ‚ƒ`ƒ…[ƒgƒŠƒAƒ‹Š®—¹B");
+        Debug.Log("è¿‘æ¥æ”»æ’ƒãƒãƒ¥ãƒ¼ãƒˆãƒªã‚¢ãƒ«å®Œäº†ã€‚");
     }
 
-    private IEnumerator RunBeamAttackTutorial()
+    private IEnumerator RunBeamAttackTutorial(float minTime, float nextStepDelay)
     {
-        // €”õ: ƒr[ƒ€UŒ‚‚Ì‚İ‹–‰Â
-        player.allowAttack = true;
+Â  Â  Â  Â  // æº–å‚™: ãƒ“ãƒ¼ãƒ æ”»æ’ƒã®ã¿è¨±å¯
+Â  Â  Â  Â  player.allowAttack = true;
 
-        // •Ší‚ğƒr[ƒ€ƒ‚[ƒh‚É‹­§İ’è‚·‚é (TutorialPlayerController‚É public SwitchWeaponMode ‚ª•K—v)
-        player.SwitchWeaponMode(TutorialPlayerController.WeaponMode.Beam);
+Â  Â  Â  Â  // æ­¦å™¨ã‚’ãƒ“ãƒ¼ãƒ ãƒ¢ãƒ¼ãƒ‰ã«å¼·åˆ¶è¨­å®šã™ã‚‹
+Â  Â  Â  Â  player.SwitchWeaponMode(TutorialPlayerController.WeaponMode.Beam);
 
-        // UŒ‚ƒCƒxƒ“ƒg‚ª”­¶‚·‚é‚Ü‚Å‘Ò‹@‚·‚é
-        bool attackPerformed = false;
-        // ƒAƒNƒVƒ‡ƒ“‚ğƒ[ƒJƒ‹•Ï”‚ÉŠi”[‚µA‰ğœ‚ÉŠmÀ‚É“¯‚¶ƒCƒ“ƒXƒ^ƒ“ƒX‚ğQÆ‚·‚é‚æ‚¤‚ÉC³
+Â  Â  Â  Â  // æ”»æ’ƒã‚¤ãƒ™ãƒ³ãƒˆãŒç™ºç”Ÿã™ã‚‹ã¾ã§å¾…æ©Ÿã™ã‚‹
+Â  Â  Â  Â  bool attackPerformed = false;
         Action handler = () => attackPerformed = true;
         player.onBeamAttackPerformed += handler;
 
-        // w¦
-        yield return StartCoroutine(ShowMessageAndWaitForAction("ƒr[ƒ€UŒ‚‚ğ‚µ‚Ü‚·B**[¶ƒNƒŠƒbƒN]**‚ÅUŒ‚‚µ‚Ä‚­‚¾‚³‚¢B‰“‚­‚Ìƒ^[ƒQƒbƒg‚ğ‘_‚Á‚Ä‚İ‚Ü‚µ‚å‚¤B",
-                                                               () => attackPerformed,
-                                                               minDisplayTime));
+Â  Â  Â  Â  // æŒ‡ç¤º (çœŸé¢ç›®ãªå£èª¿ã«ä¿®æ­£)
+Â  Â  Â  Â  yield return StartCoroutine(ShowMessageAndWaitForAction("ãƒ“ãƒ¼ãƒ ãƒ¢ãƒ¼ãƒ‰ã¸ã®è¨­å®šã‚’å®Œäº†ã—ã¾ã—ãŸã€‚**[å·¦ã‚¯ãƒªãƒƒã‚¯]**ã§é è·é›¢æ”»æ’ƒã‚’å®Ÿè¡Œã—ã¦ãã ã•ã„ã€‚é æ–¹ã®ã‚¿ãƒ¼ã‚²ãƒƒãƒˆã‚’æ”»æ’ƒç›®æ¨™ã¨ã—ã¾ã™ã€‚",
+                              () => attackPerformed,
+                              minTime,
+                              nextStepDelay));
 
         player.onBeamAttackPerformed -= handler;
         player.allowAttack = false;
-        Debug.Log("ƒr[ƒ€UŒ‚ƒ`ƒ…[ƒgƒŠƒAƒ‹Š®—¹B");
+        Debug.Log("ãƒ“ãƒ¼ãƒ æ”»æ’ƒãƒãƒ¥ãƒ¼ãƒˆãƒªã‚¢ãƒ«å®Œäº†ã€‚");
     }
 
-    private IEnumerator RunArmorSwitchTutorial()
+    private IEnumerator RunArmorSwitchTutorial(float minTime, float midStepDelay, float nextStepDelay)
     {
-        // €”õ: ƒA[ƒ}[Ø‚è‘Ö‚¦‚Ì‚İ‹–‰Â
-        player.allowArmorSwitch = true;
+Â  Â  Â  Â  // æº–å‚™: ã‚¢ãƒ¼ãƒãƒ¼åˆ‡ã‚Šæ›¿ãˆã®ã¿è¨±å¯
+Â  Â  Â  Â  player.allowArmorSwitch = true;
         TutorialPlayerController.ArmorMode initialMode = player.currentArmorMode;
 
-        // Å‰‚Ìw¦
-        yield return StartCoroutine(ShowMessageAndWaitForAction("ƒA[ƒ}[Ø‚è‘Ö‚¦‚ğ‚µ‚Ü‚·B**[1]ƒL[**‚ÅNormalƒ‚[ƒhA**[2]ƒL[**‚ÅBusterƒ‚[ƒhA**[3]ƒL[**‚ÅSpeedƒ‚[ƒh‚ÉØ‚è‘Ö‚¦‚Ü‚·B",
-                                                               () => Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Alpha3),
-                                                               minDisplayTime));
+Â  Â  Â  Â  // æœ€åˆã®æŒ‡ç¤º (ã‚­ãƒ¼èª¬æ˜) (çœŸé¢ç›®ãªå£èª¿ã«ä¿®æ­£)
+Â  Â  Â  Â  yield return StartCoroutine(ShowMessageAndWaitForAction("æœ€å¾Œã«ã€ã‚¢ãƒ¼ãƒãƒ¼åˆ‡ã‚Šæ›¿ãˆã®èª¬æ˜ã§ã™ã€‚**[1]ã‚­ãƒ¼**ã§Normalã€**[2]ã‚­ãƒ¼**ã§Busterã€**[3]ã‚­ãƒ¼**ã§Speedãƒ¢ãƒ¼ãƒ‰ã¸ã®åˆ‡ã‚Šæ›¿ãˆãŒå¯èƒ½ã§ã™ã€‚",
+                              () => Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Alpha3),
+                              minTime,
+                              midStepDelay)); // ã‚­ãƒ¼èª¬æ˜â†’æ“ä½œé–“ã®å¾…æ©Ÿ
 
-        // •Ê‚Ìƒ‚[ƒh‚É‚È‚Á‚½‚±‚Æ‚ğŠm”F‚·‚é‚Ü‚Å‘Ò‹@
-        yield return StartCoroutine(ShowMessageAndWaitForAction("‚¢‚¸‚ê‚©‚ÌƒA[ƒ}[‚ÉØ‚è‘Ö‚¦‚ÄA‚»‚Ì“Á«‚ğ‘ÌŒ±‚µ‚Ä‚İ‚Ü‚µ‚å‚¤B",
-                                                               () => player.currentArmorMode != initialMode,
-                                                               minDisplayTime));
+Â  Â  Â  Â  // åˆ¥ã®ãƒ¢ãƒ¼ãƒ‰ã«ãªã£ãŸã“ã¨ã‚’ç¢ºèªã™ã‚‹ã¾ã§å¾…æ©Ÿ (å®Ÿéš›ã«åˆ‡ã‚Šæ›¿ãˆã‚’ä¿ƒã™) (çœŸé¢ç›®ãªå£èª¿ã«ä¿®æ­£)
+Â  Â  Â  Â  yield return StartCoroutine(ShowMessageAndWaitForAction("ã„ãšã‚Œã‹ã®ã‚­ãƒ¼ã§ã‚¢ãƒ¼ãƒãƒ¼ãƒ¢ãƒ¼ãƒ‰ã‚’åˆ‡ã‚Šæ›¿ãˆã€æ€§èƒ½ã‚’ç¢ºèªã—ã¦ãã ã•ã„ã€‚",
+                              () => player.currentArmorMode != initialMode,
+                              minTime,
+                              nextStepDelay)); // ã‚¹ãƒ†ãƒƒãƒ—çµ‚äº†æ™‚ã®å¾…æ©Ÿ
 
-        player.allowArmorSwitch = false;
-        Debug.Log("ƒA[ƒ}[Ø‚è‘Ö‚¦ƒ`ƒ…[ƒgƒŠƒAƒ‹Š®—¹B");
+Â  Â  Â  Â  player.allowArmorSwitch = false;
+        Debug.Log("ã‚¢ãƒ¼ãƒãƒ¼åˆ‡ã‚Šæ›¿ãˆãƒãƒ¥ãƒ¼ãƒˆãƒªã‚¢ãƒ«å®Œäº†ã€‚");
     }
 
-    // =======================================================
-    // ƒ`ƒ…[ƒgƒŠƒAƒ‹I—¹ (C³‰ÓŠ)
-    // =======================================================
+Â  Â  // =======================================================
+Â  Â  // ãƒãƒ¥ãƒ¼ãƒˆãƒªã‚¢ãƒ«çµ‚äº†
+Â  Â  // =======================================================
 
-    private IEnumerator EndTutorial()
+Â  Â  private IEnumerator EndTutorial()
     {
-        // ÅIƒƒbƒZ[ƒW
-        // ? C³: ‘Ò‹@ğŒ‚ğuí‚Étruev‚É•ÏX‚µAminDisplayTime (3.0f) ‚¾‚¯‘Ò‹@‚·‚é‚æ‚¤‚É‚·‚é
-        yield return StartCoroutine(ShowMessageAndWaitForAction("ƒ`ƒ…[ƒgƒŠƒAƒ‹‚ğI—¹‚µ‚Ü‚·B‚·‚×‚Ä‚Ì‹@”\‚ª‰ğ•ú‚³‚ê‚Ü‚µ‚½B–{•Ò‚ğn‚ß‚Ü‚µ‚å‚¤I",
-                                                               () => true, // í‚Étrue (‘¦À‚ÉğŒ‚ğ–‚½‚·)
-                                                               3.0f)); // 3•bŠÔƒƒbƒZ[ƒW‚ğ•\¦‚·‚é
+Â  Â  Â  Â  // æœ€çµ‚ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ (çœŸé¢ç›®ãªå£èª¿ã«ä¿®æ­£)
+Â  Â  Â  Â  yield return StartCoroutine(ShowMessageAndWaitForAction("ãŠç–²ã‚Œæ§˜ã§ã—ãŸã€‚å…¨ã¦ã®ãƒãƒ¥ãƒ¼ãƒˆãƒªã‚¢ãƒ«é …ç›®ãŒçµ‚äº†ã—ã€å…¨æ©Ÿèƒ½ãŒè§£æ”¾ã•ã‚Œã¾ã—ãŸã€‚å®Ÿæˆ¦ã¸ç§»è¡Œã—ã¾ã™ã€‚",
+                              () => true, // å¸¸ã«true (å³åº§ã«æ¡ä»¶ã‚’æº€ãŸã™)
+Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  EndMessageDisplayTime, // æœ€å°è¡¨ç¤ºæ™‚é–“
+Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  0.0f));Â  Â  Â // çµ‚äº†å¾Œã¯å¾…æ©Ÿã—ãªã„
 
-        // ‘S‚Ä‚Ì‹@”\‚ğ‰ğ•ú‚·‚éˆ—
-        player.isInputLocked = false;
+Â  Â  Â  Â  // å…¨ã¦ã®æ©Ÿèƒ½ã‚’è§£æ”¾ã™ã‚‹å‡¦ç†
+Â  Â  Â  Â  player.isInputLocked = false;
         player.allowHorizontalMove = true;
         player.allowVerticalMove = true;
         player.allowWeaponSwitch = true;
@@ -252,22 +312,34 @@ public class TutorialManager : MonoBehaviour
         player.allowAttack = true;
 
         if (messagePanel != null) messagePanel.SetActive(false);
-        Debug.Log("--- ƒ`ƒ…[ƒgƒŠƒAƒ‹I—¹: ‹@”\‰ğ•ú ---");
+        SetNavIconVisible(false); // ãƒãƒ¥ãƒ¼ãƒˆãƒªã‚¢ãƒ«çµ‚äº†æ™‚ã«ã‚¢ã‚¤ã‚³ãƒ³ã‚’éè¡¨ç¤ºã«ã™ã‚‹
+Â  Â  Â  Â  Debug.Log("--- ãƒãƒ¥ãƒ¼ãƒˆãƒªã‚¢ãƒ«çµ‚äº†: å…¨æ©Ÿèƒ½è§£æ”¾ ---");
         isTutorialRunning = false;
 
-        // SceneManager.LoadScene("MainGameScene");
+Â  Â  Â  Â  // SceneManager.LoadScene("MainGameScene");
+Â  Â  }
+
+Â  Â  // =======================================================
+Â  Â  // ãƒ¦ãƒ¼ãƒ†ã‚£ãƒªãƒ†ã‚£ãƒ¡ã‚½ãƒƒãƒ‰
+Â  Â  // =======================================================
+
+Â  Â  // ğŸ’¡ ã“ã®ã‚ªãƒ¼ãƒãƒ¼ãƒ­ãƒ¼ãƒ‰ã¯ã€å„ã‚¹ãƒ†ãƒƒãƒ—ã®ã‚³ãƒ«ãƒ¼ãƒãƒ³ãŒå¼•æ•°ã‚’æ¸¡ã™ã‚ˆã†ã«ãªã£ãŸãŸã‚ã€åŸºæœ¬çš„ã«æœªä½¿ç”¨ã«ãªã‚Šã¾ã™ãŒã€äº’æ›æ€§ã®ãŸã‚ã«æ®‹ã—ã¾ã™ã€‚
+Â  Â  private IEnumerator ShowMessageAndWaitForAction(string message, System.Func<bool> condition)
+    {
+Â  Â  Â  Â  // ã“ã“ã«æ¥ãŸå ´åˆã¯ã€ãƒ‡ãƒ•ã‚©ãƒ«ãƒˆå€¤ã«è¿‘ã„è¨­å®šã‚’ä½¿ç”¨ã™ã‚‹ï¼ˆä»Šå›ã¯ä¾¿å®œçš„ã« EndTutorial ã®è¨­å®šã‚’ä½¿ç”¨ï¼‰
+Â  Â  Â  Â  yield return StartCoroutine(ShowMessageAndWaitForAction(message, condition, 2.5f, 1.0f));
     }
 
-    // =======================================================
-    // ƒ†[ƒeƒBƒŠƒeƒBƒƒ\ƒbƒh (•ÏX‚È‚µ)
-    // =======================================================
-
-    /// <summary>
-    /// UI‚ÉƒƒbƒZ[ƒW‚ğ•\¦‚µAw’è‚³‚ê‚½ğŒ‚ª–‚½‚³‚ê‚é‚Ü‚ÅA‚Ü‚½‚ÍÅ¬•\¦ŠÔ‚ªŒo‰ß‚·‚é‚Ü‚Å‘Ò‹@‚·‚éB
-    /// </summary>
-    private IEnumerator ShowMessageAndWaitForAction(string message, System.Func<bool> condition, float minimumTime)
+Â  Â  /// <summary>
+Â  Â  /// UIã«ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã‚’è¡¨ç¤ºã—ã€æŒ‡å®šã•ã‚ŒãŸæ¡ä»¶ãŒæº€ãŸã•ã‚Œã‚‹ã¾ã§ã€ã¾ãŸã¯æŒ‡å®šã•ã‚ŒãŸæ™‚é–“ (minimumTime) ãŒçµŒéã™ã‚‹ã¾ã§å¾…æ©Ÿã—ã€
+Â  Â  /// æœ€å¾Œã«æŒ‡å®šã•ã‚ŒãŸæ™‚é–“ (nextStepDelay) ã ã‘å¾…æ©Ÿã™ã‚‹ã€‚
+Â  Â  /// </summary>
+Â  Â  private IEnumerator ShowMessageAndWaitForAction(string message, System.Func<bool> condition, float minimumTime, float nextStepDelay)
     {
         isWaitingForPlayerAction = true;
+
+Â  Â  Â  Â  // ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸è¡¨ç¤ºé–‹å§‹æ™‚ã«ã‚¢ã‚¤ã‚³ãƒ³ã‚’è¡¨ç¤º
+Â  Â  Â  Â  SetNavIconVisible(true);
 
         if (tutorialTextUI != null)
         {
@@ -276,16 +348,16 @@ public class TutorialManager : MonoBehaviour
 
         float startTime = Time.time;
 
-        // ƒvƒŒƒCƒ„[‚Ì‘€ì‚ğ‘Ò‹@
-        yield return new WaitUntil(condition);
+Â  Â  Â  Â  // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®æ“ä½œã‚’å¾…æ©Ÿ
+Â  Â  Â  Â  yield return new WaitUntil(condition);
 
-        // ‘Ò‹@ğŒ‚ª–‚½‚³‚ê‚½Œã‚ÉƒƒbƒZ[ƒW‚ğXVi”CˆÓj
-        // if (condition()) tutorialTextUI.text = "Š®—¹IŸ‚ÌƒXƒeƒbƒv‚Öi‚İ‚Ü‚·...";
+Â  Â  Â  Â  // ãƒ­ã‚°ã‚‚ãƒŠãƒ“ã‚²ãƒ¼ã‚·ãƒ§ãƒ³ã‚­ãƒ£ãƒ©é¢¨ã«å°‘ã—å¤‰æ›´ (çœŸé¢ç›®ãªå£èª¿ã«ä¿®æ­£)
+Â  Â  Â  Â  // (ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ãŒã€Œ**ã‚ªãƒšãƒ¬ãƒ¼ã‚¿ãƒ¼AI**ï¼š...ã€ã®å½¢å¼ã§ã‚ã‚‹ã“ã¨ã‚’å‰æã¨ã—ã¦ã„ã¾ã™)
+Â  Â  Â  Â  string logMessage = message.Contains("ï¼š") ? message.Split('ï¼š')[1] : message;
+        Debug.Log($"ã‚¢ã‚¯ã‚·ãƒ§ãƒ³ã€Œ{logMessage.Split('ï¼')[0].Split('ã€‚')[0]}ã€ã‚’**ç¢ºèªã—ã¾ã—ãŸã€‚**");
 
-        Debug.Log($"ƒAƒNƒVƒ‡ƒ“Às: u{message}v‚ª–‚½‚³‚ê‚Ü‚µ‚½B");
-
-        // Å¬•\¦ŠÔ‚ªŒo‰ß‚·‚é‚Ü‚Å‘Ò‹@
-        float elapsedTime = Time.time - startTime;
+Â  Â  Â  Â  // æœ€å°è¡¨ç¤ºæ™‚é–“ãŒçµŒéã™ã‚‹ã¾ã§å¾…æ©Ÿ
+Â  Â  Â  Â  float elapsedTime = Time.time - startTime;
         float remainingTime = minimumTime - elapsedTime;
 
         if (remainingTime > 0)
@@ -293,10 +365,16 @@ public class TutorialManager : MonoBehaviour
             yield return new WaitForSeconds(remainingTime);
         }
 
-        // ‘Ò‹@’†‚Ìƒtƒ‰ƒO‚ğƒŠƒZƒbƒg
-        isWaitingForPlayerAction = false;
+Â  Â  Â  Â  // å¾…æ©Ÿçµ‚äº†æ™‚ã«ã‚¢ã‚¤ã‚³ãƒ³ã‚’éè¡¨ç¤º
+Â  Â  Â  Â  SetNavIconVisible(false);
 
-        // Ÿ‚ÌƒXƒeƒbƒv‚Ì€”õ‚Ì‚½‚ß‚É­‚µ‘Ò‹@i”CˆÓj
-        yield return new WaitForSeconds(0.5f);
+Â  Â  Â  Â  // å¾…æ©Ÿä¸­ã®ãƒ•ãƒ©ã‚°ã‚’ãƒªã‚»ãƒƒãƒˆ
+Â  Â  Â  Â  isWaitingForPlayerAction = false;
+
+Â  Â  Â  Â  // æ¬¡ã®ã‚¹ãƒ†ãƒƒãƒ—ã®æº–å‚™ã®ãŸã‚ã«å¾…æ©Ÿ (ã‚¹ãƒ†ãƒƒãƒ—é–“ã®å€‹åˆ¥å¾…æ©Ÿæ™‚é–“)
+Â  Â  Â  Â  if (nextStepDelay > 0)
+        {
+            yield return new WaitForSeconds(nextStepDelay);
+        }
     }
 }
