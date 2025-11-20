@@ -1,78 +1,79 @@
 using UnityEngine;
 using System;
 
-[RequireComponent(typeof(Rigidbody))] // Rigidbodyを必須にする
+[RequireComponent(typeof(Rigidbody))]
 public class Bullet : MonoBehaviour
 {
-    // private float moveSpeed = 10f; // ★ 削除: EnemyAI側でRigidbodyの速度を設定するため不要
     private Rigidbody rb;
-    private Action<Bullet> returnAction; // プールに返すためのデリゲート
+    private Action<Bullet> returnAction;
+    private TrailRenderer trail; // 追加: 軌跡用
 
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
-        // Rigidbodyを使用する場合、IsKinematicはオフ、Collision DetectionはContinuous/Continuous Speculative推奨
-        // ColliderはIsTriggerがオンになっていることを想定
+        trail = GetComponent<TrailRenderer>(); // 追加
     }
 
+    [Obsolete]
     public void Initialize(Action<Bullet> onReturn, float speed, float lifetime)
     {
         returnAction = onReturn;
 
-        // ?? 【追加】発射前に念のためRigidbodyをクリア
+        // 1. 物理挙動の完全リセット（安全策）
         if (rb != null)
         {
             rb.velocity = Vector3.zero;
             rb.angularVelocity = Vector3.zero;
+            rb.Sleep(); // 一旦スリープさせることで前の物理演算を完全に断ち切るテクニック
         }
-        // ---------------------------------------- ??
 
-        Invoke("ReturnToPool", lifetime);
+        // 2. トレイル（軌跡）のリセット（もしアタッチされていれば）
+        if (trail != null)
+        {
+            trail.Clear(); // これがないと、プールから出現位置までの「移動線」が見えてしまう
+        }
 
-        // 速度設定はEnemyAI.csのShootBullet()で行うため、ここでは処理を省略
+        // 3. 寿命設定
+        Invoke(nameof(ReturnToPool), lifetime); // 文字列よりnameof()推奨（ミス防止）
     }
 
-    // ★★★ 削除: Update()メソッドを削除しました。移動はRigidbodyが担当します。 ★★★
-
+    [Obsolete]
     private void OnTriggerEnter(Collider other)
     {
-        // 衝突相手が「プレイヤー」または「環境オブジェクト」（壁や地面）であるか確認
-        // ※ 衝突レイヤー設定やタグ、またはレイヤーマスクで制御するのが最も効率的です。
-
-        // 例：タグによるチェック
+        // 衝突判定（タグ判定など）
         if (other.CompareTag("Player") || other.CompareTag("Wall"))
         {
-            // 衝突処理（ダメージなど）
+            // 必要ならここでダメージ処理
+            // IDamageable target = other.GetComponent<IDamageable>();
+            // target?.TakeDamage(10);
 
-            // プールに返す
             ReturnToPool();
         }
-        // ※ 衝突相手が「Enemy」タグだったら何もしない、など
     }
 
-    // プールに返す処理
+    [Obsolete]
     private void ReturnToPool()
     {
-        // Invokeで設定した自動返却をキャンセル（衝突で返却済みの場合に備える）
-        CancelInvoke("ReturnToPool");
+        CancelInvoke(nameof(ReturnToPool));
 
-        // ★★★ リセット処理 ★★★
-        if (rb == null) rb = GetComponent<Rigidbody>();
+        // 念のためここでも物理リセット
         if (rb != null)
         {
-            // 弾丸の速度をゼロにリセット
             rb.velocity = Vector3.zero;
             rb.angularVelocity = Vector3.zero;
         }
-        // パーティクルシステムがある場合は停止
+
+        // パーティクル停止処理
         var ps = GetComponent<ParticleSystem>();
         if (ps != null) ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-        // ★★★ -------------------- ★★★
 
-        // 外部のPoolManagerに自身を返すように依頼
         returnAction?.Invoke(this);
-
-        // 非アクティブにする（オブジェクトの「消滅」）
         gameObject.SetActive(false);
+    }
+
+    // 安全のため、予期せぬDisable時もInvokeをキャンセルする
+    private void OnDisable()
+    {
+        CancelInvoke(nameof(ReturnToPool));
     }
 }
