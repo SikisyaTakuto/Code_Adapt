@@ -51,7 +51,8 @@ public class TutorialPlayerController : MonoBehaviour
     // ベースとなる能力値 (変更なし)
     [Header("Base Stats")]
     public float baseMoveSpeed = 15.0f;
-    public float boostMultiplier = 2.0f;
+    // ?? [FIX/NEW]: boostMultiplier を dashMultiplier に置き換え、ダッシュ時の速度を制御
+    public float dashMultiplier = 2.5f;
     public float verticalSpeed = 10.0f;
     public float energyConsumptionRate = 15.0f;
     public float energyRecoveryRate = 10.0f;
@@ -81,6 +82,9 @@ public class TutorialPlayerController : MonoBehaviour
     public bool allowHorizontalMove = true;
     [Tooltip("垂直方向 (Space/Alt) の移動を許可します")]
     public bool allowVerticalMove = true;
+    // ?? [FIX/NEW]: allowDash を追加
+    [Tooltip("ダッシュ (Left Shift) を許可します")]
+    public bool allowDash = false;
     [Tooltip("武器切り替え (Eキー) を許可します")]
     public bool allowWeaponSwitch = true;
     [Tooltip("アーマー切り替え (1, 2, 3キー) を許可します")]
@@ -132,7 +136,10 @@ public class TutorialPlayerController : MonoBehaviour
     public LayerMask enemyLayer;
 
     // チュートリアル用イベントとプロパティ
-    // ?? チュートリアルマネージャーが入力実績をチェックできるようにするためのプロパティ
+    // ?? [FIX/NEW]: HasDashed のトラッキング用変数とプロパティを追加
+    private float DashTimer { get; set; }
+    public bool HasDashed => DashTimer > 0f;
+
     public Action onMeleeAttackPerformed;
     public Action onBeamAttackPerformed;
     public event Action onEnergyDepleted;
@@ -146,9 +153,6 @@ public class TutorialPlayerController : MonoBehaviour
     // 移動関連の内部変数 (変更なし)
     private Vector3 _velocity;
     private float _moveSpeed;
-
-    // canReceiveInput は isInputLocked に置き換え (isInputLockedが優先度高の制御フラグとなる)
-    // public bool canReceiveInput = true; 
 
     // ... (Awake, Start, InitializeComponents, LoadAndSwitchArmor は変更なし) ...
     void Awake()
@@ -221,7 +225,8 @@ public class TutorialPlayerController : MonoBehaviour
         if (isInputLocked || _isAttacking)
         {
             HandleAttackState();
-            WASDMoveTimer = JumpTimer = DescendTimer = 0f;
+            // ?? [FIX/NEW]: ロック中は移動関連のタイマーをリセット
+            WASDMoveTimer = JumpTimer = DescendTimer = DashTimer = 0f;
 
             // ロック/攻撃中に垂直方向の慣性を維持するため、重力を手動で適用
             if (!_controller.isGrounded)
@@ -305,7 +310,7 @@ public class TutorialPlayerController : MonoBehaviour
         if (shouldLog)
         {
             Debug.Log($"アーマーを切り替えました: **{_currentArmorStats.name}** " +
-                        $" (速度補正: x{_currentArmorStats.moveSpeedMultiplier}, 防御補正: x{_currentArmorStats.defenseMultiplier}, 回復補正: x{_currentArmorStats.energyRecoveryMultiplier})");
+                      $" (速度補正: x{_currentArmorStats.moveSpeedMultiplier}, 防御補正: x{_currentArmorStats.defenseMultiplier}, 回復補正: x{_currentArmorStats.energyRecoveryMultiplier})");
         }
     }
 
@@ -361,7 +366,7 @@ public class TutorialPlayerController : MonoBehaviour
     }
 
     // =======================================================
-    // ?? 移動処理 (フラグによる制御を追加)
+    // ?? 移動処理 (フラグによる制御を追加 & ダッシュ機能の実装)
     // =======================================================
     private Vector3 HandleHorizontalMovement()
     {
@@ -371,9 +376,11 @@ public class TutorialPlayerController : MonoBehaviour
         float h = Input.GetAxis("Horizontal");
         float v = Input.GetAxis("Vertical");
 
+        // ?? [FIX/NEW]: 移動入力がない場合、WASDMoveTimer と DashTimer をリセット
         if (h == 0f && v == 0f)
         {
             WASDMoveTimer = 0f;
+            DashTimer = 0f; // ダッシュタイマーもリセット
             return Vector3.zero;
         }
 
@@ -395,13 +402,24 @@ public class TutorialPlayerController : MonoBehaviour
         float currentSpeed = _moveSpeed;
         bool isConsumingEnergy = false;
 
-        bool isBoosting = (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) && currentEnergy > 0.01f;
+        // ?? [FIX/NEW]: Left Shiftキーによるダッシュをチェック
+        // ダッシュは allowDash が true であり、かつエネルギーがある場合のみ可能
+        bool isDashing = allowDash && Input.GetKey(KeyCode.LeftShift) && currentEnergy > 0.01f;
 
-        if (isBoosting)
+        // 元のブースト (Ctrlキー) の処理は削除、またはダッシュに統合
+        // bool isBoosting = (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) && currentEnergy > 0.01f;
+
+        if (isDashing)
         {
-            currentSpeed *= boostMultiplier;
+            // ?? [FIX/NEW]: ダッシュ速度とエネルギー消費
+            currentSpeed *= dashMultiplier;
             currentEnergy -= energyConsumptionRate * Time.deltaTime;
             isConsumingEnergy = true;
+            DashTimer += Time.deltaTime; // ダッシュタイマーを更新
+        }
+        else
+        {
+            DashTimer = 0f; // ダッシュしていない場合はリセット
         }
 
         Vector3 horizontalMove = moveDirection * currentSpeed;
@@ -490,7 +508,15 @@ public class TutorialPlayerController : MonoBehaviour
         GameObject target = hitCollider.gameObject;
         bool isHit = false;
 
-        // 1. ScorpionEnemyを試す
+        // チュートリアル用の敵をここに追加します (TutorialEnemyControllerなど)
+        TutorialEnemyController tutorialEnemy = target.GetComponent<TutorialEnemyController>();
+        if (tutorialEnemy != null)
+        {
+            tutorialEnemy.TakeDamage(damageAmount);
+            Debug.Log($"TutorialEnemyにダメージ: {damageAmount}");
+            isHit = true;
+        }
+        // 以下、元の敵の処理...
         ScorpionEnemy scorpion = target.GetComponent<ScorpionEnemy>();
         if (scorpion != null)
         {
@@ -499,7 +525,6 @@ public class TutorialPlayerController : MonoBehaviour
             isHit = true;
         }
 
-        // 2. SuicideEnemyを試す
         SuicideEnemy suicide = target.GetComponent<SuicideEnemy>();
         if (suicide != null)
         {
@@ -508,7 +533,6 @@ public class TutorialPlayerController : MonoBehaviour
             isHit = true;
         }
 
-        // 3. DroneEnemyを試す
         DroneEnemy drone = target.GetComponent<DroneEnemy>();
         if (drone != null)
         {
@@ -689,7 +713,8 @@ public class TutorialPlayerController : MonoBehaviour
 
     public void ResetInputTracking()
     {
-        WASDMoveTimer = JumpTimer = DescendTimer = 0f;
+        // ?? [FIX/NEW]: DashTimer のリセットを追加
+        WASDMoveTimer = JumpTimer = DescendTimer = DashTimer = 0f;
     }
 
     void UpdateEnergyUI()
@@ -764,7 +789,7 @@ public class TutorialPlayerController : MonoBehaviour
     }
 
     // -------------------------------------------------------------------
-    //                       Gizmos
+    //? ? ? ? ? ? ? ? ? ? ? ?Gizmos
     // -------------------------------------------------------------------
     private void OnDrawGizmosSelected()
     {

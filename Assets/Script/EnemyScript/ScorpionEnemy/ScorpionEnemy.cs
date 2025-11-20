@@ -32,6 +32,9 @@ public class ScorpionEnemy : MonoBehaviour
     public GameObject beamPrefab;              // 発射するビームのPrefab
     public float beamSpeed = 30f;              // ビームの速度
 
+    // ? 修正: 壁のタグをここで定義 (攻撃処理にも使用)
+    private const string WALL_TAG = "Wall";
+
     [Header("硬直設定")]
     public float hardStopDuration = 2f;        // 攻撃後の硬直時間（秒）
 
@@ -41,11 +44,17 @@ public class ScorpionEnemy : MonoBehaviour
     public float destinationThreshold = 1.5f;    // 目的地到達と見なす距離
     public float maxIdleTime = 5f;             // 新しい目的地を設定するまでの最大静止時間（秒）
 
+    // ?? 新規追加: 壁回避のための設定
+    [Header("衝突回避設定 (NavMesh用)")]
+    public float wallAvoidanceDistance = 1.5f; // NavMesh Agentの進行方向のチェック距離
+    public LayerMask obstacleLayer;             // 障害物となるレイヤー (WallやDefaultなど)
+
+
     // --- 内部変数 ---
     private float nextAttackTime = 0f;          // 次に攻撃可能な時間
-    private float hardStopEndTime = 0f;          // 硬直が解除される時間
-    private NavMeshAgent agent;                  // NavMeshAgentコンポーネント
-    private float lastMoveTime = 0f;             // 最後に移動した時間
+    private float hardStopEndTime = 0f;         // 硬直が解除される時間
+    private NavMeshAgent agent;                 // NavMeshAgentコンポーネント
+    private float lastMoveTime = 0f;            // 最後に移動した時間
     private Animator animator;                  // Animatorコンポーネントへの参照
 
     private void Awake()
@@ -63,6 +72,16 @@ public class ScorpionEnemy : MonoBehaviour
         if (animator == null)
         {
             Debug.LogWarning("Animator componentが見つかりません。敵にAnimatorをアタッチしてください。");
+        }
+
+        // Playerターゲットの自動検出 (AWAKEに追加)
+        if (playerTarget == null)
+        {
+            GameObject playerObject = GameObject.FindWithTag("Player");
+            if (playerObject != null)
+            {
+                playerTarget = playerObject.transform;
+            }
         }
 
         lastMoveTime = Time.time;
@@ -93,6 +112,9 @@ public class ScorpionEnemy : MonoBehaviour
         if (agent.velocity.sqrMagnitude > 0.01f)
         {
             lastMoveTime = Time.time;
+
+            // ?? 新規追加: 移動中に壁に近づきすぎていないかチェック
+            CheckForWallCollision();
         }
 
         // 2. Playerが攻撃範囲内にいるか？
@@ -122,6 +144,47 @@ public class ScorpionEnemy : MonoBehaviour
             }
         }
     }
+
+    // -------------------------------------------------------------------
+    //          衝突回避処理 (NavMesh用)
+    // -------------------------------------------------------------------
+
+    /// <summary>
+    /// NavMeshAgentの進行方向に壁がないかチェックし、あれば強制的に移動を中断・再探索させる
+    /// </summary>
+    private void CheckForWallCollision()
+    {
+        // Agentが移動中で、まだ目的地に到達していない場合のみチェック
+        if (agent.isStopped || agent.remainingDistance <= agent.stoppingDistance)
+        {
+            return;
+        }
+
+        RaycastHit hit;
+        // Agentの進行方向（velocityを正規化したもの）
+        Vector3 movementDirection = agent.velocity.normalized;
+
+        // Raycastで前方に壁があるかチェック
+        // Agentの進行方向（velocity）を使ってチェックすることで、NavMeshAgentの軌道を先読みします。
+        if (Physics.Raycast(transform.position, movementDirection, out hit, wallAvoidanceDistance, obstacleLayer))
+        {
+            // Raycastが何かを検出し、それがWALL_TAGを持っている場合
+            if (hit.collider.CompareTag(WALL_TAG))
+            {
+                Debug.LogWarning($"[{gameObject.name}] **移動方向の目の前に壁を検出**！NavMeshAgentのすり抜けを防止し、新しい目的地を探します。");
+
+                // 強制的に移動を停止
+                agent.isStopped = true;
+
+                // 新しい目的地を探す（Wanderロジックを再実行）
+                Wander();
+            }
+        }
+    }
+
+    // -------------------------------------------------------------------
+    //          ヘルスと死亡処理 (変更なし)
+    // -------------------------------------------------------------------
 
     /// <summary>
     /// 外部からダメージを受け取るための公開メソッド
@@ -170,22 +233,17 @@ public class ScorpionEnemy : MonoBehaviour
     /// </summary>
     private IEnumerator DeathSequence(float duration)
     {
-        // アニメーションの再生時間だけ待機
         yield return new WaitForSeconds(duration);
 
-        // 爆発エフェクトのインスタンス化と再生
         if (explosionPrefab != null)
         {
-            // サソリの現在の位置に生成
             Instantiate(explosionPrefab, transform.position, Quaternion.identity);
         }
-
-        // サソリ本体を削除
         Destroy(gameObject);
     }
 
     // -------------------------------------------------------------------
-    //                       その他ユーティリティ
+    //          その他ユーティリティ (変更なし)
     // -------------------------------------------------------------------
 
     /// <summary>
@@ -234,6 +292,7 @@ public class ScorpionEnemy : MonoBehaviour
         if (NavMesh.SamplePosition(randomDirection, out hit, wanderRadius, NavMesh.AllAreas))
         {
             agent.SetDestination(hit.position);
+            lastMoveTime = Time.time;
         }
     }
 
@@ -274,6 +333,7 @@ public class ScorpionEnemy : MonoBehaviour
 
         if (Application.isEditor && transform != null)
         {
+            // 1. 視野角の可視化
             Quaternion leftRayRotation = Quaternion.AngleAxis(-attackAngle / 2, Vector3.up);
             Quaternion rightRayRotation = Quaternion.AngleAxis(attackAngle / 2, Vector3.up);
 
@@ -284,8 +344,19 @@ public class ScorpionEnemy : MonoBehaviour
             Gizmos.DrawRay(transform.position, leftRayDirection * detectionRange);
             Gizmos.DrawRay(transform.position, rightRayDirection * detectionRange);
 
+            // 2. Wandering Radius の可視化
             Gizmos.color = Color.cyan;
             Gizmos.DrawWireSphere(transform.position, wanderRadius);
+
+            // 3. ?? 新規追加: 移動中の壁回避Raycastの可視化
+            if (agent != null && agent.enabled && agent.velocity.sqrMagnitude > 0.01f)
+            {
+                Vector3 movementDirection = agent.velocity.normalized;
+
+                // 壁検出Rayをマゼンタ色で表示
+                Gizmos.color = Color.magenta;
+                Gizmos.DrawRay(transform.position, movementDirection * wallAvoidanceDistance);
+            }
         }
     }
 }
