@@ -1,106 +1,125 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 using UnityEngine.AI;
+using System.Collections; // ã‚³ãƒ«ãƒ¼ãƒãƒ³ã‚’ä½¿ç”¨ã™ã‚‹ãŸã‚ã«å¿…è¦
 
 public class SuicideEnemy : MonoBehaviour
 {
-    // “G‚ÌHPİ’è
-    [Header("Health Settings")]
-    [Tooltip("“G‚ÌÅ‘åHP")]
+Â  Â  // æ•µã®HPè¨­å®š
+Â  Â  [Header("Health Settings")]
+    [Tooltip("æ•µã®æœ€å¤§HP")]
     public float maxHP = 100f;
     private float currentHP;
 
 
-    // ƒvƒŒƒCƒ„[‚ÌTransform (Inspector‚©‚çİ’è)
-    public Transform playerTarget;
+Â  Â  // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®Transform (Inspectorã‹ã‚‰è¨­å®š)
+Â  Â  public Transform playerTarget;
 
-    // NavMeshAgentƒRƒ“ƒ|[ƒlƒ“ƒg
-    private NavMeshAgent agent;
+Â  Â  // NavMeshAgentã‚³ãƒ³ãƒãƒ¼ãƒãƒ³ãƒˆ
+Â  Â  private NavMeshAgent agent;
 
-    // ƒvƒŒƒCƒ„[‚ÉÚ‹ß‚·‚éÛ‚Ì‘¬‚³
-    public float moveSpeed = 5.0f;
+Â  Â  // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã«æ¥è¿‘ã™ã‚‹éš›ã®é€Ÿã•
+Â  Â  public float moveSpeed = 5.0f;
 
-    // ©”š‚ğŠJn‚·‚éƒvƒŒƒCƒ„[‚Æ‚Ì‹——£
-    public float suicideDistance = 2.0f;
+Â  Â  // è‡ªçˆ†ã‚’é–‹å§‹ã™ã‚‹ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã¨ã®è·é›¢
+Â  Â  public float suicideDistance = 2.0f;
 
-    // ©”š‚Ìƒ_ƒ[ƒW”ÍˆÍ (”š”­‚Ì”¼Œa)
-    public float explosionRadius = 5.0f;
+Â  Â  // è‡ªçˆ†ã®ãƒ€ãƒ¡ãƒ¼ã‚¸ç¯„å›² (çˆ†ç™ºã®åŠå¾„)
+Â  Â  public float explosionRadius = 5.0f;
 
-    // ©”š‚ªƒvƒŒƒCƒ„[‚É—^‚¦‚éƒ_ƒ[ƒW
-    public int explosionDamage = 50;
+Â  Â  // è‡ªçˆ†ãŒãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã«ä¸ãˆã‚‹ãƒ€ãƒ¡ãƒ¼ã‚¸
+Â  Â  public int explosionDamage = 50;
 
-    // ”š”­ƒGƒtƒFƒNƒg‚ÌPrefab (Inspector‚©‚çİ’è)
-    public GameObject explosionEffectPrefab;
+Â  Â  // çˆ†ç™ºã‚¨ãƒ•ã‚§ã‚¯ãƒˆã®Prefab (Inspectorã‹ã‚‰è¨­å®š)
+Â  Â  public GameObject explosionEffectPrefab;
 
-    // UŒ‚’†/©”š€”õ’†‚©‚Ç‚¤‚©‚ğ”»•Ê‚·‚éƒtƒ‰ƒO
-    private bool isSuiciding = false;
+Â  Â  // æ”»æ’ƒä¸­/è‡ªçˆ†æº–å‚™ä¸­ã‹ã©ã†ã‹ã‚’åˆ¤åˆ¥ã™ã‚‹ãƒ•ãƒ©ã‚°
+Â  Â  private bool isSuiciding = false;
 
-    // ?? V‹K’Ç‰Á: ƒ‰ƒ“ƒ_ƒ€ˆÚ“®iƒpƒgƒ[ƒ‹j‚Ìİ’è
-    [Header("Wander/Patrol Settings")]
-    [Tooltip("ƒ‰ƒ“ƒ_ƒ€‚È–Ú“I’n‚ğİ’è‚·‚éÅ‘å”ÍˆÍ")]
+Â  Â  // --- ãƒ©ãƒ³ãƒ€ãƒ ç§»å‹•ï¼ˆãƒ‘ãƒˆãƒ­ãƒ¼ãƒ«ï¼‰ã®è¨­å®š ---
+Â  Â  [Header("Wander/Patrol Settings")]
+    [Tooltip("ãƒ©ãƒ³ãƒ€ãƒ ãªç›®çš„åœ°ã‚’è¨­å®šã™ã‚‹æœ€å¤§ç¯„å›²")]
     public float wanderRadius = 10f;
-    [Tooltip("Ÿ‚ÌˆÚ“®–Ú•W‚ğİ’è‚·‚é‚Ü‚Å‚ÌƒN[ƒ‹ƒ^ƒCƒ€")]
+    [Tooltip("æ¬¡ã®ç§»å‹•ç›®æ¨™ã‚’è¨­å®šã™ã‚‹ã¾ã§ã®ã‚¯ãƒ¼ãƒ«ã‚¿ã‚¤ãƒ ")]
     public float wanderTimer = 5f;
     private float timer;
+
+Â  Â  // ğŸš§ æ–°è¦è¿½åŠ : å£å›é¿ã®ãŸã‚ã®è¨­å®š
+Â  Â  [Header("è¡çªå›é¿è¨­å®š (NavMeshç”¨)")]
+    [Tooltip("NavMesh Agentã®é€²è¡Œæ–¹å‘ã®ãƒã‚§ãƒƒã‚¯è·é›¢")]
+    public float wallAvoidanceDistance = 1.5f;
+    [Tooltip("éšœå®³ç‰©ã¨ãªã‚‹ãƒ¬ã‚¤ãƒ¤ãƒ¼ (Wallã‚„Defaultãªã©)")]
+    public LayerMask obstacleLayer;
+
+Â  Â  // ğŸš§ æ–°è¦è¿½åŠ : å£ã®ã‚¿ã‚°ã‚’ã“ã“ã§å®šç¾©
+Â  Â  private const string WALL_TAG = "Wall";
 
 
     void Start()
     {
-        // HP‚ğÅ‘å’l‚Å‰Šú‰»
-        currentHP = maxHP;
+Â  Â  Â  Â  // HPã‚’æœ€å¤§å€¤ã§åˆæœŸåŒ–
+Â  Â  Â  Â  currentHP = maxHP;
 
-        // NavMeshAgentƒRƒ“ƒ|[ƒlƒ“ƒg‚ğæ“¾
-        agent = GetComponent<NavMeshAgent>();
+Â  Â  Â  Â  // NavMeshAgentã‚³ãƒ³ãƒãƒ¼ãƒãƒ³ãƒˆã‚’å–å¾—
+Â  Â  Â  Â  agent = GetComponent<NavMeshAgent>();
         if (agent != null)
         {
             agent.speed = moveSpeed;
         }
 
-        // ?? ‰Šúƒ^ƒCƒ}[‚ğİ’è
-        timer = wanderTimer;
+Â  Â  Â  Â  // åˆæœŸã‚¿ã‚¤ãƒãƒ¼ã‚’è¨­å®š
+Â  Â  Â  Â  timer = wanderTimer;
 
-        // ƒvƒŒƒCƒ„[ƒIƒuƒWƒFƒNƒg‚ğŒŸõ‚µ‚Äİ’è (ƒ^ƒO‚ª"Player"‚Ìê‡)
-        GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+Â  Â  Â  Â  // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã‚’æ¤œç´¢ã—ã¦è¨­å®š (ã‚¿ã‚°ãŒ"Player"ã®å ´åˆ)
+Â  Â  Â  Â  GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
         if (playerObj != null)
         {
             playerTarget = playerObj.transform;
+        }
+
+Â  Â  Â  Â  // obstacleLayerãŒæœªè¨­å®šã®å ´åˆã€Defaultãƒ¬ã‚¤ãƒ¤ãƒ¼ã«è¨­å®šï¼ˆæ¨å¥¨ï¼‰
+Â  Â  Â  Â  if (obstacleLayer.value == 0)
+        {
+            obstacleLayer = LayerMask.GetMask("Default");
         }
     }
 
     void Update()
     {
-        // ©”š€”õ’†‚Ü‚½‚ÍNavMeshAgent‚ª–³Œø‚Å‚ ‚ê‚Îˆ—‚ğ’â~
-        if (isSuiciding || agent == null || !agent.enabled) return;
+Â  Â  Â  Â  // è‡ªçˆ†æº–å‚™ä¸­ã¾ãŸã¯NavMeshAgentãŒç„¡åŠ¹ã§ã‚ã‚Œã°å‡¦ç†ã‚’åœæ­¢
+Â  Â  Â  Â  if (isSuiciding || agent == null || !agent.enabled) return;
 
-        // ƒvƒŒƒCƒ„[‚ª‚¢‚È‚¢ê‡A‚Ü‚½‚Í‹——£‚ª‰“‚¢ê‡‚ÌˆÚ“®ˆ—‚ğ“‡
-        if (playerTarget == null)
+Â  Â  Â  Â  // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ãŒã„ãªã„å ´åˆã¯ãƒ©ãƒ³ãƒ€ãƒ ç§»å‹•
+Â  Â  Â  Â  if (playerTarget == null)
         {
-            // ƒvƒŒƒCƒ„[‚ª‚¢‚È‚¢ê‡‚Íƒ‰ƒ“ƒ_ƒ€ˆÚ“®
             Wander();
             return;
         }
 
-        // ƒvƒŒƒCƒ„[‚Ü‚Å‚Ì‹——£‚ğŒvZ
-        float distanceToPlayer = Vector3.Distance(transform.position, playerTarget.position);
+Â  Â  Â  Â  // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã¾ã§ã®è·é›¢ã‚’è¨ˆç®—
+Â  Â  Â  Â  float distanceToPlayer = Vector3.Distance(transform.position, playerTarget.position);
 
-        // ƒvƒŒƒCƒ„[‚ª©”š‹——£“à‚É‚¢‚é‚©
-        if (distanceToPlayer <= suicideDistance)
+Â  Â  Â  Â  // è¿½è·¡ä¸­ã¾ãŸã¯Wanderä¸­ã«å£ã«ã¶ã¤ã‹ã‚Šãã†ã‹å¸¸ã«ãƒã‚§ãƒƒã‚¯
+Â  Â  Â  Â  CheckForWallCollision();
+
+Â  Â  Â  Â  // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ãŒè‡ªçˆ†è·é›¢å†…ã«ã„ã‚‹ã‹
+Â  Â  Â  Â  if (distanceToPlayer <= suicideDistance)
         {
-            // --- ©”šˆ—‚ÌŠJn ---
-            agent.isStopped = true; // Ú‹ß‹——£‚É“ü‚Á‚½‚ç’ÇÕ‚ğ’â~
-            SuicideAttack();
+Â  Â  Â  Â  Â  Â  // --- è‡ªçˆ†å‡¦ç†ã®é–‹å§‹ ---
+Â  Â  Â  Â  Â  Â  agent.isStopped = true; // æ¥è¿‘è·é›¢ã«å…¥ã£ãŸã‚‰è¿½è·¡ã‚’åœæ­¢
+Â  Â  Â  Â  Â  Â  SuicideAttack();
         }
         else
         {
-            // ƒvƒŒƒCƒ„[‚ğ’Ç‚¢‚©‚¯‚é (’ÇÕƒ‚[ƒh)
-            // ?? Player‚ª‰“‚­‚É‚¢‚é‚©APlayer‚ğ¸‚Á‚½ê‡Aƒ‰ƒ“ƒ_ƒ€ˆÚ“®‚ÉØ‚è‘Ö‚¦‚é
-            if (distanceToPlayer > 20f || !IsPlayerVisible()) // 20f‚Íˆê—á‚Æ‚µ‚Ä‰“‚¢‹——£‚ğİ’è
+Â  Â  Â  Â  Â  Â  // PlayerãŒé ãã«ã„ã‚‹ã‹ã€Playerã‚’å¤±ã£ãŸå ´åˆã€ãƒ©ãƒ³ãƒ€ãƒ ç§»å‹•ã«åˆ‡ã‚Šæ›¿ãˆã‚‹
+Â  Â  Â  Â  Â  Â  // 20fã¯ä¸€ä¾‹ã¨ã—ã¦é ã„è·é›¢ã€‚detectionRangeãªã©å¤–éƒ¨ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿ã‚’ä½¿ã†æ–¹ãŒè‰¯ã„ã€‚
+Â  Â  Â  Â  Â  Â  if (distanceToPlayer > 20f || !IsPlayerVisible())
             {
                 Wander();
             }
             else
             {
-                // ƒvƒŒƒCƒ„[‚ğ’Ç‚¢‚©‚¯‚é (’ÇÕƒ‚[ƒh)
-                if (agent != null && agent.enabled)
+Â  Â  Â  Â  Â  Â  Â  Â  // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã‚’è¿½ã„ã‹ã‘ã‚‹ (è¿½è·¡ãƒ¢ãƒ¼ãƒ‰)
+Â  Â  Â  Â  Â  Â  Â  Â  if (agent != null && agent.enabled)
                 {
                     agent.isStopped = false;
                     agent.SetDestination(playerTarget.position);
@@ -109,151 +128,218 @@ public class SuicideEnemy : MonoBehaviour
         }
     }
 
-    // ?? V‹K’Ç‰Á: ƒ‰ƒ“ƒ_ƒ€‚È–Ú“I’n‚ÖˆÚ“®‚³‚¹‚éƒƒ\ƒbƒh
-    private void Wander()
+Â  Â  // -------------------------------------------------------------------
+Â  Â  //Â  Â  Â  Â  Â  è¡çªå›é¿å‡¦ç† (NavMeshç”¨)
+Â  Â  // -------------------------------------------------------------------
+
+Â  Â  /// <summary>
+Â  Â  /// NavMeshAgentã®é€²è¡Œæ–¹å‘ã«å£ãŒãªã„ã‹ãƒã‚§ãƒƒã‚¯ã—ã€ã‚ã‚Œã°å¼·åˆ¶çš„ã«ç§»å‹•ã‚’ä¸­æ–­ãƒ»å†æ¢ç´¢ã•ã›ã‚‹
+Â  Â  /// </summary>
+Â  Â  private void CheckForWallCollision()
     {
-        timer += Time.deltaTime;
-
-        // ƒ^ƒCƒ}[‚ªƒN[ƒ‹ƒ^ƒCƒ€‚ğ’´‚¦‚½‚çV‚µ‚¢–Ú“I’n‚ğİ’è
-        if (timer >= wanderTimer)
+Â  Â  Â  Â  // AgentãŒç§»å‹•ä¸­ã§ã€ã¾ã ç›®çš„åœ°ã«åˆ°é”ã—ã¦ã„ãªã„å ´åˆã®ã¿ãƒã‚§ãƒƒã‚¯
+Â  Â  Â  Â  // agent.velocity.sqrMagnitude > 0.01f ã§å®Ÿéš›ã«ç§»å‹•ã—ã¦ã„ã‚‹ã“ã¨ã‚’ç¢ºèª
+Â  Â  Â  Â  if (agent.isStopped || agent.velocity.sqrMagnitude < 0.01f)
         {
-            // Œ»İ’n‚©‚çwanderRadius“à‚Ìƒ‰ƒ“ƒ_ƒ€‚ÈˆÊ’u‚ğæ“¾
-            Vector3 newPos = RandomNavSphere(transform.position, wanderRadius, -1);
+            return;
+        }
 
-            // V‚µ‚¢–Ú“I’n‚ğİ’è
-            agent.SetDestination(newPos);
-            agent.isStopped = false;
+        RaycastHit hit;
+Â  Â  Â  Â  // Agentã®é€²è¡Œæ–¹å‘ï¼ˆvelocityã‚’æ­£è¦åŒ–ã—ãŸã‚‚ã®ï¼‰
+Â  Â  Â  Â  Vector3 movementDirection = agent.velocity.normalized;
 
-            timer = 0f; // ƒ^ƒCƒ}[ƒŠƒZƒbƒg
+Â  Â  Â  Â  // Raycastã§å‰æ–¹ã«å£ãŒã‚ã‚‹ã‹ãƒã‚§ãƒƒã‚¯
+Â  Â  Â  Â  if (Physics.Raycast(transform.position, movementDirection, out hit, wallAvoidanceDistance, obstacleLayer))
+        {
+Â  Â  Â  Â  Â  Â  // RaycastãŒä½•ã‹ã‚’æ¤œå‡ºã—ã€ãã‚ŒãŒWALL_TAGã‚’æŒã£ã¦ã„ã‚‹å ´åˆ
+Â  Â  Â  Â  Â  Â  if (hit.collider.CompareTag(WALL_TAG))
+            {
+                Debug.LogWarning($"[{gameObject.name}] **ç§»å‹•æ–¹å‘ã®ç›®ã®å‰ã«å£ã‚’æ¤œå‡º**ï¼è¿½è·¡ã‚’åœæ­¢ã—ã€æ–°ã—ã„ç›®çš„åœ°ã‚’æ¢ã—ã¾ã™ã€‚");
+
+Â  Â  Â  Â  Â  Â  Â  Â  // å¼·åˆ¶çš„ã«ç§»å‹•ã‚’åœæ­¢
+Â  Â  Â  Â  Â  Â  Â  Â  agent.isStopped = true;
+
+Â  Â  Â  Â  Â  Â  Â  Â  // æ–°ã—ã„ç›®çš„åœ°ã‚’æ¢ã™ï¼ˆWanderãƒ­ã‚¸ãƒƒã‚¯ã‚’å†å®Ÿè¡Œï¼‰
+Â  Â  Â  Â  Â  Â  Â  Â  Wander();
+            }
         }
     }
 
-    // ?? V‹K’Ç‰Á: Œ»İ’nü•Ó‚ÌNavMeshã‚Ìƒ‰ƒ“ƒ_ƒ€‚È“_‚ğæ“¾
-    public static Vector3 RandomNavSphere(Vector3 origin, float dist, int layermask)
+Â  Â  // -------------------------------------------------------------------
+Â  Â  //Â  Â  Â  Â  Â  ç§»å‹•å‡¦ç†
+Â  Â  // -------------------------------------------------------------------
+
+Â  Â  /// <summary>
+Â  Â  /// ãƒ©ãƒ³ãƒ€ãƒ ãªç›®çš„åœ°ã¸ç§»å‹•ã•ã›ã‚‹ãƒ¡ã‚½ãƒƒãƒ‰
+Â  Â  /// </summary>
+Â  Â  private void Wander()
+    {
+        timer += Time.deltaTime;
+
+Â  Â  Â  Â  // ã‚¿ã‚¤ãƒãƒ¼ãŒã‚¯ãƒ¼ãƒ«ã‚¿ã‚¤ãƒ ã‚’è¶…ãˆãŸã‚‰æ–°ã—ã„ç›®çš„åœ°ã‚’è¨­å®š
+Â  Â  Â  Â  if (timer >= wanderTimer)
+        {
+Â  Â  Â  Â  Â  Â  // ç¾åœ¨åœ°ã‹ã‚‰wanderRadiuså†…ã®NavMeshä¸Šã®ãƒ©ãƒ³ãƒ€ãƒ ãªä½ç½®ã‚’å–å¾—
+Â  Â  Â  Â  Â  Â  Vector3 newPos = RandomNavSphere(transform.position, wanderRadius, -1);
+
+Â  Â  Â  Â  Â  Â  // æ–°ã—ã„ç›®çš„åœ°ã‚’è¨­å®š
+Â  Â  Â  Â  Â  Â  agent.SetDestination(newPos);
+            agent.isStopped = false;
+
+            timer = 0f; // ã‚¿ã‚¤ãƒãƒ¼ãƒªã‚»ãƒƒãƒˆ
+Â  Â  Â  Â  }
+    }
+
+Â  Â  /// <summary>
+Â  Â  /// ç¾åœ¨åœ°å‘¨è¾ºã®NavMeshä¸Šã®ãƒ©ãƒ³ãƒ€ãƒ ãªç‚¹ã‚’å–å¾—
+Â  Â  /// </summary>
+Â  Â  public static Vector3 RandomNavSphere(Vector3 origin, float dist, int layermask)
     {
         Vector3 randDirection = Random.insideUnitSphere * dist;
         randDirection += origin;
 
         NavMeshHit hit;
-        // NavMesh.SamplePosition‚ÅÅ‚à‹ß‚¢NavMeshã‚Ì“_‚ğæ“¾
-        NavMesh.SamplePosition(randDirection, out hit, dist, NavMesh.AllAreas);
-
-        return hit.position;
+Â  Â  Â  Â  // NavMesh.SamplePositionã§æœ€ã‚‚è¿‘ã„NavMeshä¸Šã®ç‚¹ã‚’å–å¾—
+Â  Â  Â  Â  // NavMesh.AllAreas (-1) ã‚’æŒ‡å®š
+Â  Â  Â  Â  if (NavMesh.SamplePosition(randDirection, out hit, dist, NavMesh.AllAreas))
+        {
+            return hit.position;
+        }
+Â  Â  Â  Â  // è¦‹ã¤ã‹ã‚‰ãªã„å ´åˆã¯å…ƒã®ä½ç½®ã‚’è¿”ã™ (å®‰å…¨ç­–)
+Â  Â  Â  Â  return origin;
     }
 
-    // ?? V‹K’Ç‰Á: ƒvƒŒƒCƒ„[‚ªŒ©‚¦‚Ä‚¢‚é‚©‚ğŠÈˆÕƒ`ƒFƒbƒN‚·‚éƒƒ\ƒbƒh
-    private bool IsPlayerVisible()
+Â  Â  /// <summary>
+Â  Â  /// ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ãŒè¦‹ãˆã¦ã„ã‚‹ã‹ã‚’ç°¡æ˜“ãƒã‚§ãƒƒã‚¯ã™ã‚‹ãƒ¡ã‚½ãƒƒãƒ‰
+Â  Â  /// </summary>
+Â  Â  private bool IsPlayerVisible()
     {
-        // ‚±‚±‚Å‚Í’Pƒ‚É‹——£‚Å”»’f‚·‚é‚©A‚Ü‚½‚ÍRaycast‚ğg‚Á‚Ä‹ü‚ª’Ê‚Á‚Ä‚¢‚é‚©ƒ`ƒFƒbƒN
-        // Raycast‚Å‹üƒ`ƒFƒbƒN‚ğs‚¤•û‚ª‚æ‚è³Šm
         if (playerTarget == null) return false;
 
         Vector3 direction = playerTarget.position - transform.position;
-        // “G‚ÆƒvƒŒƒCƒ„[‚ÌŠÔ‚ÉáŠQ•¨‚ª‚ ‚é‚©ƒ`ƒFƒbƒN
-        if (Physics.Raycast(transform.position, direction, out RaycastHit hit, direction.magnitude))
+Â  Â  Â  Â  // æ•µã¨ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®é–“ã«éšœå®³ç‰©ãŒã‚ã‚‹ã‹ãƒã‚§ãƒƒã‚¯
+Â  Â  Â  Â  // LayerMask ã‚’ä½¿ç”¨ã—ã¦ã€Playerãƒ¬ã‚¤ãƒ¤ãƒ¼ã¯ç„¡è¦–ã—ã€éšœå®³ç‰©ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®ã¿æ¤œå‡ºå¯¾è±¡ã«ã™ã‚‹ã“ã¨ãŒæœ›ã¾ã—ã„
+Â  Â  Â  Â  if (Physics.Raycast(transform.position, direction, out RaycastHit hit, direction.magnitude))
         {
-            // Õ“Ë‚µ‚½ƒIƒuƒWƒFƒNƒg‚Ìƒ^ƒO‚ªPlayer‚Å‚ ‚ê‚ÎOK
-            if (hit.collider.CompareTag("Player"))
+Â  Â  Â  Â  Â  Â  // è¡çªã—ãŸã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã®ã‚¿ã‚°ãŒPlayerã§ã‚ã‚Œã°OK
+Â  Â  Â  Â  Â  Â  if (hit.collider.CompareTag("Player"))
             {
                 return true;
             }
-            return false; // ŠÔ‚ÉáŠQ•¨‚ª‚ ‚é
-        }
-        // ŠÔ‚É‰½‚àáŠQ•¨‚ª‚È‚¯‚ê‚Î‹ŠE‚ª’Ê‚Á‚Ä‚¢‚é‚ÆŒ©‚È‚·
-        return true;
+            return false; // é–“ã«Playerä»¥å¤–ã®éšœå®³ç‰©ãŒã‚ã‚‹
+Â  Â  Â  Â  }
+Â  Â  Â  Â  // é–“ã«ä½•ã‚‚éšœå®³ç‰©ãŒãªã‘ã‚Œã°è¦–ç•ŒãŒé€šã£ã¦ã„ã‚‹ã¨è¦‹ãªã™
+Â  Â  Â  Â  return true;
     }
 
-    /// <summary>
-    /// ŠO•”iƒvƒŒƒCƒ„[‚ÌUŒ‚‚È‚Çj‚©‚çƒ_ƒ[ƒW‚ğó‚¯•t‚¯‚éƒƒ\ƒbƒhB
-    /// </summary>
-    /// <param name="damageAmount">ó‚¯‚éƒ_ƒ[ƒW—ÊB</param>
-    public void TakeDamage(float damageAmount)
+Â  Â  // -------------------------------------------------------------------
+Â  Â  //Â  Â  Â  Â  Â  ãƒ€ãƒ¡ãƒ¼ã‚¸ã¨è‡ªçˆ†å‡¦ç†
+Â  Â  // -------------------------------------------------------------------
+
+Â  Â  /// <summary>
+Â  Â  /// å¤–éƒ¨ï¼ˆãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®æ”»æ’ƒãªã©ï¼‰ã‹ã‚‰ãƒ€ãƒ¡ãƒ¼ã‚¸ã‚’å—ã‘ä»˜ã‘ã‚‹ãƒ¡ã‚½ãƒƒãƒ‰ã€‚
+Â  Â  /// </summary>
+Â  Â  /// <param name="damageAmount">å—ã‘ã‚‹ãƒ€ãƒ¡ãƒ¼ã‚¸é‡ã€‚</param>
+Â  Â  public void TakeDamage(float damageAmount)
     {
-        if (isSuiciding) return; // ©”š€”õ’†‚Í’Ç‰Á‚Ìƒ_ƒ[ƒW‚ğ–³‹
+Â  Â  Â  Â  // è‡ªçˆ†æº–å‚™ä¸­ã¯è¿½åŠ ã®ãƒ€ãƒ¡ãƒ¼ã‚¸ã‚’ç„¡è¦– (è‡ªçˆ†ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ãªã©ã«ç§»è¡Œã™ã‚‹å ´åˆ)
+Â  Â  Â  Â  if (isSuiciding) return;
 
         currentHP -= damageAmount;
-        Debug.Log($"SuicideEnemy‚ª {damageAmount} ƒ_ƒ[ƒW‚ğó‚¯‚½Bc‚èHP: {currentHP}");
+        Debug.Log($"SuicideEnemyãŒ {damageAmount} ãƒ€ãƒ¡ãƒ¼ã‚¸ã‚’å—ã‘ãŸã€‚æ®‹ã‚ŠHP: {currentHP}");
 
         if (currentHP <= 0)
         {
-            // HP‚ªƒ[ƒ‚É‚È‚Á‚½‚ç©”šUŒ‚‚ğÀs
-            SuicideAttack();
+Â  Â  Â  Â  Â  Â  // HPãŒã‚¼ãƒ­ã«ãªã£ãŸã‚‰è‡ªçˆ†æ”»æ’ƒã‚’å®Ÿè¡Œ
+Â  Â  Â  Â  Â  Â  SuicideAttack();
         }
     }
 
     void SuicideAttack()
     {
         if (isSuiciding) return;
-        isSuiciding = true; // ƒtƒ‰ƒO‚ğ—§‚Ä‚ÄAUpdate‚âTakeDamage‚ğ’â~‚³‚¹‚é
+        isSuiciding = true; // ãƒ•ãƒ©ã‚°ã‚’ç«‹ã¦ã¦ã€Updateã‚„TakeDamageã‚’åœæ­¢ã•ã›ã‚‹
 
-        // “G‚Ì“®‚«‚ğ~‚ß‚é (Update‚ÅŠù‚É’â~‚µ‚Ä‚¢‚é‚Í‚¸‚¾‚ª”O‚Ì‚½‚ß)
-        if (agent != null)
+Â  Â  Â  Â  // æ•µã®å‹•ãã‚’æ­¢ã‚ã‚‹
+Â  Â  Â  Â  if (agent != null)
         {
             agent.isStopped = true;
-            agent.enabled = false; // NavMeshAgent‚ğ–³Œø‰»
-        }
+            agent.enabled = false; // NavMeshAgentã‚’ç„¡åŠ¹åŒ–
+Â  Â  Â  Â  }
 
-        // ”š”­ƒGƒtƒFƒNƒg‚Ì¶¬
-        if (explosionEffectPrefab != null)
+Â  Â  Â  Â  // çˆ†ç™ºã‚¨ãƒ•ã‚§ã‚¯ãƒˆã®ç”Ÿæˆ
+Â  Â  Â  Â  if (explosionEffectPrefab != null)
         {
             GameObject explosion = Instantiate(explosionEffectPrefab, transform.position, Quaternion.identity);
             Destroy(explosion, 3f);
         }
 
-        // --- ”š”­‚Ìƒ_ƒ[ƒWˆ— (PlayerController‚ÆTutorialPlayerController‚É‘Î‰) ---
-        Collider[] hitColliders = Physics.OverlapSphere(transform.position, explosionRadius);
+Â  Â  Â  Â  // --- çˆ†ç™ºã®ãƒ€ãƒ¡ãƒ¼ã‚¸å‡¦ç† ---
+Â  Â  Â  Â  Collider[] hitColliders = Physics.OverlapSphere(transform.position, explosionRadius);
         foreach (var hitCollider in hitColliders)
         {
-            // ƒvƒŒƒCƒ„[‚©‚Ç‚¤‚©‚Ì”»’è
-            if (hitCollider.CompareTag("Player"))
+Â  Â  Â  Â  Â  Â  // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã‹ã©ã†ã‹ã®åˆ¤å®š
+Â  Â  Â  Â  Â  Â  if (hitCollider.CompareTag("Player"))
             {
                 bool damageApplied = false;
 
-                // 1. PlayerControllerƒRƒ“ƒ|[ƒlƒ“ƒg‚ğ’T‚·
-                PlayerController player = hitCollider.GetComponent<PlayerController>();
+Â  Â  Â  Â  Â  Â  Â  Â  // 1. PlayerControllerã‚³ãƒ³ãƒãƒ¼ãƒãƒ³ãƒˆã‚’æ¢ã™
+Â  Â  Â  Â  Â  Â  Â  Â  PlayerController player = hitCollider.GetComponent<PlayerController>();
                 if (player != null)
                 {
-                    player.TakeDamage(explosionDamage);
-                    Debug.Log("PlayerController‚É " + explosionDamage + " ƒ_ƒ[ƒW‚ğ—^‚¦‚Ü‚µ‚½I");
+Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  // â­ ä¿®æ­£: PlayerControllerã®TakeDamageã‚’å‘¼ã³å‡ºã™
+Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  player.TakeDamage(explosionDamage);
+                    Debug.Log("PlayerControllerã« " + explosionDamage + " ãƒ€ãƒ¡ãƒ¼ã‚¸ã‚’ä¸ãˆã¾ã—ãŸï¼");
                     damageApplied = true;
                 }
 
-                // 2. PlayerController‚ªŒ©‚Â‚©‚ç‚È‚©‚Á‚½ê‡ATutorialPlayerControllerƒRƒ“ƒ|[ƒlƒ“ƒg‚ğ’T‚·
-                if (!damageApplied)
+Â  Â  Â  Â  Â  Â  Â  Â  // 2. TutorialPlayerControllerã‚³ãƒ³ãƒãƒ¼ãƒãƒ³ãƒˆã‚’æ¢ã™
+Â  Â  Â  Â  Â  Â  Â  Â  if (!damageApplied)
                 {
                     TutorialPlayerController tutorialPlayer = hitCollider.GetComponent<TutorialPlayerController>();
                     if (tutorialPlayer != null)
                     {
-                        tutorialPlayer.TakeDamage(explosionDamage);
-                        Debug.Log("TutorialPlayerController‚É " + explosionDamage + " ƒ_ƒ[ƒW‚ğ—^‚¦‚Ü‚µ‚½I");
+Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  // â­ ä¿®æ­£: TutorialPlayerControllerã®TakeDamageã‚’å‘¼ã³å‡ºã™
+Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  Â  tutorialPlayer.TakeDamage(explosionDamage);
+                        Debug.Log("TutorialPlayerControllerã« " + explosionDamage + " ãƒ€ãƒ¡ãƒ¼ã‚¸ã‚’ä¸ãˆã¾ã—ãŸï¼");
                         damageApplied = true;
                     }
                 }
 
                 if (!damageApplied)
                 {
-                    Debug.LogWarning("Playerƒ^ƒO‚ÌƒIƒuƒWƒFƒNƒg‚É TakeDamage ‚ğ‚Â PlayerController ‚Ü‚½‚Í TutorialPlayerController ‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñ‚Å‚µ‚½B", hitCollider.gameObject);
+                    Debug.LogWarning("Playerã‚¿ã‚°ã®ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã« TakeDamage ã‚’æŒã¤ã‚³ãƒ³ãƒˆãƒ­ãƒ¼ãƒ©ãƒ¼ãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã§ã—ãŸã€‚", hitCollider.gameObject);
                 }
             }
         }
 
-        // ©”šŠ®—¹B©g‚ğÁ–Å‚³‚¹‚é
-        Destroy(gameObject);
+Â  Â  Â  Â  // è‡ªçˆ†å®Œäº†ã€‚è‡ªèº«ã‚’æ¶ˆæ»…ã•ã›ã‚‹
+Â  Â  Â  Â  Destroy(gameObject);
     }
 
-    // ”š”­”ÍˆÍ‚ğSceneƒrƒ…[‚Å‰Â‹‰»‚·‚é‚½‚ß‚ÌƒMƒYƒ‚
-    private void OnDrawGizmosSelected()
+Â  Â  // çˆ†ç™ºç¯„å›²ã‚’Sceneãƒ“ãƒ¥ãƒ¼ã§å¯è¦–åŒ–ã™ã‚‹ãŸã‚ã®ã‚®ã‚ºãƒ¢
+Â  Â  private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.red;
-        // ©”šŠJn‹——£‚ğƒƒCƒ„[ƒtƒŒ[ƒ€‚Å•\¦
-        Gizmos.DrawWireSphere(transform.position, suicideDistance);
+Â  Â  Â  Â  // è‡ªçˆ†é–‹å§‹è·é›¢ã‚’ãƒ¯ã‚¤ãƒ¤ãƒ¼ãƒ•ãƒ¬ãƒ¼ãƒ ã§è¡¨ç¤º
+Â  Â  Â  Â  Gizmos.DrawWireSphere(transform.position, suicideDistance);
 
         Gizmos.color = Color.yellow;
-        // ”š”­ƒ_ƒ[ƒW”ÍˆÍ‚ğƒƒCƒ„[ƒtƒŒ[ƒ€‚Å•\¦
-        Gizmos.DrawWireSphere(transform.position, explosionRadius);
+Â  Â  Â  Â  // çˆ†ç™ºãƒ€ãƒ¡ãƒ¼ã‚¸ç¯„å›²ã‚’ãƒ¯ã‚¤ãƒ¤ãƒ¼ãƒ•ãƒ¬ãƒ¼ãƒ ã§è¡¨ç¤º
+Â  Â  Â  Â  Gizmos.DrawWireSphere(transform.position, explosionRadius);
 
-        // ?? V‹K’Ç‰Á: ƒ‰ƒ“ƒ_ƒ€ˆÚ“®”ÍˆÍ‚ğ…F‚Å•\¦
         Gizmos.color = Color.cyan;
-        Gizmos.DrawWireSphere(transform.position, wanderRadius);
+Â  Â  Â  Â  // ãƒ©ãƒ³ãƒ€ãƒ ç§»å‹•ç¯„å›²ã‚’æ°´è‰²ã§è¡¨ç¤º
+Â  Â  Â  Â  Gizmos.DrawWireSphere(transform.position, wanderRadius);
+
+Â  Â  Â  Â  // ğŸš§ æ–°è¦è¿½åŠ : ç§»å‹•ä¸­ã®å£å›é¿Raycastã®å¯è¦–åŒ–
+Â  Â  Â  Â  if (Application.isEditor && agent != null && agent.enabled && agent.velocity.sqrMagnitude > 0.01f)
+        {
+            Vector3 movementDirection = agent.velocity.normalized;
+
+Â  Â  Â  Â  Â  Â  // å£æ¤œå‡ºRayã‚’ãƒã‚¼ãƒ³ã‚¿è‰²ã§è¡¨ç¤º
+Â  Â  Â  Â  Â  Â  Gizmos.color = Color.magenta;
+            Gizmos.DrawRay(transform.position, movementDirection * wallAvoidanceDistance);
+        }
     }
 }
