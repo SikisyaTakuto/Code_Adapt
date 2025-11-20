@@ -19,6 +19,7 @@ public class Player : MonoBehaviour
         rb.freezeRotation = true;
     }
 
+    [System.Obsolete]
     void Update()
     {
         // ƒ†[ƒU[“ü—Í‚ğæ“¾
