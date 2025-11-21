@@ -1,54 +1,54 @@
 using UnityEngine;
-using System.Collections; // ƒRƒ‹[ƒ`ƒ“‚ğg—p‚·‚é‚½‚ß‚É•K—v
+using System.Collections; // ï¿½Rï¿½ï¿½ï¿½[ï¿½`ï¿½ï¿½ï¿½ï¿½ï¿½gï¿½pï¿½ï¿½ï¿½é‚½ï¿½ß‚É•Kï¿½v
 
 public class DroneEnemy : MonoBehaviour
 {
-    // --- HPİ’è ---
-    [Header("ƒwƒ‹ƒXİ’è")]
-    public float maxHealth = 100f; // Å‘åHP
-    private float currentHealth;    // Œ»İ‚ÌHP
-    private bool isDead = false;    // €–Sƒtƒ‰ƒO
+    // --- HPï¿½İ’ï¿½ ---
+    [Header("ï¿½wï¿½ï¿½ï¿½Xï¿½İ’ï¿½")]
+    public float maxHealth = 100f; // ï¿½Å‘ï¿½HP
+    private float currentHealth;    // ï¿½ï¿½ï¿½İ‚ï¿½HP
+    private bool isDead = false;    // ï¿½ï¿½ï¿½Sï¿½tï¿½ï¿½ï¿½O
 
-    // ?? V‹K’Ç‰Á: ”š”­ƒGƒtƒFƒNƒg‚ÌPrefab
-    [Header("ƒGƒtƒFƒNƒgİ’è")]
+    // ?? ï¿½Vï¿½Kï¿½Ç‰ï¿½: ï¿½ï¿½ï¿½ï¿½ï¿½Gï¿½tï¿½Fï¿½Nï¿½gï¿½ï¿½Prefab
+    [Header("ï¿½Gï¿½tï¿½Fï¿½Nï¿½gï¿½İ’ï¿½")]
     public GameObject explosionPrefab;
 
-    // --- ŒöŠJƒpƒ‰ƒ[ƒ^ ---
-    [Header("ƒ^[ƒQƒbƒgİ’è")]
-    public Transform playerTarget;              // Player‚ÌTransform‚ğ‚±‚±‚Éİ’è
-    public float detectionRange = 15f;          // Player‚ğŒŸo‚·‚é”ÍˆÍ
-    public Transform beamOrigin;                // ’e‚Ì”­ËŒ³‚Æ‚È‚éTransform
+    // --- ï¿½ï¿½ï¿½Jï¿½pï¿½ï¿½ï¿½ï¿½ï¿½[ï¿½^ ---
+    [Header("ï¿½^ï¿½[ï¿½Qï¿½bï¿½gï¿½İ’ï¿½")]
+    public Transform playerTarget;              // Playerï¿½ï¿½Transformï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Éİ’ï¿½
+    public float detectionRange = 15f;          // Playerï¿½ï¿½ï¿½ï¿½ï¿½oï¿½ï¿½ï¿½ï¿½Íˆï¿½
+    public Transform beamOrigin;                // ï¿½eï¿½Ì”ï¿½ï¿½ËŒï¿½ï¿½Æ‚È‚ï¿½Transform
 
     [Range(0, 180)]
-    public float attackAngle = 30f;             // UŒ‚‰Â”\‚È³–Ê‹–ìŠpi‘SŠpj
+    public float attackAngle = 30f;             // ï¿½Uï¿½ï¿½ï¿½Â”\ï¿½Èï¿½ï¿½Êï¿½ï¿½ï¿½pï¿½iï¿½Sï¿½pï¿½j
 
-    [Header("UŒ‚İ’è")]
-    public float attackRate = 5f;               // ’e‚Æ’e‚ÌŠÔ‚ÌŠÔŠuŒvZ‚Ég—p (—á: 1/5 = 0.2•bŠÔŠu)
-    public GameObject beamPrefab;               // ”­Ë‚·‚é’e‚ÌPrefab
-    public float beamSpeed = 40f;               // ’e‚Ì‘¬“x
+    [Header("ï¿½Uï¿½ï¿½ï¿½İ’ï¿½")]
+    public float attackRate = 5f;               // ï¿½eï¿½Æ’eï¿½ÌŠÔ‚ÌŠÔŠuï¿½vï¿½Zï¿½Égï¿½p (ï¿½ï¿½: 1/5 = 0.2ï¿½bï¿½ÔŠu)
+    public GameObject beamPrefab;               // ï¿½ï¿½ï¿½Ë‚ï¿½ï¿½ï¿½eï¿½ï¿½Prefab
+    public float beamSpeed = 40f;               // ï¿½eï¿½Ì‘ï¿½ï¿½x
 
-    [Header("ƒo[ƒXƒgUŒ‚İ’è")]
+    [Header("ï¿½oï¿½[ï¿½Xï¿½gï¿½Uï¿½ï¿½ï¿½İ’ï¿½")]
     public int bulletsPerBurst = 5;
     public float burstCooldownTime = 2f;
 
-    [Header("d’¼İ’è")]
+    [Header("ï¿½dï¿½ï¿½ï¿½İ’ï¿½")]
     public float hardStopDuration = 0.5f;
 
-    [Header("•‚—VˆÚ“®İ’è")]
-    public float rotationSpeed = 5f;             // Player’ÇÕ‚Ì‰ñ“]‘¬“xiƒhƒ[ƒ“–{‘Ì—pj
+    [Header("ï¿½ï¿½ï¿½Vï¿½Ú“ï¿½ï¿½İ’ï¿½")]
+    public float rotationSpeed = 5f;             // Playerï¿½ÇÕï¿½ï¿½Ì‰ï¿½]ï¿½ï¿½ï¿½xï¿½iï¿½hï¿½ï¿½ï¿½[ï¿½ï¿½ï¿½{ï¿½Ì—pï¿½j
     public float gunRotationSpeed = 20f;
     public float hoverAltitude = 5f;
     public float driftSpeed = 1f;
     public float driftRange = 5f;
     public float altitudeCorrectionSpeed = 2f;
 
-    // ?? V‹K’Ç‰Á: áŠQ•¨‰ñ”ğ‚Ì‚½‚ß‚Ìİ’è
-    [Header("áŠQ•¨‰ñ”ğİ’è")]
-    public LayerMask obstacleLayer;              // áŠQ•¨‚Æ‚È‚éƒŒƒCƒ„[
-    public float avoidanceCheckDistance = 3f;    // ‘O•ûƒ`ƒFƒbƒN‹——£
-    public float wallHitResetRange = 1f;         // •Ç‚ÉÚG‚µ‚½‚ÆŒ©‚È‚·‹——£ (Õ“Ë‚ğ–h‚®‚½‚ß‚É‘å‚«‚ß‚É)
+    // ?? ï¿½Vï¿½Kï¿½Ç‰ï¿½: ï¿½ï¿½Qï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ì‚ï¿½ï¿½ß‚Ìİ’ï¿½
+    [Header("ï¿½ï¿½Qï¿½ï¿½ï¿½ï¿½ï¿½İ’ï¿½")]
+    public LayerMask obstacleLayer;              // ï¿½ï¿½Qï¿½ï¿½ï¿½Æ‚È‚éƒŒï¿½Cï¿½ï¿½ï¿½[
+    public float avoidanceCheckDistance = 3f;    // ï¿½Oï¿½ï¿½ï¿½`ï¿½Fï¿½bï¿½Nï¿½ï¿½ï¿½ï¿½
+    public float wallHitResetRange = 1f;         // ï¿½Ç‚ÉÚGï¿½ï¿½ï¿½ï¿½ï¿½ÆŒï¿½ï¿½È‚ï¿½ï¿½ï¿½ï¿½ï¿½ (ï¿½Õ“Ë‚ï¿½hï¿½ï¿½ï¿½ï¿½ï¿½ß‚É‘å‚«ï¿½ß‚ï¿½)
 
-    // --- “à•”•Ï” ---
+    // --- ï¿½ï¿½ï¿½ï¿½ï¿½Ïï¿½ ---
     private float nextAttackTime = 0f;
     private float hardStopEndTime = 0f;
     private Vector3 currentDriftTarget;
@@ -64,56 +64,56 @@ public class DroneEnemy : MonoBehaviour
 
     private void Update()
     {
-        // ƒfƒoƒbƒO—pƒR[ƒh: OƒL[‚ÅHP‚ğ0‚É‚·‚é
+        // ï¿½fï¿½oï¿½bï¿½Oï¿½pï¿½Rï¿½[ï¿½h: Oï¿½Lï¿½[ï¿½ï¿½HPï¿½ï¿½0ï¿½É‚ï¿½ï¿½ï¿½
         if (Input.GetKeyDown(KeyCode.O))
         {
             TakeDamage(maxHealth);
             return;
         }
 
-        // €–SAd’¼’†A‚Ü‚½‚Íƒ^[ƒQƒbƒg‚ª‚È‚¢ê‡‚Íˆ—‚ğƒXƒLƒbƒv
+        // ï¿½ï¿½ï¿½Sï¿½ï¿½ï¿½Aï¿½dï¿½ï¿½ï¿½ï¿½ï¿½Aï¿½Ü‚ï¿½ï¿½Íƒ^ï¿½[ï¿½Qï¿½bï¿½gï¿½ï¿½ï¿½È‚ï¿½ï¿½ê‡ï¿½Íï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Xï¿½Lï¿½bï¿½v
         if (isDead || playerTarget == null || Time.time < hardStopEndTime)
         {
             return;
         }
 
-        // ?? V‹K’Ç‰Á: ˆÚ“®‘O‚É‘O•ûƒ`ƒFƒbƒN‚Æ–Ú•W’n“_‚ÌƒŠƒZƒbƒg
+        // ?? ï¿½Vï¿½Kï¿½Ç‰ï¿½: ï¿½Ú“ï¿½ï¿½Oï¿½É‘Oï¿½ï¿½ï¿½`ï¿½Fï¿½bï¿½Nï¿½Æ–Ú•Wï¿½nï¿½_ï¿½Ìƒï¿½ï¿½Zï¿½bï¿½g
         CheckForObstaclesAndResetTarget();
 
-        // ?? eŒû‚ğí‚ÉPlayer‚ÉŒü‚¯‚é
+        // ?? ï¿½eï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Playerï¿½ÉŒï¿½ï¿½ï¿½ï¿½ï¿½
         RotateGunToPlayer();
 
         float distanceToPlayer = Vector3.Distance(transform.position, playerTarget.position);
 
-        // 2. Player‚ªUŒ‚”ÍˆÍ“à‚É‚¢‚é‚©H
+        // 2. Playerï¿½ï¿½ï¿½Uï¿½ï¿½ï¿½ÍˆÍ“ï¿½ï¿½É‚ï¿½ï¿½é‚©ï¿½H
         if (distanceToPlayer <= detectionRange)
         {
-            // ƒhƒ[ƒ“–{‘Ì‚ğPlayer‚ÉŒü‚¯‚é
+            // ï¿½hï¿½ï¿½ï¿½[ï¿½ï¿½ï¿½{ï¿½Ì‚ï¿½Playerï¿½ÉŒï¿½ï¿½ï¿½ï¿½ï¿½
             LookAtPlayer();
 
-            // UŒ‚’†‚Å‚È‚¯‚ê‚ÎAƒo[ƒXƒgUŒ‚‚ğŠJn
+            // ï¿½Uï¿½ï¿½ï¿½ï¿½ï¿½Å‚È‚ï¿½ï¿½ï¿½ÎAï¿½oï¿½[ï¿½Xï¿½gï¿½Uï¿½ï¿½ï¿½ï¿½ï¿½Jï¿½n
             if (!isAttacking && IsPlayerInFrontView())
             {
                 StartCoroutine(BurstAttackSequence());
             }
         }
 
-        // í‚É‹ó’†‚Å•‚—VˆÚ“®
+        // ï¿½ï¿½É‹ó’†‚Å•ï¿½ï¿½Vï¿½Ú“ï¿½
         DriftHover();
     }
 
     // -------------------------------------------------------------------
-    //                       ƒhƒ[ƒ“–{‘Ì‚Ì‰ñ“] (Y²‚Ì‚İ)
+    //                       ï¿½hï¿½ï¿½ï¿½[ï¿½ï¿½ï¿½{ï¿½Ì‚Ì‰ï¿½] (Yï¿½ï¿½ï¿½Ì‚ï¿½)
     // -------------------------------------------------------------------
 
     /// <summary>
-    /// ƒhƒ[ƒ“–{‘Ì‚ÌŒü‚«‚ğPlayer‚Ì•ûŒü‚ÖŒü‚¯‚éiƒXƒ€[ƒY‚È‰ñ“]j
+    /// ï¿½hï¿½ï¿½ï¿½[ï¿½ï¿½ï¿½{ï¿½Ì‚ÌŒï¿½ï¿½ï¿½ï¿½ï¿½Playerï¿½Ì•ï¿½ï¿½ï¿½ï¿½ÖŒï¿½ï¿½ï¿½ï¿½ï¿½iï¿½Xï¿½ï¿½ï¿½[ï¿½Yï¿½È‰ï¿½]ï¿½j
     /// </summary>
     private void LookAtPlayer()
     {
-        // ... (Œ³‚ÌƒR[ƒh‚Æ•ÏX‚È‚µBƒhƒ[ƒ“–{‘Ì‚ÌY²‰ñ“]) ...
+        // ... (ï¿½ï¿½ï¿½ÌƒRï¿½[ï¿½hï¿½Æ•ÏXï¿½È‚ï¿½ï¿½Bï¿½hï¿½ï¿½ï¿½[ï¿½ï¿½ï¿½{ï¿½Ì‚ï¿½Yï¿½ï¿½ï¿½ï¿½]) ...
         Vector3 targetDirection = playerTarget.position - transform.position;
-        targetDirection.y = 0; // ‹ó’†“G‚È‚Ì‚ÅA…•½‰ñ“]‚Ì‚İ
+        targetDirection.y = 0; // ï¿½ó’†“Gï¿½È‚Ì‚ÅAï¿½ï¿½ï¿½ï¿½ï¿½ï¿½]ï¿½Ì‚ï¿½
 
         Quaternion targetRotation = Quaternion.LookRotation(targetDirection);
 
@@ -125,23 +125,23 @@ public class DroneEnemy : MonoBehaviour
     }
 
     // -------------------------------------------------------------------
-    //                       eŒû‚Ì‰ñ“]ˆ— (V‹K’Ç‰Á)
+    //                       ï¿½eï¿½ï¿½ï¿½Ì‰ï¿½]ï¿½ï¿½ï¿½ï¿½ (ï¿½Vï¿½Kï¿½Ç‰ï¿½)
     // -------------------------------------------------------------------
 
     /// <summary>
-    /// eŒû (beamOrigin) ‚ğPlayer‚ÌTransform‚ÖŒü‚¯‚Ä‰ñ“]‚³‚¹‚éi‘S²‰ñ“]j
+    /// ï¿½eï¿½ï¿½ (beamOrigin) ï¿½ï¿½Playerï¿½ï¿½Transformï¿½ÖŒï¿½ï¿½ï¿½ï¿½Ä‰ï¿½]ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½iï¿½Sï¿½ï¿½ï¿½ï¿½]ï¿½j
     /// </summary>
     private void RotateGunToPlayer()
     {
         if (beamOrigin == null || playerTarget == null) return;
 
-        // Player‚ÌˆÊ’u‚©‚çeŒû‚ÌˆÊ’u‚ğˆø‚¢‚ÄA•ûŒüƒxƒNƒgƒ‹‚ğæ“¾
+        // Playerï¿½ÌˆÊ’uï¿½ï¿½ï¿½ï¿½eï¿½ï¿½ï¿½ÌˆÊ’uï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÄAï¿½ï¿½ï¿½ï¿½ï¿½xï¿½Nï¿½gï¿½ï¿½ï¿½ï¿½ï¿½æ“¾
         Vector3 targetDirection = playerTarget.position - beamOrigin.position;
 
-        // –Ú•W‚Æ‚·‚é‰ñ“] (Player‚Ì•û‚ğŒü‚­)
+        // ï¿½Ú•Wï¿½Æ‚ï¿½ï¿½ï¿½ï¿½] (Playerï¿½Ì•ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)
         Quaternion targetRotation = Quaternion.LookRotation(targetDirection);
 
-        // ƒXƒ€[ƒY‚É‰ñ“]‚³‚¹‚é
+        // ï¿½Xï¿½ï¿½ï¿½[ï¿½Yï¿½É‰ï¿½]ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         beamOrigin.rotation = Quaternion.Slerp(
             beamOrigin.rotation,
             targetRotation,
@@ -150,7 +150,7 @@ public class DroneEnemy : MonoBehaviour
     }
 
     // -------------------------------------------------------------------
-    //                       UŒ‚ˆ— (ƒo[ƒXƒgƒVƒXƒeƒ€)
+    //                       ï¿½Uï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ (ï¿½oï¿½[ï¿½Xï¿½gï¿½Vï¿½Xï¿½eï¿½ï¿½)
     // -------------------------------------------------------------------
 
     private IEnumerator BurstAttackSequence()
@@ -159,7 +159,7 @@ public class DroneEnemy : MonoBehaviour
 
         float shotDelay = 0.5f / attackRate;
 
-        // 1. ƒo[ƒXƒgUŒ‚
+        // 1. ï¿½oï¿½[ï¿½Xï¿½gï¿½Uï¿½ï¿½
         for (int i = 0; i < bulletsPerBurst; i++)
         {
             AttackSingleBullet();
@@ -167,7 +167,7 @@ public class DroneEnemy : MonoBehaviour
             yield return new WaitForSeconds(shotDelay);
         }
 
-        // 2. ƒo[ƒXƒgŒã‚ÌƒN[ƒ‹ƒ^ƒCƒ€
+        // 2. ï¿½oï¿½[ï¿½Xï¿½gï¿½ï¿½ÌƒNï¿½[ï¿½ï¿½ï¿½^ï¿½Cï¿½ï¿½
         yield return new WaitForSeconds(burstCooldownTime);
 
         isAttacking = false;
@@ -177,11 +177,11 @@ public class DroneEnemy : MonoBehaviour
     {
         if (beamOrigin == null || beamPrefab == null)
         {
-            Debug.LogError("”­ËŒ³‚Ü‚½‚ÍPrefab‚ªİ’è‚³‚ê‚Ä‚¢‚Ü‚¹‚ñB");
+            Debug.LogError("ï¿½ï¿½ï¿½ËŒï¿½ï¿½Ü‚ï¿½ï¿½ï¿½Prefabï¿½ï¿½ï¿½İ’è‚³ï¿½ï¿½Ä‚ï¿½ï¿½Ü‚ï¿½ï¿½ï¿½B");
             return;
         }
 
-        // ?? eŒû‚ªŠù‚ÉPlayer‚Ì•ûŒü‚ğŒü‚¢‚Ä‚¢‚é‚½‚ßAbeamOrigin.forward‚ğ’¼Úg—p
+        // ?? ï¿½eï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Playerï¿½Ì•ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä‚ï¿½ï¿½é‚½ï¿½ßAbeamOrigin.forwardï¿½ğ’¼Úgï¿½p
         Quaternion bulletRotation = beamOrigin.rotation;
 
         GameObject bullet = Instantiate(beamPrefab, beamOrigin.position, bulletRotation);
@@ -189,48 +189,48 @@ public class DroneEnemy : MonoBehaviour
         Rigidbody rb = bullet.GetComponent<Rigidbody>();
         if (rb != null)
         {
-            rb.velocity = bullet.transform.forward * beamSpeed;
+            rb.linearVelocity = bullet.transform.forward * beamSpeed;
         }
         else
         {
-            Debug.LogWarning("’ePrefab‚ÉRigidbody‚ª‚ ‚è‚Ü‚¹‚ñB");
+            Debug.LogWarning("ï¿½ePrefabï¿½ï¿½Rigidbodyï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ü‚ï¿½ï¿½ï¿½B");
         }
     }
 
     // -------------------------------------------------------------------
-    //                       ‹ó’†ˆÚ“®ˆ— (C³E’Ç‰Á)
+    //                       ï¿½ó’†ˆÚ“ï¿½ï¿½ï¿½ï¿½ï¿½ (ï¿½Cï¿½ï¿½ï¿½Eï¿½Ç‰ï¿½)
     // -------------------------------------------------------------------
 
     /// <summary>
-    /// ƒhƒ[ƒ“‚ÌˆÚ“®–Ú•W‚ªáŠQ•¨“à‚É‚È‚¢‚©‚ğƒ`ƒFƒbƒN‚µAÕ“Ë‚µ‚»‚¤‚È‚ç–Ú•W‚ğƒŠƒZƒbƒg
+    /// ï¿½hï¿½ï¿½ï¿½[ï¿½ï¿½ï¿½ÌˆÚ“ï¿½ï¿½Ú•Wï¿½ï¿½ï¿½ï¿½Qï¿½ï¿½ï¿½ï¿½ï¿½É‚È‚ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½`ï¿½Fï¿½bï¿½Nï¿½ï¿½ï¿½Aï¿½Õ“Ë‚ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È‚ï¿½Ú•Wï¿½ï¿½ï¿½ï¿½ï¿½Zï¿½bï¿½g
     /// </summary>
     private void CheckForObstaclesAndResetTarget()
     {
-        // currentDriftTarget‚Ö‚ÌƒxƒNƒgƒ‹
+        // currentDriftTargetï¿½Ö‚Ìƒxï¿½Nï¿½gï¿½ï¿½
         Vector3 directionToTarget = (currentDriftTarget - transform.position);
 
-        // 1. Raycast‚Å–Ú•W’n“_‚Ì•ûŒü‚ÉáŠQ•¨‚ª‚ ‚é‚©ƒ`ƒFƒbƒN
+        // 1. Raycastï¿½Å–Ú•Wï¿½nï¿½_ï¿½Ì•ï¿½ï¿½ï¿½ï¿½Éï¿½Qï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½é‚©ï¿½`ï¿½Fï¿½bï¿½N
         if (Physics.Raycast(transform.position, directionToTarget.normalized, out RaycastHit hit, avoidanceCheckDistance, obstacleLayer))
         {
-            // ƒ^[ƒQƒbƒg‚Ì•ûŒü‚ª•ÇIV‚µ‚¢ƒ^[ƒQƒbƒg‚ğİ’è
-            Debug.Log("?? –Ú•W•ûŒü (" + hit.collider.name + ") ‚É•Ç‚ğŒŸoB–Ú•W‚ğƒŠƒZƒbƒg‚µ‚Ü‚·B", gameObject);
+            // ï¿½^ï¿½[ï¿½Qï¿½bï¿½gï¿½Ì•ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÇIï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½^ï¿½[ï¿½Qï¿½bï¿½gï¿½ï¿½İ’ï¿½
+            Debug.Log("?? ï¿½Ú•Wï¿½ï¿½ï¿½ï¿½ (" + hit.collider.name + ") ï¿½É•Ç‚ï¿½ï¿½ï¿½ï¿½oï¿½Bï¿½Ú•Wï¿½ï¿½ï¿½ï¿½ï¿½Zï¿½bï¿½gï¿½ï¿½ï¿½Ü‚ï¿½ï¿½B", gameObject);
             SetNewDriftTarget();
             return;
         }
 
-        // 2. –Ú•W’n“_©‘Ì‚ª•Ç‚Ì’†‚â•Ç‚Ì‰œ‚É‚È‚Á‚Ä‚¢‚È‚¢‚©‚ğƒ`ƒFƒbƒN (OverlapSphere)
+        // 2. ï¿½Ú•Wï¿½nï¿½_ï¿½ï¿½ï¿½Ì‚ï¿½ï¿½Ç‚Ì’ï¿½ï¿½ï¿½Ç‚Ì‰ï¿½ï¿½É‚È‚ï¿½ï¿½Ä‚ï¿½ï¿½È‚ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½`ï¿½Fï¿½bï¿½N (OverlapSphere)
         if (Physics.CheckSphere(currentDriftTarget, wallHitResetRange, obstacleLayer))
         {
-            Debug.Log("?? Œ»İ‚Ì–Ú•W’n“_‚ª•Ç‚Ì’†‚Éİ’è‚³‚ê‚Ä‚¢‚é‚½‚ßA–Ú•W‚ğƒŠƒZƒbƒg‚µ‚Ü‚·B", gameObject);
+            Debug.Log("?? ï¿½ï¿½ï¿½İ‚Ì–Ú•Wï¿½nï¿½_ï¿½ï¿½ï¿½Ç‚Ì’ï¿½ï¿½Éİ’è‚³ï¿½ï¿½Ä‚ï¿½ï¿½é‚½ï¿½ßAï¿½Ú•Wï¿½ï¿½ï¿½ï¿½ï¿½Zï¿½bï¿½gï¿½ï¿½ï¿½Ü‚ï¿½ï¿½B", gameObject);
             SetNewDriftTarget();
             return;
         }
 
-        // 3. (•ÛŒ¯): ƒhƒ[ƒ“©g‚Ì‘O•û‚ª•Ç‚ÉÚG‚µ‚Ä‚¢‚é‚©ƒ`ƒFƒbƒN
-        // ƒhƒ[ƒ“‚ªis•ûŒü‚É•Ç‚ğŒü‚¢‚Ä‚¢‚é‚Æ‘z’è‚µ‚Äƒ`ƒFƒbƒN
+        // 3. (ï¿½ÛŒï¿½): ï¿½hï¿½ï¿½ï¿½[ï¿½ï¿½ï¿½ï¿½ï¿½gï¿½Ì‘Oï¿½ï¿½ï¿½ï¿½ï¿½Ç‚ÉÚGï¿½ï¿½ï¿½Ä‚ï¿½ï¿½é‚©ï¿½`ï¿½Fï¿½bï¿½N
+        // ï¿½hï¿½ï¿½ï¿½[ï¿½ï¿½ï¿½ï¿½ï¿½iï¿½sï¿½ï¿½ï¿½ï¿½ï¿½É•Ç‚ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä‚ï¿½ï¿½ï¿½Æ‘zï¿½è‚µï¿½Äƒ`ï¿½Fï¿½bï¿½N
         if (Physics.Raycast(transform.position, transform.forward, avoidanceCheckDistance * 0.5f, obstacleLayer))
         {
-            Debug.Log("?? ƒhƒ[ƒ“’¼‘O‚Ìis•ûŒü‚ª•Ç‚É‚Ô‚Â‚©‚Á‚Ä‚¢‚Ü‚·B–Ú•W‚ğƒŠƒZƒbƒg‚µ‚Ü‚·B", gameObject);
+            Debug.Log("?? ï¿½hï¿½ï¿½ï¿½[ï¿½ï¿½ï¿½ï¿½ï¿½Oï¿½Ìiï¿½sï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç‚É‚Ô‚Â‚ï¿½ï¿½ï¿½ï¿½Ä‚ï¿½ï¿½Ü‚ï¿½ï¿½Bï¿½Ú•Wï¿½ï¿½ï¿½ï¿½ï¿½Zï¿½bï¿½gï¿½ï¿½ï¿½Ü‚ï¿½ï¿½B", gameObject);
             SetNewDriftTarget();
         }
     }
@@ -239,11 +239,11 @@ public class DroneEnemy : MonoBehaviour
     {
         Vector3 currentPos = transform.position;
 
-        // 1. ‚“x•â³ (Y²‚ÌˆÚ“®)
+        // 1. ï¿½ï¿½ï¿½xï¿½â³ (Yï¿½ï¿½ï¿½ÌˆÚ“ï¿½)
         float targetY = hoverAltitude;
         float newY = Mathf.Lerp(currentPos.y, targetY, Time.deltaTime * altitudeCorrectionSpeed);
 
-        // 2. …•½•ûŒü‚ÌˆÚ“® (X/Z²‚Ì•‚—V)
+        // 2. ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÌˆÚ“ï¿½ (X/Zï¿½ï¿½ï¿½Ì•ï¿½ï¿½V)
         Vector3 horizontalTarget = new Vector3(currentDriftTarget.x, newY, currentDriftTarget.z);
 
         transform.position = Vector3.MoveTowards(
@@ -252,7 +252,7 @@ public class DroneEnemy : MonoBehaviour
             Time.deltaTime * driftSpeed
         );
 
-        // 3. –Ú•W’n“_‚É“’B‚µ‚½‚çV‚µ‚¢–Ú•W‚ğİ’è
+        // 3. ï¿½Ú•Wï¿½nï¿½_ï¿½É“ï¿½ï¿½Bï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½Ú•Wï¿½ï¿½İ’ï¿½
         if (Vector3.Distance(new Vector3(currentPos.x, 0, currentPos.z), new Vector3(currentDriftTarget.x, 0, currentDriftTarget.z)) < 0.5f)
         {
             SetNewDriftTarget();
@@ -263,9 +263,9 @@ public class DroneEnemy : MonoBehaviour
     {
         Vector3 newTarget;
         int attempts = 0;
-        const int maxAttempts = 10; // ƒ‹[ƒv‚Ì–³ŒÀ‰»‚ğ–h‚®
+        const int maxAttempts = 10; // ï¿½ï¿½ï¿½[ï¿½vï¿½Ì–ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½hï¿½ï¿½
 
-        // Õ“Ë‚µ‚È‚¢–Ú•W’n“_‚ğŒ©‚Â‚¯‚é‚Ü‚ÅŒJ‚è•Ô‚·
+        // ï¿½Õ“Ë‚ï¿½ï¿½È‚ï¿½ï¿½Ú•Wï¿½nï¿½_ï¿½ï¿½ï¿½ï¿½ï¿½Â‚ï¿½ï¿½ï¿½Ü‚ÅŒJï¿½ï¿½Ô‚ï¿½
         do
         {
             Vector2 randomCircle = Random.insideUnitCircle * driftRange;
@@ -278,29 +278,29 @@ public class DroneEnemy : MonoBehaviour
 
             attempts++;
 
-            // ?? C³: V‚µ‚¢–Ú•W’n“_‚ªáŠQ•¨“à‚É‚È‚¢‚©ƒ`ƒFƒbƒN
-            // CheckSphere‚Å–Ú•W’n“_ü•Ó‚ÉáŠQ•¨‚ª‚È‚¢‚©Šm”F‚·‚é
+            // ?? ï¿½Cï¿½ï¿½: ï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½Ú•Wï¿½nï¿½_ï¿½ï¿½ï¿½ï¿½Qï¿½ï¿½ï¿½ï¿½ï¿½É‚È‚ï¿½ï¿½ï¿½ï¿½`ï¿½Fï¿½bï¿½N
+            // CheckSphereï¿½Å–Ú•Wï¿½nï¿½_ï¿½ï¿½ï¿½Ó‚Éï¿½Qï¿½ï¿½ï¿½ï¿½ï¿½È‚ï¿½ï¿½ï¿½ï¿½mï¿½Fï¿½ï¿½ï¿½ï¿½
         } while (Physics.CheckSphere(newTarget, wallHitResetRange, obstacleLayer) && attempts < maxAttempts);
 
 
         if (attempts >= maxAttempts)
         {
-            Debug.LogWarning("–Ú•W’n“_‚ğŒ©‚Â‚¯‚é‚Ì‚É¸”s‚µ‚Ü‚µ‚½BŒ»İ’nü•Ó‚ğˆÛ‚µ‚Ü‚·B", gameObject);
-            // Œ©‚Â‚©‚ç‚È‚©‚Á‚½ê‡‚ÍAŒ»İ‚ÌˆÊ’u‚ğ–Ú•W‚Æ‚µ‚ÄAˆÚ“®‚ğ’â~‚³‚¹‚é
+            Debug.LogWarning("ï¿½Ú•Wï¿½nï¿½_ï¿½ï¿½ï¿½ï¿½ï¿½Â‚ï¿½ï¿½ï¿½Ì‚Éï¿½ï¿½sï¿½ï¿½ï¿½Ü‚ï¿½ï¿½ï¿½ï¿½Bï¿½ï¿½ï¿½İ’nï¿½ï¿½ï¿½Ó‚ï¿½ï¿½Ûï¿½ï¿½ï¿½ï¿½Ü‚ï¿½ï¿½B", gameObject);
+            // ï¿½ï¿½ï¿½Â‚ï¿½ï¿½ï¿½È‚ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ê‡ï¿½ÍAï¿½ï¿½ï¿½İ‚ÌˆÊ’uï¿½ï¿½Ú•Wï¿½Æ‚ï¿½ï¿½ÄAï¿½Ú“ï¿½ï¿½ï¿½ï¿½~ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
             currentDriftTarget = transform.position;
         }
         else
         {
             currentDriftTarget = newTarget;
-            // YÀ•W‚ğ–³‹‚µ‚ÄŒ»İ‚ÌˆÊ’u‚©‚ç‚ÌƒxƒNƒgƒ‹‚ğŒvZ
+            // Yï¿½ï¿½ï¿½Wï¿½ğ–³ï¿½ï¿½ï¿½ï¿½ÄŒï¿½ï¿½İ‚ÌˆÊ’uï¿½ï¿½ï¿½ï¿½Ìƒxï¿½Nï¿½gï¿½ï¿½ï¿½ï¿½ï¿½vï¿½Z
             Vector3 horizontalDirection = new Vector3(currentDriftTarget.x, transform.position.y, currentDriftTarget.z) - transform.position;
-            // Œ©‚Â‚¯‚½–Ú•W’n“_‚ÖŒü‚©‚Á‚Äƒhƒ[ƒ“‚ÌŒü‚«‚ğ•â³‚·‚é
+            // ï¿½ï¿½ï¿½Â‚ï¿½ï¿½ï¿½ï¿½Ú•Wï¿½nï¿½_ï¿½ÖŒï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Äƒhï¿½ï¿½ï¿½[ï¿½ï¿½ï¿½ÌŒï¿½ï¿½ï¿½ï¿½ï¿½â³ï¿½ï¿½ï¿½ï¿½
             transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(horizontalDirection), Time.deltaTime * rotationSpeed);
         }
     }
 
     // -------------------------------------------------------------------
-    //                       ƒwƒ‹ƒX‚Æƒ_ƒ[ƒWˆ—
+    //                       ï¿½wï¿½ï¿½ï¿½Xï¿½Æƒ_ï¿½ï¿½ï¿½[ï¿½Wï¿½ï¿½ï¿½ï¿½
     // -------------------------------------------------------------------
 
     public void TakeDamage(float damageAmount)
@@ -316,40 +316,40 @@ public class DroneEnemy : MonoBehaviour
     }
 
     /// <summary>
-    /// €–Sˆ—
+    /// ï¿½ï¿½ï¿½Sï¿½ï¿½ï¿½ï¿½
     /// </summary>
     private void Die()
     {
         if (isDead) return;
 
         isDead = true;
-        Debug.Log(gameObject.name + "‚Í”j‰ó‚³‚ê‚Ü‚µ‚½I");
+        Debug.Log(gameObject.name + "ï¿½Í”jï¿½ó‚³‚ï¿½Ü‚ï¿½ï¿½ï¿½ï¿½I");
 
-        // ?? ”š”­ƒGƒtƒFƒNƒg‚ÌƒCƒ“ƒXƒ^ƒ“ƒX‰»‚ÆÄ¶
+        // ?? ï¿½ï¿½ï¿½ï¿½ï¿½Gï¿½tï¿½Fï¿½Nï¿½gï¿½ÌƒCï¿½ï¿½ï¿½Xï¿½^ï¿½ï¿½ï¿½Xï¿½ï¿½ï¿½ÆÄï¿½
         if (explosionPrefab != null)
         {
-            // ƒhƒ[ƒ“‚ÌˆÊ’u‚É¶¬
+            // ï¿½hï¿½ï¿½ï¿½[ï¿½ï¿½ï¿½ÌˆÊ’uï¿½Éï¿½ï¿½ï¿½
             Instantiate(explosionPrefab, transform.position, Quaternion.identity);
         }
 
-        // ƒRƒ‹[ƒ`ƒ“‚ğ’â~‚µ‚ÄA’e‚ª˜AË‚³‚ê‚é‚Ì‚ğ–h‚®
+        // ï¿½Rï¿½ï¿½ï¿½[ï¿½`ï¿½ï¿½ï¿½ï¿½ï¿½~ï¿½ï¿½ï¿½ÄAï¿½eï¿½ï¿½ï¿½Aï¿½Ë‚ï¿½ï¿½ï¿½ï¿½Ì‚ï¿½hï¿½ï¿½
         StopAllCoroutines();
 
-        // €–SŒãA‘¦À‚Éƒhƒ[ƒ“–{‘Ì‚ÌƒŒƒ“ƒ_ƒ‰[‚âƒRƒ‰ƒCƒ_[‚ğ–³Œø‰»
-        // (‚±‚±‚Å‚ÍŠÈ’P‚ÈDestroy‚ğg—p)
-        Destroy(gameObject, 0.1f); // ƒGƒtƒFƒNƒg‚ª¶¬‚³‚ê‚½‚ç‚·‚®‚Éƒhƒ[ƒ“–{‘Ì‚ğíœ
+        // ï¿½ï¿½ï¿½Sï¿½ï¿½Aï¿½ï¿½ï¿½ï¿½ï¿½Éƒhï¿½ï¿½ï¿½[ï¿½ï¿½ï¿½{ï¿½Ì‚Ìƒï¿½ï¿½ï¿½ï¿½_ï¿½ï¿½ï¿½[ï¿½ï¿½Rï¿½ï¿½ï¿½Cï¿½_ï¿½[ï¿½ğ–³Œï¿½ï¿½ï¿½
+        // (ï¿½ï¿½ï¿½ï¿½ï¿½Å‚ÍŠÈ’Pï¿½ï¿½Destroyï¿½ï¿½ï¿½gï¿½p)
+        Destroy(gameObject, 0.1f); // ï¿½Gï¿½tï¿½Fï¿½Nï¿½gï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ê‚½ï¿½ç‚·ï¿½ï¿½ï¿½Éƒhï¿½ï¿½ï¿½[ï¿½ï¿½ï¿½{ï¿½Ì‚ï¿½ï¿½íœ
     }
 
     // -------------------------------------------------------------------
-    //                       ‚»‚Ì‘¼ƒ†[ƒeƒBƒŠƒeƒB
+    //                       ï¿½ï¿½ï¿½Ì‘ï¿½ï¿½ï¿½ï¿½[ï¿½eï¿½Bï¿½ï¿½ï¿½eï¿½B
     // -------------------------------------------------------------------
 
     /// <summary>
-    /// Player‚ªƒGƒlƒ~[‚Ì‘O•û‹–ìŠp“à‚É‚¢‚é‚©‚ğƒ`ƒFƒbƒN‚·‚é
+    /// Playerï¿½ï¿½ï¿½Gï¿½lï¿½~ï¿½[ï¿½Ì‘Oï¿½ï¿½ï¿½ï¿½ï¿½ï¿½pï¿½ï¿½ï¿½É‚ï¿½ï¿½é‚©ï¿½ï¿½ï¿½`ï¿½Fï¿½bï¿½Nï¿½ï¿½ï¿½ï¿½
     /// </summary>
     private bool IsPlayerInFrontView()
     {
-        // ... (•ÏX‚È‚µ) ...
+        // ... (ï¿½ÏXï¿½È‚ï¿½) ...
         Vector3 directionToTarget = playerTarget.position - transform.position;
         directionToTarget.y = 0;
 
@@ -367,10 +367,10 @@ public class DroneEnemy : MonoBehaviour
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, detectionRange);
 
-        // ?? V‹K’Ç‰Á: ‰ñ”ğƒ`ƒFƒbƒN‹——£‚Æƒ^[ƒQƒbƒg‚Ì•ûŒü‚ÉRay‚ğ•\¦
+        // ?? ï¿½Vï¿½Kï¿½Ç‰ï¿½: ï¿½ï¿½ï¿½ï¿½`ï¿½Fï¿½bï¿½Nï¿½ï¿½ï¿½ï¿½ï¿½Æƒ^ï¿½[ï¿½Qï¿½bï¿½gï¿½Ì•ï¿½ï¿½ï¿½ï¿½ï¿½Rayï¿½ï¿½\ï¿½ï¿½
         if (Application.isEditor && transform != null)
         {
-            // ŒŸo”ÍˆÍ‚Ì‰~•\¦ (UŒ‚‹–ìŠp)
+            // ï¿½ï¿½ï¿½oï¿½ÍˆÍ‚Ì‰~ï¿½ï¿½ï¿½\ï¿½ï¿½ (ï¿½Uï¿½ï¿½ï¿½ï¿½ï¿½ï¿½p)
             Quaternion leftRayRotation = Quaternion.AngleAxis(-attackAngle / 2, Vector3.up);
             Quaternion rightRayRotation = Quaternion.AngleAxis(attackAngle / 2, Vector3.up);
 
@@ -381,17 +381,17 @@ public class DroneEnemy : MonoBehaviour
             Gizmos.DrawRay(transform.position, leftRayDirection * detectionRange);
             Gizmos.DrawRay(transform.position, rightRayDirection * detectionRange);
 
-            // •‚—V”ÍˆÍ‚Æ–Ú•W’n“_‚Ì•\¦
+            // ï¿½ï¿½ï¿½Vï¿½ÍˆÍ‚Æ–Ú•Wï¿½nï¿½_ï¿½Ì•\ï¿½ï¿½
             Gizmos.color = Color.cyan;
             Gizmos.DrawWireSphere(transform.position, driftRange);
             Gizmos.DrawSphere(currentDriftTarget, 0.5f);
 
-            // ?? V‹K’Ç‰Á: ‰ñ”ğƒ`ƒFƒbƒN‚ÌRaycast•\¦
+            // ?? ï¿½Vï¿½Kï¿½Ç‰ï¿½: ï¿½ï¿½ï¿½ï¿½`ï¿½Fï¿½bï¿½Nï¿½ï¿½Raycastï¿½\ï¿½ï¿½
             Vector3 directionToTarget = (currentDriftTarget - transform.position).normalized;
             Gizmos.color = Color.magenta;
             Gizmos.DrawRay(transform.position, directionToTarget * avoidanceCheckDistance);
 
-            // ?? V‹K’Ç‰Á: –Ú•W’n“_‚ÌáŠQ•¨ƒ`ƒFƒbƒN”ÍˆÍ•\¦
+            // ?? ï¿½Vï¿½Kï¿½Ç‰ï¿½: ï¿½Ú•Wï¿½nï¿½_ï¿½Ìï¿½Qï¿½ï¿½ï¿½`ï¿½Fï¿½bï¿½Nï¿½ÍˆÍ•\ï¿½ï¿½
             Gizmos.color = Color.green;
             Gizmos.DrawWireSphere(currentDriftTarget, wallHitResetRange);
         }

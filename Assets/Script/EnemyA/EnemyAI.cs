@@ -290,7 +290,7 @@ public class EnemyAI : MonoBehaviour
         Rigidbody rb = bullet.GetComponent<Rigidbody>();
         if (rb != null)
         {
-            rb.velocity = firePoint.forward * bulletSpeed;
+            rb.linearVelocity = firePoint.forward * bulletSpeed;
         }
 
         currentAmmo--;
@@ -351,7 +351,7 @@ public class EnemyAI : MonoBehaviour
         {
             // 弾のRigidbody速度をリセット
             Rigidbody rb = bullet.GetComponent<Rigidbody>();
-            if (rb != null) rb.velocity = Vector3.zero;
+            if (rb != null) rb.linearVelocity = Vector3.zero;
 
             bullet.gameObject.SetActive(false);
             bulletPool.Enqueue(bullet);

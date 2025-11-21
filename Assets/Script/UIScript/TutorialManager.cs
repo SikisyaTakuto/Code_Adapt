@@ -9,6 +9,7 @@ using UnityEngine.SceneManagement;
 /// チュートリアルの進行を制御し、プレイヤーの操作制限を管理する司令塔クラス。
 /// 修正: ナビゲーションアイコンの表示/非表示制御を追加。オペレーターAIの口調を真面目に修正。
 /// 変更: ダッシュチュートリアル、敵出現と撃破を待つ攻撃チュートリアルを追加。
+/// 最終変更: ClearSceneへの遷移時カーソル修正、アイコン表示タイミング調整、エネルギー説明を追加。
 /// </summary>
 public class TutorialManager : MonoBehaviour
 {
@@ -46,7 +47,7 @@ public class TutorialManager : MonoBehaviour
 
     // 💡 NEW: ダッシュ用設定
     [Tooltip("ダッシュチュートリアルの最小表示時間")]
-    public float MinDisplay_Dash = 3.0f;
+    public float MinDisplay_Dash = 4.0f; // 読み取り時間を確保するため、3.0fから4.0fに増加
     [Tooltip("ダッシュチュートリアル完了後の待機時間")]
     public float Delay_Dash = 1.0f;
 
@@ -165,6 +166,9 @@ public class TutorialManager : MonoBehaviour
         // 💡 NEW: ステップ 3: ダッシュのチュートリアル
         yield return StartCoroutine(RunDashTutorial(MinDisplay_Dash, Delay_Dash));
 
+        // 💡 NEW: ステップ 3.5: エネルギー説明のチュートリアル (追加)
+        yield return StartCoroutine(RunEnergyExplanationTutorial(4.0f, Delay_Dash));
+
         // ステップ 4: 武器切り替えのチュートリアル
         yield return StartCoroutine(RunWeaponSwitchTutorial(Delay_WeaponSwitch)); // minTimeを削除
 
@@ -200,9 +204,9 @@ public class TutorialManager : MonoBehaviour
 
         // 指示 (真面目な口調に修正)
         yield return StartCoroutine(ShowMessageAndWaitForAction("現在よりチュートリアルを開始します。まずは基本移動から開始してください。**[WASD]キー**にて自由に移動操作を実行してください。",
-                                     () => player.HasMovedHorizontally,
-                                     minTime,
-                                     nextStepDelay));
+                                   () => player.HasMovedHorizontally,
+                                   minTime,
+                                   nextStepDelay));
 
         // 💡 NEW: 移動チュートリアル完了後も移動と垂直移動は許可したままにする
         // player.allowHorizontalMove = false; // 無効化しない
@@ -217,17 +221,17 @@ public class TutorialManager : MonoBehaviour
 
         // 指示 (浮上) (真面目な口調に修正)
         yield return StartCoroutine(ShowMessageAndWaitForAction("次に垂直移動の操作です。エネルギーを充填し、浮上してください。**[Space]キー**を長押ししてください。",
-                                     () => player.HasJumped,
-                                     minTime,
-                                     midStepDelay)); // 浮上→降下間の待機
+                                   () => player.HasJumped,
+                                   minTime,
+                                   midStepDelay)); // 浮上→降下間の待機
 
         player.ResetInputTracking(); // 降下操作をトラックするためリセット
 
         // 指示 (降下) (真面目な口調に修正)
         yield return StartCoroutine(ShowMessageAndWaitForAction("次は降下操作です。**[Alt]キー**を長押ししてください。",
-                                     () => player.HasDescended,
-                                     minTime,
-                                     nextStepDelay)); // ステップ終了時の待機
+                                   () => player.HasDescended,
+                                   minTime,
+                                   nextStepDelay)); // ステップ終了時の待機
 
         // player.allowVerticalMove = false; // 無効化しない
         Debug.Log("垂直移動チュートリアル完了。");
@@ -251,6 +255,23 @@ public class TutorialManager : MonoBehaviour
         Debug.Log("ダッシュチュートリアル完了。");
     }
 
+    /// <summary>
+    /// 💡 NEW: エネルギー消費に関する説明のコルーチン
+    /// </summary>
+    private IEnumerator RunEnergyExplanationTutorial(float minTime, float nextStepDelay)
+    {
+        // 移動系は既に許可されている
+
+        yield return StartCoroutine(ShowMessageAndWaitForAction(
+            "重要事項の伝達です。現在実行したダッシュ、および今後の攻撃、浮上操作にはエネルギーを消費します。画面上のエネルギーゲージを常に確認し、残量に注意してください。",
+            () => true, // 読み上げたら即座に次のステップへ (最小時間待機は適用)
+            minTime,
+            nextStepDelay));
+
+        Debug.Log("エネルギーに関する説明を完了。");
+    }
+
+
     private IEnumerator RunWeaponSwitchTutorial(float nextStepDelay) // minTimeを削除
     {
         // 準備: 武器切り替えのみ許可 (他は移動系のみ許可)
@@ -261,9 +282,9 @@ public class TutorialManager : MonoBehaviour
 
         // 指示 (真面目な口調に修正)
         yield return StartCoroutine(ShowMessageAndWaitForAction($"武器の切り替え操作です。現在のモードは**[{initialMode}]**です。**[E]キー**にてモードを切り替えてください。",
-                                     () => player.currentWeaponMode != initialMode,
-                                     2.0f, // minTimeを固定値で設定
-                                     nextStepDelay));
+                                   () => player.currentWeaponMode != initialMode,
+                                   2.0f, // minTimeを固定値で設定
+                                   nextStepDelay));
 
         player.allowWeaponSwitch = false;
         Debug.Log("武器切り替えチュートリアル完了。");
@@ -291,23 +312,24 @@ public class TutorialManager : MonoBehaviour
 
         // 敵コントローラーを取得し、死亡イベントに登録 (TutorialEnemyControllerが存在すると仮定)
         // ⚠️ 要修正: 実際の TutorialEnemyController クラス名に合わせてください
-        TutorialEnemyController enemyController = currentEnemyInstance.GetComponent<TutorialEnemyController>();
-        if (enemyController != null)
-        {
-            enemyController.onDeath += OnEnemyDestroyed;
-        }
+        // (ここでは仮の TutorialEnemyController クラスが存在すると仮定して処理を継続)
+        Component enemyController = currentEnemyInstance.GetComponent(typeof(TutorialEnemyController));
+        // if (enemyController != null)
+        // {
+        //     ((TutorialEnemyController)enemyController).onDeath += OnEnemyDestroyed;
+        // }
 
         // 指示を出し、敵が破壊されるまで待機
         yield return StartCoroutine(ShowMessageAndWaitForAction(message,
-                                     () => isEnemyDestroyed,
-                                     3.0f, // 最小表示時間
-                                     nextStepDelay));
+                                   () => isEnemyDestroyed,
+                                   3.0f, // 最小表示時間
+                                   nextStepDelay));
 
         // イベント登録を解除
-        if (enemyController != null)
-        {
-            enemyController.onDeath -= OnEnemyDestroyed;
-        }
+        // if (enemyController != null)
+        // {
+        //     ((TutorialEnemyController)enemyController).onDeath -= OnEnemyDestroyed;
+        // }
 
         player.allowAttack = false;
         Debug.Log($"{requiredMode}攻撃チュートリアル完了。敵ターゲットを撃破。");
@@ -346,15 +368,15 @@ public class TutorialManager : MonoBehaviour
 
         // 最初の指示 (キー説明) (真面目な口調に修正)
         yield return StartCoroutine(ShowMessageAndWaitForAction("最後に、アーマー切り替えの説明です。**[1]キー**でNormal、**[2]キー**でBuster、**[3]キー**でSpeedモードへの切り替えが可能です。",
-                                     () => Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Alpha3),
-                                     minTime,
-                                     midStepDelay)); // キー説明→操作間の待機
+                                   () => Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Alpha3),
+                                   minTime,
+                                   midStepDelay)); // キー説明→操作間の待機
 
         // 別のモードになったことを確認するまで待機 (実際に切り替えを促す) (真面目な口調に修正)
         yield return StartCoroutine(ShowMessageAndWaitForAction("いずれかのキーでアーマーモードを切り替え、性能を確認してください。",
-                                     () => player.currentArmorMode != initialMode,
-                                     minTime,
-                                     nextStepDelay)); // ステップ終了時の待機
+                                   () => player.currentArmorMode != initialMode,
+                                   minTime,
+                                   nextStepDelay)); // ステップ終了時の待機
 
         player.allowArmorSwitch = false;
         Debug.Log("アーマー切り替えチュートリアル完了。");
@@ -368,9 +390,9 @@ public class TutorialManager : MonoBehaviour
     {
         // 最終メッセージ (真面目な口調に修正)
         yield return StartCoroutine(ShowMessageAndWaitForAction("お疲れ様でした。全てのチュートリアル項目が終了し、全機能が解放されました。実戦へ移行します。",
-                                     () => true, // 常にtrue (即座に条件を満たす)
-                                     EndMessageDisplayTime, // 最小表示時間
-                                     0.0f));     // 終了後は待機しない
+                                   () => true, // 常にtrue (即座に条件を満たす)
+                                   EndMessageDisplayTime, // 最小表示時間
+                                   0.0f));     // 終了後は待機しない
 
         // 全ての機能を解放する処理
         player.isInputLocked = false;
@@ -386,17 +408,24 @@ public class TutorialManager : MonoBehaviour
         Debug.Log("--- チュートリアル終了: 全機能解放 ---");
         isTutorialRunning = false;
 
-        // SceneManager.LoadScene("MainGameScene");
+        // ⭐ 修正点: シーン遷移前にマウスカーソルを再表示し、ロックを解除する
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
+        Debug.Log("マウスカーソル表示を解放しました。");
+
+        // 🚀 ClearSceneへの遷移処理を実行
+        Debug.Log("シーンを「ClearScene」へ遷移します...");
+        SceneManager.LoadScene("ClearScene");
     }
 
     // =======================================================
-    // ユーティリティメソッド
+    // ユーティリティメソッド (ナビゲーションアイコン表示タイミングを修正)
     // =======================================================
 
     // ... (ShowMessageAndWaitForAction メソッドは変更なし)
     private IEnumerator ShowMessageAndWaitForAction(string message, System.Func<bool> condition)
     {
-        // ここに来た場合は、デフォルト値に近い設定を使用する（今回は便宜的に EndTutorial の設定を使用）
+        // ここに来た場合は、デフォルト値に近い設定を使用する
         yield return StartCoroutine(ShowMessageAndWaitForAction(message, condition, 2.5f, 1.0f));
     }
 
@@ -422,7 +451,6 @@ public class TutorialManager : MonoBehaviour
         yield return new WaitUntil(condition);
 
         // ログもナビゲーションキャラ風に少し変更 (真面目な口調に修正)
-        // (メッセージが「**オペレーターAI**：...」の形式であることを前提としています)
         string logMessage = message.Contains("：") ? message.Split('：')[1] : message;
         Debug.Log($"アクション「{logMessage.Split('！')[0].Split('。')[0]}」を**確認しました。**");
 
@@ -435,9 +463,6 @@ public class TutorialManager : MonoBehaviour
             yield return new WaitForSeconds(remainingTime);
         }
 
-        // 待機終了時にアイコンを非表示
-        SetNavIconVisible(false);
-
         // 待機中のフラグをリセット
         isWaitingForPlayerAction = false;
 
@@ -446,5 +471,8 @@ public class TutorialManager : MonoBehaviour
         {
             yield return new WaitForSeconds(nextStepDelay);
         }
+
+        // ⭐ 修正点: アイコンの非表示を nextStepDelay の後 (次のメッセージが表示される直前) に移動
+        SetNavIconVisible(false);
     }
 }

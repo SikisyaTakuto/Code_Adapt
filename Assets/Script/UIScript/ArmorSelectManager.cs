@@ -12,8 +12,8 @@ public class ArmorSelectManager : MonoBehaviour
 {
     // --- UI/表示設定 ---
     [Header("UI References")]
-    public Text descriptionText;          // ナビゲーターの吹き出し内の説明文
-    public Button decisionButton;         // 決定ボタン
+    public Text descriptionText;       // ナビゲーターの吹き出し内の説明文
+    public Button decisionButton;      // 決定ボタン
 
     [Header("Armor Buttons")]
     public Button[] armorButtons = new Button[4]; // 選択肢となるボタン (1, 2, 3, 4)
@@ -30,6 +30,8 @@ public class ArmorSelectManager : MonoBehaviour
     // --- データと状態 ---
     // ★追加: 選択されたアーマーのインデックスを格納するリスト
     private List<int> selectedArmorList = new List<int>();
+    // ★変更: 最大選択数を3に設定
+    private const int MaxSelectionCount = 3;
 
     // ★追加: マウスオーバーされているアーマーのインデックスを格納するリスト
     private List<int> hoveredArmorList = new List<int>();
@@ -48,8 +50,12 @@ public class ArmorSelectManager : MonoBehaviour
         "【ランダム】\n開始時にランダムなアーマーが選択されます。"
     };
 
+    // ★追加: 初期表示用の説明文
+    private const string InitialDescription = "クリックしてアーマーを**3つ**選びましょう。選択されたアーマーは黄色く強調表示されます。\n\n**マウスカーソルを合わせる**と詳細な説明が見られます。";
+
+
     // 決定ボタンを押した後のシーン名
-    private const string GameSceneName = "PlayerTestScene";
+    private const string GameSceneName = "TutorialScene";
 
     // 選択されたアーマーのデータを保持・引き継ぐためのキー (単一選択から変更が必要なら、ここも修正が必要)
     private const string SelectedArmorKey = "SelectedArmorIndex";
@@ -62,15 +68,12 @@ public class ArmorSelectManager : MonoBehaviour
         EnableAllArmorModels();
         SetArmorButtonsTransparent();
 
-        // 初期状態として、最初のアーマー(0)をリストに追加し、表示インデックスとする
-        // ※この初期選択はデバッグまたは初期表示用と考え、実際に選択状態になるかは selectedArmorList.Contains(0) に依存
-        currentDisplayIndex = 0;
-        if (!selectedArmorList.Any())
-        {
-            selectedArmorList.Add(currentDisplayIndex);
-        }
+        // ★修正点1: 初期選択の削除
+        // 最初のアーマー(0)をリストに追加する処理を削除し、初期状態を「何も選択されていない」状態にする
 
-        UpdateDescriptionText(currentDisplayIndex);
+        // ★修正点2: 初期表示テキストの更新
+        UpdateDescriptionTextInitial();
+
         UpdateDecisionButtonState();
 
         for (int i = 0; i < armorButtons.Length; i++)
@@ -92,7 +95,7 @@ public class ArmorSelectManager : MonoBehaviour
             decisionButton.onClick.AddListener(OnDecisionButtonClicked);
         }
 
-        UpdateUIEmphasis(); // ボタンの強調表示を初期化
+        UpdateUIEmphasis(); // ボタンの強調表示を初期化 (全て透明になる)
     }
 
     /// <summary>
@@ -147,6 +150,11 @@ public class ArmorSelectManager : MonoBehaviour
             // リストの最後に選択されたアーマーの説明に戻る
             currentDisplayIndex = selectedArmorList.Last();
             UpdateDescriptionText(currentDisplayIndex);
+        }
+        else
+        {
+            // 何も選択されていない場合は初期説明文に戻す
+            UpdateDescriptionTextInitial();
         }
 
         // マウスオーバーが解除されたとき、そのモデルが選択されていない場合のみ回転を初期化（停止/正面向きに戻す）
@@ -203,7 +211,6 @@ public class ArmorSelectManager : MonoBehaviour
         // 3Dモデルの回転処理
         for (int i = 0; i < armorModels.Length; i++)
         {
-            // ★修正点: 回転条件
             // 回転させるのは、マウスオーバーされている **かつ** 選択されていないモデルのみ
             bool isHovered = hoveredArmorList.Contains(i);
             bool isSelected = selectedArmorList.Contains(i);
@@ -241,6 +248,14 @@ public class ArmorSelectManager : MonoBehaviour
         }
         else
         {
+            // ★修正点3: 選択数の制限チェックを追加
+            if (selectedArmorList.Count >= MaxSelectionCount)
+            {
+                // 選択上限に達している場合は何もしない
+                Debug.LogWarning($"選択上限({MaxSelectionCount}個)に達しています。");
+                return;
+            }
+
             // 選択 (透明 -> 黄色)
             selectedArmorList.Add(index);
 
@@ -288,13 +303,24 @@ public class ArmorSelectManager : MonoBehaviour
 
 
     /// <summary>
-    /// 吹き出し内の説明文を更新します。
+    /// 吹き出し内の説明文を更新します。（アーマー選択時/マウスオーバー時）
     /// </summary>
     private void UpdateDescriptionText(int index)
     {
         if (descriptionText != null)
         {
             descriptionText.text = armorDescriptions[index];
+        }
+    }
+
+    /// <summary>
+    /// 吹き出し内の説明文を初期表示用（チュートリアル）に更新します。
+    /// </summary>
+    private void UpdateDescriptionTextInitial()
+    {
+        if (descriptionText != null)
+        {
+            descriptionText.text = InitialDescription;
         }
     }
 
@@ -314,6 +340,10 @@ public class ArmorSelectManager : MonoBehaviour
         {
             Debug.Log($"決定ボタン有効。格納順: {string.Join(", ", selectedArmorList.Select(i => armorNames[i]))}");
         }
+        else
+        {
+            Debug.Log("決定ボタン無効。アーマーが選択されていません。");
+        }
     }
 
     /// <summary>
@@ -327,12 +357,16 @@ public class ArmorSelectManager : MonoBehaviour
             return;
         }
 
+        // 複数選択されていても、引き継ぐデータは最初の1つだけ、という前提はそのまま残しています
         int armorToPass = selectedArmorList.First();
+
+        // 選択された全てのアーマー情報を引き継ぎたい場合は、この部分のロジックを修正してください
+        // 例: 3つのIDをカンマ区切りの文字列にしてPlayerPrefsに保存するなど
 
         PlayerPrefs.SetInt(SelectedArmorKey, armorToPass);
         PlayerPrefs.Save();
 
-        Debug.Log($"選択アーマー(格納順): {string.Join(", ", selectedArmorList.Select(i => armorNames[i]))} をゲームシーンへ渡します。");
+        Debug.Log($"選択アーマー(格納順): {string.Join(", ", selectedArmorList.Select(i => armorNames[i]))} のうち、最初の {armorNames[armorToPass]} をゲームシーンへ渡します。");
 
         // メインゲームシーンへ遷移
         SceneManager.LoadScene(GameSceneName);

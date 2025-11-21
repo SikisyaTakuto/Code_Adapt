@@ -1,61 +1,61 @@
 using UnityEngine;
 using UnityEngine.AI;
-using System.Collections; // ƒRƒ‹[ƒ`ƒ“‚ğg—p‚·‚é‚½‚ß•K—v
+using System.Collections; // ï¿½Rï¿½ï¿½ï¿½[ï¿½`ï¿½ï¿½ï¿½ï¿½ï¿½gï¿½pï¿½ï¿½ï¿½é‚½ï¿½ß•Kï¿½v
 
 public class ScorpionEnemy : MonoBehaviour
 {
-    // --- HPİ’è ---
-    [Header("ƒwƒ‹ƒXİ’è")]
-    public float maxHealth = 100f; // Å‘åHP
-    private float currentHealth;   // Œ»İ‚ÌHP
-    private bool isDead = false;   // €–Sƒtƒ‰ƒO
+    // --- HPï¿½İ’ï¿½ ---
+    [Header("ï¿½wï¿½ï¿½ï¿½Xï¿½İ’ï¿½")]
+    public float maxHealth = 100f; // ï¿½Å‘ï¿½HP
+    private float currentHealth;   // ï¿½ï¿½ï¿½İ‚ï¿½HP
+    private bool isDead = false;   // ï¿½ï¿½ï¿½Sï¿½tï¿½ï¿½ï¿½O
 
-    // V‹K’Ç‰Á: ”š”­ƒGƒtƒFƒNƒg‚ÌPrefab
-    [Header("ƒGƒtƒFƒNƒgİ’è")]
+    // ï¿½Vï¿½Kï¿½Ç‰ï¿½: ï¿½ï¿½ï¿½ï¿½ï¿½Gï¿½tï¿½Fï¿½Nï¿½gï¿½ï¿½Prefab
+    [Header("ï¿½Gï¿½tï¿½Fï¿½Nï¿½gï¿½İ’ï¿½")]
     public GameObject explosionPrefab;
 
-    // €–SƒAƒjƒ[ƒVƒ‡ƒ“ŠÔ (Inspector‚Åİ’è)
-    [Header("ƒAƒjƒ[ƒVƒ‡ƒ“İ’è")]
+    // ï¿½ï¿½ï¿½Sï¿½Aï¿½jï¿½ï¿½ï¿½[ï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ (Inspectorï¿½Åİ’ï¿½)
+    [Header("ï¿½Aï¿½jï¿½ï¿½ï¿½[ï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½İ’ï¿½")]
     public float deathAnimationDuration = 3.0f;
 
-    // --- ŒöŠJƒpƒ‰ƒ[ƒ^ ---
-    [Header("ƒ^[ƒQƒbƒgİ’è")]
-    public Transform playerTarget;             // Player‚ÌTransform‚ğ‚±‚±‚Éİ’è
-    public float detectionRange = 15f;         // Player‚ğŒŸo‚·‚é”ÍˆÍ
-    public Transform beamOrigin;               // ƒr[ƒ€‚Ì”­ËŒ³‚Æ‚È‚éTransform (ƒTƒ\ƒŠ‚Ì”ö‚Ìæ‚È‚Ç)
+    // --- ï¿½ï¿½ï¿½Jï¿½pï¿½ï¿½ï¿½ï¿½ï¿½[ï¿½^ ---
+    [Header("ï¿½^ï¿½[ï¿½Qï¿½bï¿½gï¿½İ’ï¿½")]
+    public Transform playerTarget;             // Playerï¿½ï¿½Transformï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Éİ’ï¿½
+    public float detectionRange = 15f;         // Playerï¿½ï¿½ï¿½ï¿½ï¿½oï¿½ï¿½ï¿½ï¿½Íˆï¿½
+    public Transform beamOrigin;               // ï¿½rï¿½[ï¿½ï¿½ï¿½Ì”ï¿½ï¿½ËŒï¿½ï¿½Æ‚È‚ï¿½Transform (ï¿½Tï¿½\ï¿½ï¿½ï¿½Ì”ï¿½ï¿½Ìï¿½È‚ï¿½)
 
-    [Range(0, 180)] // ‹–ìŠpiDegreej
-    public float attackAngle = 30f;            // UŒ‚‰Â”\‚È³–Ê‹–ìŠpi‘SŠpj
+    [Range(0, 180)] // ï¿½ï¿½ï¿½ï¿½pï¿½iDegreeï¿½j
+    public float attackAngle = 30f;            // ï¿½Uï¿½ï¿½ï¿½Â”\ï¿½Èï¿½ï¿½Êï¿½ï¿½ï¿½pï¿½iï¿½Sï¿½pï¿½j
 
-    [Header("UŒ‚İ’è")]
-    public float attackRate = 1f;              // 1•bŠÔ‚ÉUŒ‚‚·‚é‰ñ” 
-    public GameObject beamPrefab;              // ”­Ë‚·‚éƒr[ƒ€‚ÌPrefab
-    public float beamSpeed = 30f;              // ƒr[ƒ€‚Ì‘¬“x
+    [Header("ï¿½Uï¿½ï¿½ï¿½İ’ï¿½")]
+    public float attackRate = 1f;              // 1ï¿½bï¿½Ô‚ÉUï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ 
+    public GameObject beamPrefab;              // ï¿½ï¿½ï¿½Ë‚ï¿½ï¿½ï¿½rï¿½[ï¿½ï¿½ï¿½ï¿½Prefab
+    public float beamSpeed = 30f;              // ï¿½rï¿½[ï¿½ï¿½ï¿½Ì‘ï¿½ï¿½x
 
-    // ? C³: •Ç‚Ìƒ^ƒO‚ğ‚±‚±‚Å’è‹` (UŒ‚ˆ—‚É‚àg—p)
+    // ? ï¿½Cï¿½ï¿½: ï¿½Ç‚Ìƒ^ï¿½Oï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å’ï¿½` (ï¿½Uï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½É‚ï¿½ï¿½gï¿½p)
     private const string WALL_TAG = "Wall";
 
-    [Header("d’¼İ’è")]
-    public float hardStopDuration = 2f;        // UŒ‚Œã‚Ìd’¼ŠÔi•bj
+    [Header("ï¿½dï¿½ï¿½ï¿½İ’ï¿½")]
+    public float hardStopDuration = 2f;        // ï¿½Uï¿½ï¿½ï¿½ï¿½Ìdï¿½ï¿½ï¿½ï¿½ï¿½Ôiï¿½bï¿½j
 
-    [Header("ˆÚ“®İ’è")]
-    public float rotationSpeed = 5f;             // Player’ÇÕ‚Ì‰ñ“]‘¬“x
-    public float wanderRadius = 10f;             // ƒ‰ƒ“ƒ_ƒ€ˆÚ“®‚ÌÅ‘å”¼Œa
-    public float destinationThreshold = 1.5f;    // –Ú“I’n“’B‚ÆŒ©‚È‚·‹——£
-    public float maxIdleTime = 5f;             // V‚µ‚¢–Ú“I’n‚ğİ’è‚·‚é‚Ü‚Å‚ÌÅ‘åÃ~ŠÔi•bj
+    [Header("ï¿½Ú“ï¿½ï¿½İ’ï¿½")]
+    public float rotationSpeed = 5f;             // Playerï¿½ÇÕï¿½ï¿½Ì‰ï¿½]ï¿½ï¿½ï¿½x
+    public float wanderRadius = 10f;             // ï¿½ï¿½ï¿½ï¿½ï¿½_ï¿½ï¿½ï¿½Ú“ï¿½ï¿½ÌÅ‘å”¼ï¿½a
+    public float destinationThreshold = 1.5f;    // ï¿½Ú“Iï¿½nï¿½ï¿½ï¿½Bï¿½ÆŒï¿½ï¿½È‚ï¿½ï¿½ï¿½ï¿½ï¿½
+    public float maxIdleTime = 5f;             // ï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½Ú“Iï¿½nï¿½ï¿½İ’è‚·ï¿½ï¿½Ü‚Å‚ÌÅ‘ï¿½Ã~ï¿½ï¿½ï¿½Ôiï¿½bï¿½j
 
-    // ?? V‹K’Ç‰Á: •Ç‰ñ”ğ‚Ì‚½‚ß‚Ìİ’è
-    [Header("Õ“Ë‰ñ”ğİ’è (NavMesh—p)")]
-    public float wallAvoidanceDistance = 1.5f; // NavMesh Agent‚Ìis•ûŒü‚Ìƒ`ƒFƒbƒN‹——£
-    public LayerMask obstacleLayer;             // áŠQ•¨‚Æ‚È‚éƒŒƒCƒ„[ (Wall‚âDefault‚È‚Ç)
+    // ?? ï¿½Vï¿½Kï¿½Ç‰ï¿½: ï¿½Ç‰ï¿½ï¿½ï¿½Ì‚ï¿½ï¿½ß‚Ìİ’ï¿½
+    [Header("ï¿½Õ“Ë‰ï¿½ï¿½İ’ï¿½ (NavMeshï¿½p)")]
+    public float wallAvoidanceDistance = 1.5f; // NavMesh Agentï¿½Ìiï¿½sï¿½ï¿½ï¿½ï¿½ï¿½Ìƒ`ï¿½Fï¿½bï¿½Nï¿½ï¿½ï¿½ï¿½
+    public LayerMask obstacleLayer;             // ï¿½ï¿½Qï¿½ï¿½ï¿½Æ‚È‚éƒŒï¿½Cï¿½ï¿½ï¿½[ (Wallï¿½ï¿½Defaultï¿½È‚ï¿½)
 
 
-    // --- “à•”•Ï” ---
-    private float nextAttackTime = 0f;          // Ÿ‚ÉUŒ‚‰Â”\‚ÈŠÔ
-    private float hardStopEndTime = 0f;         // d’¼‚ª‰ğœ‚³‚ê‚éŠÔ
-    private NavMeshAgent agent;                 // NavMeshAgentƒRƒ“ƒ|[ƒlƒ“ƒg
-    private float lastMoveTime = 0f;            // ÅŒã‚ÉˆÚ“®‚µ‚½ŠÔ
-    private Animator animator;                  // AnimatorƒRƒ“ƒ|[ƒlƒ“ƒg‚Ö‚ÌQÆ
+    // --- ï¿½ï¿½ï¿½ï¿½ï¿½Ïï¿½ ---
+    private float nextAttackTime = 0f;          // ï¿½ï¿½ï¿½ÉUï¿½ï¿½ï¿½Â”\ï¿½Èï¿½ï¿½ï¿½
+    private float hardStopEndTime = 0f;         // ï¿½dï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½éï¿½ï¿½
+    private NavMeshAgent agent;                 // NavMeshAgentï¿½Rï¿½ï¿½ï¿½|ï¿½[ï¿½lï¿½ï¿½ï¿½g
+    private float lastMoveTime = 0f;            // ï¿½ÅŒï¿½ÉˆÚ“ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    private Animator animator;                  // Animatorï¿½Rï¿½ï¿½ï¿½|ï¿½[ï¿½lï¿½ï¿½ï¿½gï¿½Ö‚ÌQï¿½ï¿½
 
     private void Awake()
     {
@@ -64,17 +64,17 @@ public class ScorpionEnemy : MonoBehaviour
         agent = GetComponent<NavMeshAgent>();
         if (agent == null)
         {
-            Debug.LogError("NavMeshAgent component‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB“G‚ÉNavMeshAgent‚ğƒAƒ^ƒbƒ`‚µ‚Ä‚­‚¾‚³‚¢B");
+            Debug.LogError("NavMeshAgent componentï¿½ï¿½ï¿½ï¿½ï¿½Â‚ï¿½ï¿½ï¿½Ü‚ï¿½ï¿½ï¿½Bï¿½Gï¿½ï¿½NavMeshAgentï¿½ï¿½ï¿½Aï¿½^ï¿½bï¿½`ï¿½ï¿½ï¿½Ä‚ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½B");
             enabled = false;
         }
 
         animator = GetComponent<Animator>();
         if (animator == null)
         {
-            Debug.LogWarning("Animator component‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB“G‚ÉAnimator‚ğƒAƒ^ƒbƒ`‚µ‚Ä‚­‚¾‚³‚¢B");
+            Debug.LogWarning("Animator componentï¿½ï¿½ï¿½ï¿½ï¿½Â‚ï¿½ï¿½ï¿½Ü‚ï¿½ï¿½ï¿½Bï¿½Gï¿½ï¿½Animatorï¿½ï¿½ï¿½Aï¿½^ï¿½bï¿½`ï¿½ï¿½ï¿½Ä‚ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½B");
         }
 
-        // Playerƒ^[ƒQƒbƒg‚Ì©“®ŒŸo (AWAKE‚É’Ç‰Á)
+        // Playerï¿½^ï¿½[ï¿½Qï¿½bï¿½gï¿½Ìï¿½ï¿½ï¿½ï¿½ï¿½ï¿½o (AWAKEï¿½É’Ç‰ï¿½)
         if (playerTarget == null)
         {
             GameObject playerObject = GameObject.FindWithTag("Player");
@@ -90,14 +90,14 @@ public class ScorpionEnemy : MonoBehaviour
 
     private void Update()
     {
-        // ƒfƒoƒbƒO—pƒR[ƒh: OƒL[‚ÅHP‚ğ0‚É‚·‚é
+        // ï¿½fï¿½oï¿½bï¿½Oï¿½pï¿½Rï¿½[ï¿½h: Oï¿½Lï¿½[ï¿½ï¿½HPï¿½ï¿½0ï¿½É‚ï¿½ï¿½ï¿½
         if (Input.GetKeyDown(KeyCode.O))
         {
             TakeDamage(maxHealth);
             return;
         }
 
-        // €–SAd’¼’†A‚Ü‚½‚Íƒ^[ƒQƒbƒg‚ª‚È‚¢ê‡‚Íˆ—‚ğƒXƒLƒbƒv
+        // ï¿½ï¿½ï¿½Sï¿½ï¿½ï¿½Aï¿½dï¿½ï¿½ï¿½ï¿½ï¿½Aï¿½Ü‚ï¿½ï¿½Íƒ^ï¿½[ï¿½Qï¿½bï¿½gï¿½ï¿½ï¿½È‚ï¿½ï¿½ê‡ï¿½Íï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Xï¿½Lï¿½bï¿½v
         if (isDead || playerTarget == null || Time.time < hardStopEndTime)
         {
             if (agent != null && agent.enabled) agent.isStopped = true;
@@ -108,16 +108,16 @@ public class ScorpionEnemy : MonoBehaviour
 
         float distanceToPlayer = Vector3.Distance(transform.position, playerTarget.position);
 
-        // --- ˆÚ“®ó‘Ô‚Ìƒ`ƒFƒbƒN‚ÆXV ---
+        // --- ï¿½Ú“ï¿½ï¿½ï¿½Ô‚Ìƒ`ï¿½Fï¿½bï¿½Nï¿½ÆXï¿½V ---
         if (agent.velocity.sqrMagnitude > 0.01f)
         {
             lastMoveTime = Time.time;
 
-            // ?? V‹K’Ç‰Á: ˆÚ“®’†‚É•Ç‚É‹ß‚Ã‚«‚·‚¬‚Ä‚¢‚È‚¢‚©ƒ`ƒFƒbƒN
+            // ?? ï¿½Vï¿½Kï¿½Ç‰ï¿½: ï¿½Ú“ï¿½ï¿½ï¿½ï¿½É•Ç‚É‹ß‚Ã‚ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä‚ï¿½ï¿½È‚ï¿½ï¿½ï¿½ï¿½`ï¿½Fï¿½bï¿½N
             CheckForWallCollision();
         }
 
-        // 2. Player‚ªUŒ‚”ÍˆÍ“à‚É‚¢‚é‚©H
+        // 2. Playerï¿½ï¿½ï¿½Uï¿½ï¿½ï¿½ÍˆÍ“ï¿½ï¿½É‚ï¿½ï¿½é‚©ï¿½H
         if (distanceToPlayer <= detectionRange)
         {
             agent.isStopped = true;
@@ -146,48 +146,48 @@ public class ScorpionEnemy : MonoBehaviour
     }
 
     // -------------------------------------------------------------------
-    //          Õ“Ë‰ñ”ğˆ— (NavMesh—p)
+    //          ï¿½Õ“Ë‰ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ (NavMeshï¿½p)
     // -------------------------------------------------------------------
 
     /// <summary>
-    /// NavMeshAgent‚Ìis•ûŒü‚É•Ç‚ª‚È‚¢‚©ƒ`ƒFƒbƒN‚µA‚ ‚ê‚Î‹­§“I‚ÉˆÚ“®‚ğ’†’fEÄ’Tõ‚³‚¹‚é
+    /// NavMeshAgentï¿½Ìiï¿½sï¿½ï¿½ï¿½ï¿½ï¿½É•Ç‚ï¿½ï¿½È‚ï¿½ï¿½ï¿½ï¿½`ï¿½Fï¿½bï¿½Nï¿½ï¿½ï¿½Aï¿½ï¿½ï¿½ï¿½Î‹ï¿½ï¿½ï¿½ï¿½Iï¿½ÉˆÚ“ï¿½ï¿½ğ’†’fï¿½Eï¿½Ä’Tï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     /// </summary>
     private void CheckForWallCollision()
     {
-        // Agent‚ªˆÚ“®’†‚ÅA‚Ü‚¾–Ú“I’n‚É“’B‚µ‚Ä‚¢‚È‚¢ê‡‚Ì‚İƒ`ƒFƒbƒN
+        // Agentï¿½ï¿½ï¿½Ú“ï¿½ï¿½ï¿½ï¿½ÅAï¿½Ü‚ï¿½ï¿½Ú“Iï¿½nï¿½É“ï¿½ï¿½Bï¿½ï¿½ï¿½Ä‚ï¿½ï¿½È‚ï¿½ï¿½ê‡ï¿½Ì‚İƒ`ï¿½Fï¿½bï¿½N
         if (agent.isStopped || agent.remainingDistance <= agent.stoppingDistance)
         {
             return;
         }
 
         RaycastHit hit;
-        // Agent‚Ìis•ûŒüivelocity‚ğ³‹K‰»‚µ‚½‚à‚Ìj
+        // Agentï¿½Ìiï¿½sï¿½ï¿½ï¿½ï¿½ï¿½ivelocityï¿½ğ³‹Kï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ìj
         Vector3 movementDirection = agent.velocity.normalized;
 
-        // Raycast‚Å‘O•û‚É•Ç‚ª‚ ‚é‚©ƒ`ƒFƒbƒN
-        // Agent‚Ìis•ûŒüivelocityj‚ğg‚Á‚Äƒ`ƒFƒbƒN‚·‚é‚±‚Æ‚ÅANavMeshAgent‚Ì‹O“¹‚ğæ“Ç‚İ‚µ‚Ü‚·B
+        // Raycastï¿½Å‘Oï¿½ï¿½ï¿½É•Ç‚ï¿½ï¿½ï¿½ï¿½é‚©ï¿½`ï¿½Fï¿½bï¿½N
+        // Agentï¿½Ìiï¿½sï¿½ï¿½ï¿½ï¿½ï¿½ivelocityï¿½jï¿½ï¿½ï¿½gï¿½ï¿½ï¿½Äƒ`ï¿½Fï¿½bï¿½Nï¿½ï¿½ï¿½é‚±ï¿½Æ‚ÅANavMeshAgentï¿½Ì‹Oï¿½ï¿½ï¿½ï¿½ï¿½Ç‚İ‚ï¿½ï¿½Ü‚ï¿½ï¿½B
         if (Physics.Raycast(transform.position, movementDirection, out hit, wallAvoidanceDistance, obstacleLayer))
         {
-            // Raycast‚ª‰½‚©‚ğŒŸo‚µA‚»‚ê‚ªWALL_TAG‚ğ‚Á‚Ä‚¢‚éê‡
+            // Raycastï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½oï¿½ï¿½ï¿½Aï¿½ï¿½ï¿½ê‚ªWALL_TAGï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä‚ï¿½ï¿½ï¿½ê‡
             if (hit.collider.CompareTag(WALL_TAG))
             {
-                Debug.LogWarning($"[{gameObject.name}] **ˆÚ“®•ûŒü‚Ì–Ú‚Ì‘O‚É•Ç‚ğŒŸo**INavMeshAgent‚Ì‚·‚è”²‚¯‚ğ–h~‚µAV‚µ‚¢–Ú“I’n‚ğ’T‚µ‚Ü‚·B");
+                Debug.LogWarning($"[{gameObject.name}] **ï¿½Ú“ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ì–Ú‚Ì‘Oï¿½É•Ç‚ï¿½ï¿½ï¿½ï¿½o**ï¿½INavMeshAgentï¿½Ì‚ï¿½ï¿½è”²ï¿½ï¿½ï¿½ï¿½hï¿½~ï¿½ï¿½ï¿½Aï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½Ú“Iï¿½nï¿½ï¿½Tï¿½ï¿½ï¿½Ü‚ï¿½ï¿½B");
 
-                // ‹­§“I‚ÉˆÚ“®‚ğ’â~
+                // ï¿½ï¿½ï¿½ï¿½ï¿½Iï¿½ÉˆÚ“ï¿½ï¿½ï¿½ï¿½~
                 agent.isStopped = true;
 
-                // V‚µ‚¢–Ú“I’n‚ğ’T‚·iWanderƒƒWƒbƒN‚ğÄÀsj
+                // ï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½Ú“Iï¿½nï¿½ï¿½Tï¿½ï¿½ï¿½iWanderï¿½ï¿½ï¿½Wï¿½bï¿½Nï¿½ï¿½ï¿½Äï¿½ï¿½sï¿½j
                 Wander();
             }
         }
     }
 
     // -------------------------------------------------------------------
-    //          ƒwƒ‹ƒX‚Æ€–Sˆ— (•ÏX‚È‚µ)
+    //          ï¿½wï¿½ï¿½ï¿½Xï¿½Æï¿½ï¿½Sï¿½ï¿½ï¿½ï¿½ (ï¿½ÏXï¿½È‚ï¿½)
     // -------------------------------------------------------------------
 
     /// <summary>
-    /// ŠO•”‚©‚çƒ_ƒ[ƒW‚ğó‚¯æ‚é‚½‚ß‚ÌŒöŠJƒƒ\ƒbƒh
+    /// ï¿½Oï¿½ï¿½ï¿½ï¿½ï¿½ï¿½_ï¿½ï¿½ï¿½[ï¿½Wï¿½ï¿½ï¿½ó‚¯ï¿½é‚½ï¿½ß‚ÌŒï¿½ï¿½Jï¿½ï¿½ï¿½\ï¿½bï¿½h
     /// </summary>
     public void TakeDamage(float damageAmount)
     {
@@ -202,34 +202,34 @@ public class ScorpionEnemy : MonoBehaviour
     }
 
     /// <summary>
-    /// €–Sˆ—
+    /// ï¿½ï¿½ï¿½Sï¿½ï¿½ï¿½ï¿½
     /// </summary>
     private void Die()
     {
         if (isDead) return;
 
         isDead = true;
-        Debug.Log(gameObject.name + "‚Í”j‰ó‚³‚ê‚Ü‚µ‚½I");
+        Debug.Log(gameObject.name + "ï¿½Í”jï¿½ó‚³‚ï¿½Ü‚ï¿½ï¿½ï¿½ï¿½I");
 
-        // 1. Animator‚ÌDeadƒpƒ‰ƒ[ƒ^‚ğtrue‚Éİ’è‚µ‚ÄƒAƒjƒ[ƒVƒ‡ƒ“‚ğŠJn
+        // 1. Animatorï¿½ï¿½Deadï¿½pï¿½ï¿½ï¿½ï¿½ï¿½[ï¿½^ï¿½ï¿½trueï¿½Éİ’è‚µï¿½ÄƒAï¿½jï¿½ï¿½ï¿½[ï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Jï¿½n
         if (animator != null)
         {
             animator.SetBool("Dead", true);
         }
 
-        // 2. NavMeshAgent‚ğ’â~
+        // 2. NavMeshAgentï¿½ï¿½ï¿½~
         if (agent != null && agent.enabled)
         {
             agent.isStopped = true;
             agent.enabled = false;
         }
 
-        // 3. €–SƒAƒjƒ[ƒVƒ‡ƒ“‚ÌÄ¶Œã‚É”š”­Eíœ‚ğs‚¤ƒRƒ‹[ƒ`ƒ“‚ğŠJn
+        // 3. ï¿½ï¿½ï¿½Sï¿½Aï¿½jï¿½ï¿½ï¿½[ï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½ÌÄï¿½ï¿½ï¿½É”ï¿½ï¿½ï¿½ï¿½Eï¿½íœï¿½ï¿½ï¿½sï¿½ï¿½ï¿½Rï¿½ï¿½ï¿½[ï¿½`ï¿½ï¿½ï¿½ï¿½ï¿½Jï¿½n
         StartCoroutine(DeathSequence(deathAnimationDuration));
     }
 
     /// <summary>
-    /// €–SƒAƒjƒ[ƒVƒ‡ƒ“‚ªI—¹‚·‚é‚Ì‚ğ‘Ò‚¿A”š”­ƒGƒtƒFƒNƒg‚ğÄ¶‚µ‚Ä‚©‚çƒIƒuƒWƒFƒNƒg‚ğíœ‚·‚éƒRƒ‹[ƒ`ƒ“
+    /// ï¿½ï¿½ï¿½Sï¿½Aï¿½jï¿½ï¿½ï¿½[ï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Iï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ì‚ï¿½Ò‚ï¿½ï¿½Aï¿½ï¿½ï¿½ï¿½ï¿½Gï¿½tï¿½Fï¿½Nï¿½gï¿½ï¿½ï¿½Äï¿½ï¿½ï¿½ï¿½Ä‚ï¿½ï¿½ï¿½Iï¿½uï¿½Wï¿½Fï¿½Nï¿½gï¿½ï¿½ï¿½íœï¿½ï¿½ï¿½ï¿½Rï¿½ï¿½ï¿½[ï¿½`ï¿½ï¿½
     /// </summary>
     private IEnumerator DeathSequence(float duration)
     {
@@ -243,11 +243,11 @@ public class ScorpionEnemy : MonoBehaviour
     }
 
     // -------------------------------------------------------------------
-    //          ‚»‚Ì‘¼ƒ†[ƒeƒBƒŠƒeƒB (•ÏX‚È‚µ)
+    //          ï¿½ï¿½ï¿½Ì‘ï¿½ï¿½ï¿½ï¿½[ï¿½eï¿½Bï¿½ï¿½ï¿½eï¿½B (ï¿½ÏXï¿½È‚ï¿½)
     // -------------------------------------------------------------------
 
     /// <summary>
-    /// Player‚ªƒGƒlƒ~[‚Ì‘O•û‹–ìŠp“à‚É‚¢‚é‚©‚ğƒ`ƒFƒbƒN‚·‚é
+    /// Playerï¿½ï¿½ï¿½Gï¿½lï¿½~ï¿½[ï¿½Ì‘Oï¿½ï¿½ï¿½ï¿½ï¿½ï¿½pï¿½ï¿½ï¿½É‚ï¿½ï¿½é‚©ï¿½ï¿½ï¿½`ï¿½Fï¿½bï¿½Nï¿½ï¿½ï¿½ï¿½
     /// </summary>
     private bool IsPlayerInFrontView()
     {
@@ -263,7 +263,7 @@ public class ScorpionEnemy : MonoBehaviour
     }
 
     /// <summary>
-    /// ƒhƒ[ƒ“–{‘Ì‚ÌŒü‚«‚ğPlayer‚Ì•ûŒü‚ÖŒü‚¯‚éiƒXƒ€[ƒY‚È‰ñ“]j
+    /// ï¿½hï¿½ï¿½ï¿½[ï¿½ï¿½ï¿½{ï¿½Ì‚ÌŒï¿½ï¿½ï¿½ï¿½ï¿½Playerï¿½Ì•ï¿½ï¿½ï¿½ï¿½ÖŒï¿½ï¿½ï¿½ï¿½ï¿½iï¿½Xï¿½ï¿½ï¿½[ï¿½Yï¿½È‰ï¿½]ï¿½j
     /// </summary>
     private void LookAtPlayer()
     {
@@ -280,7 +280,7 @@ public class ScorpionEnemy : MonoBehaviour
     }
 
     /// <summary>
-    /// NavMeshAgent‚ğg‚Á‚ÄüˆÍ‚ğƒ‰ƒ“ƒ_ƒ€‚ÉˆÚ“®‚·‚éV‚µ‚¢–Ú“I’n‚ğİ’è‚·‚é
+    /// NavMeshAgentï¿½ï¿½ï¿½gï¿½ï¿½ï¿½Äï¿½ï¿½Í‚ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½_ï¿½ï¿½ï¿½ÉˆÚ“ï¿½ï¿½ï¿½ï¿½ï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½Ú“Iï¿½nï¿½ï¿½İ’è‚·ï¿½ï¿½
     /// </summary>
     private void Wander()
     {
@@ -297,13 +297,13 @@ public class ScorpionEnemy : MonoBehaviour
     }
 
     /// <summary>
-    /// ƒr[ƒ€‚ğ”­Ë‚·‚é
+    /// ï¿½rï¿½[ï¿½ï¿½ï¿½ğ”­Ë‚ï¿½ï¿½ï¿½
     /// </summary>
     private void AttackPlayer()
     {
         if (beamOrigin == null || beamPrefab == null)
         {
-            Debug.LogError("ƒr[ƒ€‚Ì”­ËŒ³‚Ü‚½‚ÍPrefab‚ªİ’è‚³‚ê‚Ä‚¢‚Ü‚¹‚ñB");
+            Debug.LogError("ï¿½rï¿½[ï¿½ï¿½ï¿½Ì”ï¿½ï¿½ËŒï¿½ï¿½Ü‚ï¿½ï¿½ï¿½Prefabï¿½ï¿½ï¿½İ’è‚³ï¿½ï¿½Ä‚ï¿½ï¿½Ü‚ï¿½ï¿½ï¿½B");
             return;
         }
 
@@ -315,17 +315,17 @@ public class ScorpionEnemy : MonoBehaviour
         Rigidbody rb = beam.GetComponent<Rigidbody>();
         if (rb != null)
         {
-            rb.velocity = beam.transform.forward * beamSpeed;
+            rb.linearVelocity = beam.transform.forward * beamSpeed;
         }
         else
         {
-            Debug.LogWarning("ƒr[ƒ€Prefab‚ÉRigidbody‚ª‚ ‚è‚Ü‚¹‚ñBˆÚ“®ƒƒWƒbƒN‚ğ’Ç‰Á‚µ‚Ä‚­‚¾‚³‚¢B");
+            Debug.LogWarning("ï¿½rï¿½[ï¿½ï¿½Prefabï¿½ï¿½Rigidbodyï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ü‚ï¿½ï¿½ï¿½Bï¿½Ú“ï¿½ï¿½ï¿½ï¿½Wï¿½bï¿½Nï¿½ï¿½Ç‰ï¿½ï¿½ï¿½ï¿½Ä‚ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½B");
         }
 
         hardStopEndTime = Time.time + hardStopDuration;
     }
 
-    // ”ÍˆÍ‚ğ‰Â‹‰»‚·‚é‚½‚ß‚ÌGizmo (ƒGƒfƒBƒ^‚Å‚Ì‚İ•\¦)
+    // ï¿½ÍˆÍ‚ï¿½ï¿½Âï¿½ï¿½ï¿½ï¿½ï¿½ï¿½é‚½ï¿½ß‚ï¿½Gizmo (ï¿½Gï¿½fï¿½Bï¿½^ï¿½Å‚Ì‚İ•\ï¿½ï¿½)
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.yellow;
@@ -333,7 +333,7 @@ public class ScorpionEnemy : MonoBehaviour
 
         if (Application.isEditor && transform != null)
         {
-            // 1. ‹–ìŠp‚Ì‰Â‹‰»
+            // 1. ï¿½ï¿½ï¿½ï¿½pï¿½Ì‰Âï¿½ï¿½ï¿½
             Quaternion leftRayRotation = Quaternion.AngleAxis(-attackAngle / 2, Vector3.up);
             Quaternion rightRayRotation = Quaternion.AngleAxis(attackAngle / 2, Vector3.up);
 
@@ -344,16 +344,16 @@ public class ScorpionEnemy : MonoBehaviour
             Gizmos.DrawRay(transform.position, leftRayDirection * detectionRange);
             Gizmos.DrawRay(transform.position, rightRayDirection * detectionRange);
 
-            // 2. Wandering Radius ‚Ì‰Â‹‰»
+            // 2. Wandering Radius ï¿½Ì‰Âï¿½ï¿½ï¿½
             Gizmos.color = Color.cyan;
             Gizmos.DrawWireSphere(transform.position, wanderRadius);
 
-            // 3. ?? V‹K’Ç‰Á: ˆÚ“®’†‚Ì•Ç‰ñ”ğRaycast‚Ì‰Â‹‰»
+            // 3. ?? ï¿½Vï¿½Kï¿½Ç‰ï¿½: ï¿½Ú“ï¿½ï¿½ï¿½ï¿½Ì•Ç‰ï¿½ï¿½Raycastï¿½Ì‰Âï¿½ï¿½ï¿½
             if (agent != null && agent.enabled && agent.velocity.sqrMagnitude > 0.01f)
             {
                 Vector3 movementDirection = agent.velocity.normalized;
 
-                // •ÇŒŸoRay‚ğƒ}ƒ[ƒ“ƒ^F‚Å•\¦
+                // ï¿½ÇŒï¿½ï¿½oRayï¿½ï¿½ï¿½}ï¿½[ï¿½ï¿½ï¿½^ï¿½Fï¿½Å•\ï¿½ï¿½
                 Gizmos.color = Color.magenta;
                 Gizmos.DrawRay(transform.position, movementDirection * wallAvoidanceDistance);
             }

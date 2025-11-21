@@ -1,4 +1,4 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 using UnityEngine.UI;
 using System;
 using System.Collections;
@@ -7,8 +7,8 @@ using System.Linq;
 using UnityEngine.SceneManagement;
 
 /// <summary>
-/// ƒvƒŒƒCƒ„[‚ÌˆÚ“®AƒGƒlƒ‹ƒM[ŠÇ—AUŒ‚A‚¨‚æ‚ÑƒA[ƒ}[§Œä‚ğ§Œä‚µ‚Ü‚·B
-/// ƒ`ƒ…[ƒgƒŠƒAƒ‹ƒXƒe[ƒW—p‚ÉAŠe“ü—Í‚Ì‹–‰Â/•s‹–‰Â‚ğŠO•”‚©‚ç§Œä‚Å‚«‚Ü‚·B
+/// ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®ç§»å‹•ã€ã‚¨ãƒãƒ«ã‚®ãƒ¼ç®¡ç†ã€æ”»æ’ƒã€ãŠã‚ˆã³ã‚¢ãƒ¼ãƒãƒ¼åˆ¶å¾¡ã‚’åˆ¶å¾¡ã—ã¾ã™ã€‚
+/// ãƒãƒ¥ãƒ¼ãƒˆãƒªã‚¢ãƒ«ã‚¹ãƒ†ãƒ¼ã‚¸ç”¨ã«ã€å„å…¥åŠ›ã®è¨±å¯/ä¸è¨±å¯ã‚’å¤–éƒ¨ã‹ã‚‰åˆ¶å¾¡ã§ãã¾ã™ã€‚
 /// </summary>
 [RequireComponent(typeof(CharacterController))]
 public class TutorialPlayerController : MonoBehaviour
@@ -24,19 +24,19 @@ public class TutorialPlayerController : MonoBehaviour
     public class ArmorStats
     {
         public string name;
-        [Tooltip("ƒ_ƒ[ƒWŒyŒ¸—¦ (—á: 1.0 = •ÏX‚È‚µ, 0.5 = ƒ_ƒ[ƒW”¼Œ¸)")]
+        [Tooltip("ãƒ€ãƒ¡ãƒ¼ã‚¸è»½æ¸›ç‡ (ä¾‹: 1.0 = å¤‰æ›´ãªã—, 0.5 = ãƒ€ãƒ¡ãƒ¼ã‚¸åŠæ¸›)")]
         public float defenseMultiplier = 1.0f;
-        [Tooltip("ˆÚ“®‘¬“x•â³ (—á: 1.5 = 1.5”{‘¬)")]
+        [Tooltip("ç§»å‹•é€Ÿåº¦è£œæ­£ (ä¾‹: 1.5 = 1.5å€é€Ÿ)")]
         public float moveSpeedMultiplier = 1.0f;
-        [Tooltip("ƒGƒlƒ‹ƒM[‰ñ•œ•â³")]
+        [Tooltip("ã‚¨ãƒãƒ«ã‚®ãƒ¼å›å¾©è£œæ­£")]
         public float energyRecoveryMultiplier = 1.0f;
     }
 
     private CharacterController _controller;
-    // TPSCameraController‚ÌQÆ‚ğ•Û
-    private TPSCameraController _tpsCamController;
+    // TPSCameraControllerã®å‚ç…§ã‚’ä¿æŒ
+    private TPSCameraController _tpsCamController; // ğŸ’¡ å¤–éƒ¨ã‚¯ãƒ©ã‚¹ã®ä¾å­˜ãŒã‚ã‚‹ã“ã¨ã«æ³¨æ„
 
-    //UI & Visuals (•ÏX‚È‚µ)
+    //UI & Visuals (å¤‰æ›´ãªã—)
     [Header("Armor UI & Visuals")]
     public Image currentArmorIconImage;
     public Sprite[] armorSprites;
@@ -44,14 +44,18 @@ public class TutorialPlayerController : MonoBehaviour
 
     [Header("Weapon UI")]
     public Image meleeWeaponIcon;
+    // ?? [FIX/NEW]: Melee Text ã‚’è¿½åŠ 
+    public Text meleeWeaponText;
     public Image beamWeaponIcon;
+    // ?? [FIX/NEW]: Beam Text ã‚’è¿½åŠ 
+    public Text beamWeaponText;
     public Color emphasizedColor = Color.white;
     public Color normalColor = new Color(0.5f, 0.5f, 0.5f);
 
-    // ƒx[ƒX‚Æ‚È‚é”\—Í’l (•ÏX‚È‚µ)
+    // ãƒ™ãƒ¼ã‚¹ã¨ãªã‚‹èƒ½åŠ›å€¤ (å¤‰æ›´ãªã—)
     [Header("Base Stats")]
     public float baseMoveSpeed = 15.0f;
-    // ?? [FIX/NEW]: boostMultiplier ‚ğ dashMultiplier ‚É’u‚«Š·‚¦Aƒ_ƒbƒVƒ…‚Ì‘¬“x‚ğ§Œä
+    // ?? [FIX/NEW]: boostMultiplier ã‚’ dashMultiplier ã«ç½®ãæ›ãˆã€ãƒ€ãƒƒã‚·ãƒ¥æ™‚ã®é€Ÿåº¦ã‚’åˆ¶å¾¡
     public float dashMultiplier = 2.5f;
     public float verticalSpeed = 10.0f;
     public float energyConsumptionRate = 15.0f;
@@ -63,7 +67,7 @@ public class TutorialPlayerController : MonoBehaviour
     public bool canFly = true;
     public float gravity = -9.81f;
 
-    // Armor Settings (•ÏX‚È‚µ)
+    // Armor Settings (å¤‰æ›´ãªã—)
     [Header("Armor Settings")]
     public List<ArmorStats> armorConfigurations = new List<ArmorStats>
     {
@@ -73,26 +77,26 @@ public class TutorialPlayerController : MonoBehaviour
     };
 
     // =======================================================
-    // ?? ƒ`ƒ…[ƒgƒŠƒAƒ‹§Œäƒtƒ‰ƒO (V‹K/C³)
+    // ãƒãƒ¥ãƒ¼ãƒˆãƒªã‚¢ãƒ«åˆ¶å¾¡ãƒ•ãƒ©ã‚° 
     // =======================================================
     [Header("Tutorial Input Control")]
-    [Tooltip("‘S‚Ä‚Ì“ü—Í‚ğã‘‚«‚µ‚Ä’â~‚³‚¹‚Ü‚· (—Dæ“x‚)")]
+    [Tooltip("å…¨ã¦ã®å…¥åŠ›ã‚’ä¸Šæ›¸ãã—ã¦åœæ­¢ã•ã›ã¾ã™ (å„ªå…ˆåº¦é«˜)")]
     public bool isInputLocked = false;
-    [Tooltip("…•½•ûŒü (WASD) ‚ÌˆÚ“®‚ğ‹–‰Â‚µ‚Ü‚·")]
+    [Tooltip("æ°´å¹³æ–¹å‘ (WASD) ã®ç§»å‹•ã‚’è¨±å¯ã—ã¾ã™")]
     public bool allowHorizontalMove = true;
-    [Tooltip("‚’¼•ûŒü (Space/Alt) ‚ÌˆÚ“®‚ğ‹–‰Â‚µ‚Ü‚·")]
+    [Tooltip("å‚ç›´æ–¹å‘ (Space/Alt) ã®ç§»å‹•ã‚’è¨±å¯ã—ã¾ã™")]
     public bool allowVerticalMove = true;
-    // ?? [FIX/NEW]: allowDash ‚ğ’Ç‰Á
-    [Tooltip("ƒ_ƒbƒVƒ… (Left Shift) ‚ğ‹–‰Â‚µ‚Ü‚·")]
+    // ?? [FIX/NEW]: allowDash ã‚’è¿½åŠ 
+    [Tooltip("ãƒ€ãƒƒã‚·ãƒ¥ (Left Shift) ã‚’è¨±å¯ã—ã¾ã™")]
     public bool allowDash = false;
-    [Tooltip("•ŠíØ‚è‘Ö‚¦ (EƒL[) ‚ğ‹–‰Â‚µ‚Ü‚·")]
+    [Tooltip("æ­¦å™¨åˆ‡ã‚Šæ›¿ãˆ (Eã‚­ãƒ¼) ã‚’è¨±å¯ã—ã¾ã™")]
     public bool allowWeaponSwitch = true;
-    [Tooltip("ƒA[ƒ}[Ø‚è‘Ö‚¦ (1, 2, 3ƒL[) ‚ğ‹–‰Â‚µ‚Ü‚·")]
+    [Tooltip("ã‚¢ãƒ¼ãƒãƒ¼åˆ‡ã‚Šæ›¿ãˆ (1, 2, 3ã‚­ãƒ¼) ã‚’è¨±å¯ã—ã¾ã™")]
     public bool allowArmorSwitch = true;
-    [Tooltip("UŒ‚ (¶ƒNƒŠƒbƒN) ‚ğ‹–‰Â‚µ‚Ü‚·")]
+    [Tooltip("æ”»æ’ƒ (å·¦ã‚¯ãƒªãƒƒã‚¯) ã‚’è¨±å¯ã—ã¾ã™")]
     public bool allowAttack = true;
 
-    // “à•”ó‘Ô (•ÏX‚È‚µ)
+    // å†…éƒ¨çŠ¶æ…‹ (å¤‰æ›´ãªã—)
     private ArmorMode _currentArmorMode = ArmorMode.Normal;
     private ArmorStats _currentArmorStats;
     private float _currentHP;
@@ -104,7 +108,7 @@ public class TutorialPlayerController : MonoBehaviour
     private bool _hasTriggeredEnergyDepletedEvent = false;
     private bool _isDead = false;
 
-    // ŒöŠJƒvƒƒpƒeƒB (•ÏX‚È‚µ)
+    // å…¬é–‹ãƒ—ãƒ­ãƒ‘ãƒ†ã‚£ (å¤‰æ›´ãªã—)
     [HideInInspector] public float currentHP { get => _currentHP; private set => _currentHP = value; }
     [HideInInspector] public float currentEnergy { get => _currentEnergy; private set => _currentEnergy = value; }
     public ArmorMode currentArmorMode => _currentArmorMode;
@@ -121,22 +125,22 @@ public class TutorialPlayerController : MonoBehaviour
     public float recoveryDelay = 1.0f;
     public Slider energySlider;
 
-    // Attack Settings (•ÏX‚È‚µ)
+    // Attack Settings (å¤‰æ›´ãªã—)
     public float attackFixedDuration = 0.8f;
 
     [Header("Beam VFX")]
     public BeamController beamPrefab;
     public Transform beamFirePoint;
     public float beamMaxDistance = 100f;
-    [Tooltip("ƒƒbƒNƒIƒ“‚É“G‚ÌCollider‚ª‚È‚¢ê‡Aƒr[ƒ€‚ğ‘_‚¤‚‚³‚ÌƒIƒtƒZƒbƒgB")]
+    [Tooltip("ãƒ­ãƒƒã‚¯ã‚ªãƒ³æ™‚ã«æ•µã®ColliderãŒãªã„å ´åˆã€ãƒ“ãƒ¼ãƒ ã‚’ç‹™ã†é«˜ã•ã®ã‚ªãƒ•ã‚»ãƒƒãƒˆã€‚")]
     public float lockOnTargetHeightOffset = 1.0f;
 
     [Header("Melee Attack Settings")]
     public GameObject hitEffectPrefab;
     public LayerMask enemyLayer;
 
-    // ƒ`ƒ…[ƒgƒŠƒAƒ‹—pƒCƒxƒ“ƒg‚ÆƒvƒƒpƒeƒB
-    // ?? [FIX/NEW]: HasDashed ‚Ìƒgƒ‰ƒbƒLƒ“ƒO—p•Ï”‚ÆƒvƒƒpƒeƒB‚ğ’Ç‰Á
+    // ãƒãƒ¥ãƒ¼ãƒˆãƒªã‚¢ãƒ«ç”¨ã‚¤ãƒ™ãƒ³ãƒˆã¨ãƒ—ãƒ­ãƒ‘ãƒ†ã‚£
+    // ?? [FIX/NEW]: HasDashed ã®ãƒˆãƒ©ãƒƒã‚­ãƒ³ã‚°ç”¨å¤‰æ•°ã¨ãƒ—ãƒ­ãƒ‘ãƒ†ã‚£ã‚’è¿½åŠ 
     private float DashTimer { get; set; }
     public bool HasDashed => DashTimer > 0f;
 
@@ -150,11 +154,10 @@ public class TutorialPlayerController : MonoBehaviour
     public bool HasJumped => JumpTimer > 0f;
     public bool HasDescended => DescendTimer > 0f;
 
-    // ˆÚ“®ŠÖ˜A‚Ì“à•”•Ï” (•ÏX‚È‚µ)
+    // ç§»å‹•é–¢é€£ã®å†…éƒ¨å¤‰æ•° (å¤‰æ›´ãªã—)
     private Vector3 _velocity;
     private float _moveSpeed;
 
-    // ... (Awake, Start, InitializeComponents, LoadAndSwitchArmor ‚Í•ÏX‚È‚µ) ...
     void Awake()
     {
         InitializeComponents();
@@ -168,18 +171,18 @@ public class TutorialPlayerController : MonoBehaviour
         LoadAndSwitchArmor();
         UpdateHPUI();
         UpdateEnergyUI();
-        UpdateWeaponUIEmphasis();
+        UpdateWeaponUIEmphasis(); // æ­¦å™¨UIã®åˆæœŸåŒ–ã‚‚ã“ã“ã§è¡Œã†
 
         if (gameOverManager == null)
         {
             gameOverManager = FindObjectOfType<SceneBasedGameOverManager>();
             if (gameOverManager == null)
             {
-                Debug.LogWarning("SceneBasedGameOverManager‚ªInspector‚Åİ’è‚³‚ê‚Ä‚¢‚Ü‚¹‚ñBƒV[ƒ“‚©‚çæ“¾‚à‚Å‚«‚Ü‚¹‚ñ‚Å‚µ‚½BDie()‚ÉƒGƒ‰[‚ª”­¶‚·‚é‰Â”\«‚ª‚ ‚è‚Ü‚·B");
+                Debug.LogWarning("SceneBasedGameOverManagerãŒInspectorã§è¨­å®šã•ã‚Œã¦ã„ã¾ã›ã‚“ã€‚ã‚·ãƒ¼ãƒ³ã‹ã‚‰å–å¾—ã‚‚ã§ãã¾ã›ã‚“ã§ã—ãŸã€‚Die()æ™‚ã«ã‚¨ãƒ©ãƒ¼ãŒç™ºç”Ÿã™ã‚‹å¯èƒ½æ€§ãŒã‚ã‚Šã¾ã™ã€‚");
             }
         }
 
-        Debug.Log($"‰Šú•Ší: {currentWeaponMode} | ‰ŠúƒA[ƒ}[: {currentArmorMode}");
+        Debug.Log($"åˆæœŸæ­¦å™¨: {currentWeaponMode} | åˆæœŸã‚¢ãƒ¼ãƒãƒ¼: {currentArmorMode}");
     }
 
     private void InitializeComponents()
@@ -187,7 +190,7 @@ public class TutorialPlayerController : MonoBehaviour
         _controller = GetComponent<CharacterController>();
         if (_controller == null)
         {
-            Debug.LogError($"{nameof(TutorialPlayerController)}: CharacterController‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB");
+            Debug.LogError($"{nameof(TutorialPlayerController)}: CharacterControllerãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚");
             enabled = false;
             return;
         }
@@ -195,7 +198,7 @@ public class TutorialPlayerController : MonoBehaviour
         _tpsCamController = FindObjectOfType<TPSCameraController>();
         if (_tpsCamController == null)
         {
-            Debug.LogWarning($"{nameof(TutorialPlayerController)}: TPSCameraController‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñBƒr[ƒ€‚ÌƒƒbƒNƒIƒ“‹@”\‚Í–³Œø‚É‚È‚è‚Ü‚·B");
+            Debug.LogWarning($"{nameof(TutorialPlayerController)}: TPSCameraControllerãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚ãƒ“ãƒ¼ãƒ ã®ãƒ­ãƒƒã‚¯ã‚ªãƒ³æ©Ÿèƒ½ã¯ç„¡åŠ¹ã«ãªã‚Šã¾ã™ã€‚");
         }
     }
 
@@ -211,7 +214,7 @@ public class TutorialPlayerController : MonoBehaviour
         else
         {
             SwitchArmor(ArmorMode.Normal, false);
-            Debug.LogWarning($"•s³‚ÈƒA[ƒ}[ƒCƒ“ƒfƒbƒNƒX({selectedIndex})‚ªŒŸo‚³‚ê‚Ü‚µ‚½BNormalƒ‚[ƒh‚ğ“K—p‚µ‚Ü‚·B");
+            Debug.LogWarning($"ä¸æ­£ãªã‚¢ãƒ¼ãƒãƒ¼ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹({selectedIndex})ãŒæ¤œå‡ºã•ã‚Œã¾ã—ãŸã€‚Normalãƒ¢ãƒ¼ãƒ‰ã‚’é©ç”¨ã—ã¾ã™ã€‚");
         }
     }
 
@@ -221,27 +224,27 @@ public class TutorialPlayerController : MonoBehaviour
 
         if (_isDead) return;
 
-        // ?? •ÏX: isInputLocked ‚ª true ‚Ü‚½‚ÍUŒ‚’†‚ÍAUŒ‚ó‘Ô‚Ìˆ—‚Æd—Í“K—p‚Ì‚İs‚¤
+        // ?? å¤‰æ›´: isInputLocked ãŒ true ã¾ãŸã¯æ”»æ’ƒä¸­ã¯ã€æ”»æ’ƒçŠ¶æ…‹ã®å‡¦ç†ã¨é‡åŠ›é©ç”¨ã®ã¿è¡Œã†
         if (isInputLocked || _isAttacking)
         {
             HandleAttackState();
-            // ?? [FIX/NEW]: ƒƒbƒN’†‚ÍˆÚ“®ŠÖ˜A‚Ìƒ^ƒCƒ}[‚ğƒŠƒZƒbƒg
+            // ?? [FIX/NEW]: ãƒ­ãƒƒã‚¯ä¸­ã¯ç§»å‹•é–¢é€£ã®ã‚¿ã‚¤ãƒãƒ¼ã‚’ãƒªã‚»ãƒƒãƒˆ
             WASDMoveTimer = JumpTimer = DescendTimer = DashTimer = 0f;
 
-            // ƒƒbƒN/UŒ‚’†‚É‚’¼•ûŒü‚ÌŠµ«‚ğˆÛ‚·‚é‚½‚ßAd—Í‚ğè“®‚Å“K—p
+            // ãƒ­ãƒƒã‚¯/æ”»æ’ƒä¸­ã«å‚ç›´æ–¹å‘ã®æ…£æ€§ã‚’ç¶­æŒã™ã‚‹ãŸã‚ã€é‡åŠ›ã‚’æ‰‹å‹•ã§é©ç”¨
             if (!_controller.isGrounded)
             {
                 _velocity.y += gravity * Time.deltaTime;
             }
             _controller.Move(Vector3.up * _velocity.y * Time.deltaTime);
 
-            return; // d—v‚È•ÏX“_: ƒƒbƒN’†‚Í‚±‚êˆÈ~‚Ìˆ—‚ğƒXƒLƒbƒv
+            return; // é‡è¦ãªå¤‰æ›´ç‚¹: ãƒ­ãƒƒã‚¯ä¸­ã¯ã“ã‚Œä»¥é™ã®å‡¦ç†ã‚’ã‚¹ã‚­ãƒƒãƒ—
         }
 
-        // ƒƒbƒNƒIƒ“’†‚ÍTPSCameraController‚ªƒvƒŒƒCƒ„[‚Ì‰ñ“]‚ğ§Œä‚µ‚Ü‚·
+        // ãƒ­ãƒƒã‚¯ã‚ªãƒ³ä¸­ã¯TPSCameraControllerãŒãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®å›è»¢ã‚’åˆ¶å¾¡ã—ã¾ã™
         if (_tpsCamController == null || _tpsCamController.LockOnTarget == null)
         {
-            _tpsCamController?.RotatePlayerToCameraDirection();
+            _tpsCamController?.RotatePlayerToCameraDirection(); // ğŸ’¡ å¤–éƒ¨ãƒ¡ã‚½ãƒƒãƒ‰ã®ä¾å­˜ãŒã‚ã‚‹ã“ã¨ã«æ³¨æ„
         }
 
         HandleAttackInputs();
@@ -252,7 +255,7 @@ public class TutorialPlayerController : MonoBehaviour
 
         Vector3 finalMove = Vector3.zero;
 
-        // ?? •ÏX: ƒtƒ‰ƒO‚É‰‚¶‚ÄˆÚ“®‚ğÀs
+        // ?? å¤‰æ›´: ãƒ•ãƒ©ã‚°ã«å¿œã˜ã¦ç§»å‹•ã‚’å®Ÿè¡Œ
         if (allowVerticalMove) finalMove += HandleVerticalMovement();
         if (allowHorizontalMove) finalMove += HandleHorizontalMovement();
 
@@ -263,7 +266,7 @@ public class TutorialPlayerController : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.P))
         {
-            Debug.LogWarning("PƒL[‚ª‰Ÿ‚³‚ê‚Ü‚µ‚½: HP‚ğ0‚É‚µ‚Ä€–Sˆ—‚ğÀs‚µ‚Ü‚·B");
+            Debug.LogWarning("Pã‚­ãƒ¼ãŒæŠ¼ã•ã‚Œã¾ã—ãŸ: HPã‚’0ã«ã—ã¦æ­»äº¡å‡¦ç†ã‚’å®Ÿè¡Œã—ã¾ã™ã€‚");
             currentHP = 0;
             UpdateHPUI();
             Die();
@@ -271,11 +274,11 @@ public class TutorialPlayerController : MonoBehaviour
     }
 
     // =======================================================
-    // ?? ƒA[ƒ}[/•ŠíØ‚è‘Ö‚¦ˆ— (ƒtƒ‰ƒO‚É‚æ‚é§Œä‚ğ’Ç‰Á)
+    // ã‚¢ãƒ¼ãƒãƒ¼/æ­¦å™¨åˆ‡ã‚Šæ›¿ãˆå‡¦ç† 
     // =======================================================
     private void HandleArmorSwitchInput()
     {
-        if (!allowArmorSwitch) return; // ƒ`ƒ…[ƒgƒŠƒAƒ‹§Œä
+        if (!allowArmorSwitch) return; // ãƒãƒ¥ãƒ¼ãƒˆãƒªã‚¢ãƒ«åˆ¶å¾¡
 
         if (Input.GetKeyDown(KeyCode.Alpha1)) SwitchArmor(ArmorMode.Normal);
         else if (Input.GetKeyDown(KeyCode.Alpha2)) SwitchArmor(ArmorMode.Buster);
@@ -287,13 +290,13 @@ public class TutorialPlayerController : MonoBehaviour
         int index = (int)newMode;
         if (index < 0 || index >= armorConfigurations.Count)
         {
-            Debug.LogError($"ƒA[ƒ}[ƒ‚[ƒh {newMode} ‚Ìİ’è‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB");
+            Debug.LogError($"ã‚¢ãƒ¼ãƒãƒ¼ãƒ¢ãƒ¼ãƒ‰ {newMode} ã®è¨­å®šãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚");
             return;
         }
 
         if (_currentArmorMode == newMode && _currentArmorStats != null)
         {
-            if (shouldLog) Debug.Log($"ƒA[ƒ}[‚ÍŠù‚É **{newMode}** ‚Å‚·B");
+            if (shouldLog) Debug.Log($"ã‚¢ãƒ¼ãƒãƒ¼ã¯æ—¢ã« **{newMode}** ã§ã™ã€‚");
             return;
         }
 
@@ -309,8 +312,8 @@ public class TutorialPlayerController : MonoBehaviour
 
         if (shouldLog)
         {
-            Debug.Log($"ƒA[ƒ}[‚ğØ‚è‘Ö‚¦‚Ü‚µ‚½: **{_currentArmorStats.name}** " +
-                      $" (‘¬“x•â³: x{_currentArmorStats.moveSpeedMultiplier}, –hŒä•â³: x{_currentArmorStats.defenseMultiplier}, ‰ñ•œ•â³: x{_currentArmorStats.energyRecoveryMultiplier})");
+            Debug.Log($"ã‚¢ãƒ¼ãƒãƒ¼ã‚’åˆ‡ã‚Šæ›¿ãˆã¾ã—ãŸ: **{_currentArmorStats.name}** " +
+                      $" (é€Ÿåº¦è£œæ­£: x{_currentArmorStats.moveSpeedMultiplier}, é˜²å¾¡è£œæ­£: x{_currentArmorStats.defenseMultiplier}, å›å¾©è£œæ­£: x{_currentArmorStats.energyRecoveryMultiplier})");
         }
     }
 
@@ -336,7 +339,7 @@ public class TutorialPlayerController : MonoBehaviour
 
     private void HandleWeaponSwitchInput()
     {
-        if (!allowWeaponSwitch) return; // ƒ`ƒ…[ƒgƒŠƒAƒ‹§Œä
+        if (!allowWeaponSwitch) return; // ãƒãƒ¥ãƒ¼ãƒˆãƒªã‚¢ãƒ«åˆ¶å¾¡
 
         if (Input.GetKeyDown(KeyCode.E))
         {
@@ -348,10 +351,11 @@ public class TutorialPlayerController : MonoBehaviour
     {
         _currentWeaponMode = (_currentWeaponMode == WeaponMode.Melee) ? WeaponMode.Beam : WeaponMode.Melee;
 
-        Debug.Log($"•Ší‚ğØ‚è‘Ö‚¦‚Ü‚µ‚½: **{_currentWeaponMode}**");
+        Debug.Log($"æ­¦å™¨ã‚’åˆ‡ã‚Šæ›¿ãˆã¾ã—ãŸ: **{_currentWeaponMode}**");
         UpdateWeaponUIEmphasis();
     }
 
+    // ?? [FIX/NEW]: æ­¦å™¨ã‚¢ã‚¤ã‚³ãƒ³ã®å¼·èª¿è¡¨ç¤ºã¨ãƒ†ã‚­ã‚¹ãƒˆã®æ›´æ–°ã‚’è¡Œã†ã‚ˆã†ã«å¤‰æ›´
     private void UpdateWeaponUIEmphasis()
     {
         if (meleeWeaponIcon == null || beamWeaponIcon == null)
@@ -361,26 +365,38 @@ public class TutorialPlayerController : MonoBehaviour
 
         bool isMelee = (_currentWeaponMode == WeaponMode.Melee);
 
+        // 1. ã‚¢ã‚¤ã‚³ãƒ³ã®è‰²ã‚’æ›´æ–°
         meleeWeaponIcon.color = isMelee ? emphasizedColor : normalColor;
         beamWeaponIcon.color = isMelee ? normalColor : emphasizedColor;
+
+        // 2. ãƒ†ã‚­ã‚¹ãƒˆã‚’æ›´æ–°
+        if (meleeWeaponText != null)
+        {
+            meleeWeaponText.text = "Melee";
+            meleeWeaponText.color = isMelee ? emphasizedColor : normalColor;
+        }
+        if (beamWeaponText != null)
+        {
+            beamWeaponText.text = "Beam";
+            beamWeaponText.color = isMelee ? normalColor : emphasizedColor;
+        }
     }
 
     // =======================================================
-    // ?? ˆÚ“®ˆ— (ƒtƒ‰ƒO‚É‚æ‚é§Œä‚ğ’Ç‰Á & ƒ_ƒbƒVƒ…‹@”\‚ÌÀ‘•)
+    // ç§»å‹•å‡¦ç† 
     // =======================================================
     private Vector3 HandleHorizontalMovement()
     {
-        // allowHorizontalMove ‚Ìƒ`ƒFƒbƒN‚Í Update() ‚Ås‚í‚ê‚Ä‚¢‚é‚½‚ßA‚±‚±‚Å‚ÍUŒ‚’†‚Ìƒ`ƒFƒbƒN‚Ì‚İ‚Å—Ç‚¢
         if (_isAttacking) return Vector3.zero;
 
         float h = Input.GetAxis("Horizontal");
         float v = Input.GetAxis("Vertical");
 
-        // ?? [FIX/NEW]: ˆÚ“®“ü—Í‚ª‚È‚¢ê‡AWASDMoveTimer ‚Æ DashTimer ‚ğƒŠƒZƒbƒg
+        // ?? [FIX/NEW]: ç§»å‹•å…¥åŠ›ãŒãªã„å ´åˆã€WASDMoveTimer ã¨ DashTimer ã‚’ãƒªã‚»ãƒƒãƒˆ
         if (h == 0f && v == 0f)
         {
             WASDMoveTimer = 0f;
-            DashTimer = 0f; // ƒ_ƒbƒVƒ…ƒ^ƒCƒ}[‚àƒŠƒZƒbƒg
+            DashTimer = 0f; // ãƒ€ãƒƒã‚·ãƒ¥ã‚¿ã‚¤ãƒãƒ¼ã‚‚ãƒªã‚»ãƒƒãƒˆ
             return Vector3.zero;
         }
 
@@ -402,24 +418,21 @@ public class TutorialPlayerController : MonoBehaviour
         float currentSpeed = _moveSpeed;
         bool isConsumingEnergy = false;
 
-        // ?? [FIX/NEW]: Left ShiftƒL[‚É‚æ‚éƒ_ƒbƒVƒ…‚ğƒ`ƒFƒbƒN
-        // ƒ_ƒbƒVƒ…‚Í allowDash ‚ª true ‚Å‚ ‚èA‚©‚ÂƒGƒlƒ‹ƒM[‚ª‚ ‚éê‡‚Ì‚İ‰Â”\
+        // ?? [FIX/NEW]: Left Shiftã‚­ãƒ¼ã«ã‚ˆã‚‹ãƒ€ãƒƒã‚·ãƒ¥ã‚’ãƒã‚§ãƒƒã‚¯
+        // ãƒ€ãƒƒã‚·ãƒ¥ã¯ allowDash ãŒ true ã§ã‚ã‚Šã€ã‹ã¤ã‚¨ãƒãƒ«ã‚®ãƒ¼ãŒã‚ã‚‹å ´åˆã®ã¿å¯èƒ½
         bool isDashing = allowDash && Input.GetKey(KeyCode.LeftShift) && currentEnergy > 0.01f;
-
-        // Œ³‚Ìƒu[ƒXƒg (CtrlƒL[) ‚Ìˆ—‚ÍíœA‚Ü‚½‚Íƒ_ƒbƒVƒ…‚É“‡
-        // bool isBoosting = (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) && currentEnergy > 0.01f;
 
         if (isDashing)
         {
-            // ?? [FIX/NEW]: ƒ_ƒbƒVƒ…‘¬“x‚ÆƒGƒlƒ‹ƒM[Á”ï
+            // ?? [FIX/NEW]: ãƒ€ãƒƒã‚·ãƒ¥é€Ÿåº¦ã¨ã‚¨ãƒãƒ«ã‚®ãƒ¼æ¶ˆè²»
             currentSpeed *= dashMultiplier;
             currentEnergy -= energyConsumptionRate * Time.deltaTime;
             isConsumingEnergy = true;
-            DashTimer += Time.deltaTime; // ƒ_ƒbƒVƒ…ƒ^ƒCƒ}[‚ğXV
+            DashTimer += Time.deltaTime; // ãƒ€ãƒƒã‚·ãƒ¥ã‚¿ã‚¤ãƒãƒ¼ã‚’æ›´æ–°
         }
         else
         {
-            DashTimer = 0f; // ƒ_ƒbƒVƒ…‚µ‚Ä‚¢‚È‚¢ê‡‚ÍƒŠƒZƒbƒg
+            DashTimer = 0f; // ãƒ€ãƒƒã‚·ãƒ¥ã—ã¦ã„ãªã„å ´åˆã¯ãƒªã‚»ãƒƒãƒˆ
         }
 
         Vector3 horizontalMove = moveDirection * currentSpeed;
@@ -433,7 +446,6 @@ public class TutorialPlayerController : MonoBehaviour
 
     private Vector3 HandleVerticalMovement()
     {
-        // allowVerticalMove ‚Ìƒ`ƒFƒbƒN‚Í Update() ‚Ås‚í‚ê‚Ä‚¢‚é‚½‚ßA‚±‚±‚Å‚ÍUŒ‚’†‚Ìƒ`ƒFƒbƒN‚Ì‚İ‚Å—Ç‚¢
         bool isGrounded = _controller.isGrounded;
         if (isGrounded && _velocity.y < 0) _velocity.y = -0.1f;
 
@@ -480,11 +492,11 @@ public class TutorialPlayerController : MonoBehaviour
     }
 
     // =======================================================
-    // ?? UŒ‚ˆ— (ƒtƒ‰ƒO‚É‚æ‚é§Œä‚ğ’Ç‰Á)
+    // æ”»æ’ƒå‡¦ç† 
     // =======================================================
     private void HandleAttackInputs()
     {
-        if (!allowAttack) return; // ƒ`ƒ…[ƒgƒŠƒAƒ‹§Œä
+        if (!allowAttack) return; // ãƒãƒ¥ãƒ¼ãƒˆãƒªã‚¢ãƒ«åˆ¶å¾¡
 
         if (Input.GetMouseButtonDown(0) && !_isAttacking)
         {
@@ -501,51 +513,57 @@ public class TutorialPlayerController : MonoBehaviour
     }
 
     /// <summary>
-    /// Õ“Ë‚µ‚½Collider‚©‚çAŠY“–‚·‚é“GƒRƒ“ƒ|[ƒlƒ“ƒg‚ğ’T‚µ‚Äƒ_ƒ[ƒW‚ğ—^‚¦‚éB
+    /// è¡çªã—ãŸColliderã‹ã‚‰ã€è©²å½“ã™ã‚‹æ•µã‚³ãƒ³ãƒãƒ¼ãƒãƒ³ãƒˆã‚’æ¢ã—ã¦ãƒ€ãƒ¡ãƒ¼ã‚¸ã‚’ä¸ãˆã‚‹ã€‚
     /// </summary>
     private void ApplyDamageToEnemy(Collider hitCollider, float damageAmount)
     {
         GameObject target = hitCollider.gameObject;
         bool isHit = false;
 
-        // ƒ`ƒ…[ƒgƒŠƒAƒ‹—p‚Ì“G‚ğ‚±‚±‚É’Ç‰Á‚µ‚Ü‚· (TutorialEnemyController‚È‚Ç)
+        // ğŸ’¡ ãƒãƒ¥ãƒ¼ãƒˆãƒªã‚¢ãƒ«ç”¨ã®æ•µã®å‡¦ç†
         TutorialEnemyController tutorialEnemy = target.GetComponent<TutorialEnemyController>();
         if (tutorialEnemy != null)
         {
             tutorialEnemy.TakeDamage(damageAmount);
-            Debug.Log($"TutorialEnemy‚Éƒ_ƒ[ƒW: {damageAmount}");
+            Debug.Log($"TutorialEnemyã«ãƒ€ãƒ¡ãƒ¼ã‚¸: {damageAmount}");
             isHit = true;
         }
-        // ˆÈ‰ºAŒ³‚Ì“G‚Ìˆ—...
-        ScorpionEnemy scorpion = target.GetComponent<ScorpionEnemy>();
+
+        // ä»¥ä¸‹ã€å…ƒã®æ•µã®å‡¦ç†...
+        ScorpionEnemy scorpion = target.GetComponent<ScorpionEnemy>(); // ğŸ’¡ å¤–éƒ¨ã‚¯ãƒ©ã‚¹ã®ä¾å­˜ãŒã‚ã‚‹ã“ã¨ã«æ³¨æ„
         if (scorpion != null)
         {
             scorpion.TakeDamage(damageAmount);
-            Debug.Log($"ScorpionEnemy‚Éƒ_ƒ[ƒW: {damageAmount}");
+            Debug.Log($"ScorpionEnemyã«ãƒ€ãƒ¡ãƒ¼ã‚¸: {damageAmount}");
             isHit = true;
         }
 
-        SuicideEnemy suicide = target.GetComponent<SuicideEnemy>();
+        SuicideEnemy suicide = target.GetComponent<SuicideEnemy>(); // ğŸ’¡ å¤–éƒ¨ã‚¯ãƒ©ã‚¹ã®ä¾å­˜ãŒã‚ã‚‹ã“ã¨ã«æ³¨æ„
         if (suicide != null)
         {
             suicide.TakeDamage(damageAmount);
-            Debug.Log($"SuicideEnemy‚Éƒ_ƒ[ƒW: {damageAmount}");
+            Debug.Log($"SuicideEnemyã«ãƒ€ãƒ¡ãƒ¼ã‚¸: {damageAmount}");
             isHit = true;
         }
 
-        DroneEnemy drone = target.GetComponent<DroneEnemy>();
+        DroneEnemy drone = target.GetComponent<DroneEnemy>(); // ğŸ’¡ å¤–éƒ¨ã‚¯ãƒ©ã‚¹ã®ä¾å­˜ãŒã‚ã‚‹ã“ã¨ã«æ³¨æ„
         if (drone != null)
         {
             drone.TakeDamage(damageAmount);
-            Debug.Log($"DroneEnemy‚Éƒ_ƒ[ƒW: {damageAmount}");
+            Debug.Log($"DroneEnemyã«ãƒ€ãƒ¡ãƒ¼ã‚¸: {damageAmount}");
             isHit = true;
         }
 
-        // ‹¤’Ê‚ÌƒqƒbƒgƒGƒtƒFƒNƒgˆ—
+        // å…±é€šã®ãƒ’ãƒƒãƒˆã‚¨ãƒ•ã‚§ã‚¯ãƒˆå‡¦ç†
         if (isHit && hitEffectPrefab != null)
         {
-            // ƒqƒbƒg‚µ‚½êŠ‚ÉƒGƒtƒFƒNƒg‚ğ¶¬
+            // ãƒ’ãƒƒãƒˆã—ãŸå ´æ‰€ã«ã‚¨ãƒ•ã‚§ã‚¯ãƒˆã‚’ç”Ÿæˆ
             Instantiate(hitEffectPrefab, hitCollider.transform.position, Quaternion.identity);
+        }
+
+        if (!isHit)
+        {
+            Debug.LogWarning($"âŒ è¡çªç¢ºèª: {target.name} ã¨è¡çªã—ã¾ã—ãŸãŒã€é©åˆ‡ãªæ•µã‚³ãƒ³ãƒãƒ¼ãƒãƒ³ãƒˆãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã§ã—ãŸã€‚");
         }
     }
 
@@ -555,7 +573,10 @@ public class TutorialPlayerController : MonoBehaviour
         _attackTimer = 0f;
         _velocity.y = 0f;
 
+        // enemyLayer ã«è©²å½“ã™ã‚‹Colliderã®ã¿ã‚’æ¤œå‡º
         Collider[] hitColliders = Physics.OverlapSphere(transform.position, meleeAttackRange, enemyLayer);
+
+        Debug.Log($"[Melee] æ¤œå‡ºã•ã‚ŒãŸã‚³ãƒ©ã‚¤ãƒ€ãƒ¼ã®æ•°: {hitColliders.Length}");
 
         foreach (var hitCollider in hitColliders)
         {
@@ -571,13 +592,13 @@ public class TutorialPlayerController : MonoBehaviour
     {
         if (currentEnergy < beamAttackEnergyCost)
         {
-            Debug.LogWarning("ƒr[ƒ€UŒ‚‚É•K—v‚ÈƒGƒlƒ‹ƒM[‚ª‚ ‚è‚Ü‚¹‚ñI");
+            Debug.LogWarning("ãƒ“ãƒ¼ãƒ æ”»æ’ƒã«å¿…è¦ãªã‚¨ãƒãƒ«ã‚®ãƒ¼ãŒã‚ã‚Šã¾ã›ã‚“ï¼");
             return;
         }
 
         if (beamFirePoint == null || beamPrefab == null)
         {
-            Debug.LogError("ƒr[ƒ€‚Ì”­Ë“_(BeamFirePoint)‚Ü‚½‚Íƒr[ƒ€‚ÌƒvƒŒƒnƒu(BeamPrefab)‚ªİ’è‚³‚ê‚Ä‚¢‚Ü‚¹‚ñB");
+            Debug.LogError("ãƒ“ãƒ¼ãƒ ã®ç™ºå°„ç‚¹(BeamFirePoint)ã¾ãŸã¯ãƒ“ãƒ¼ãƒ ã®ãƒ—ãƒ¬ãƒãƒ–(BeamPrefab)ãŒè¨­å®šã•ã‚Œã¦ã„ã¾ã›ã‚“ã€‚");
             return;
         }
 
@@ -593,7 +614,7 @@ public class TutorialPlayerController : MonoBehaviour
         Vector3 fireDirection;
         Transform lockOnTarget = null;
 
-        // 1. ƒƒbƒNƒIƒ“ƒ^[ƒQƒbƒg‚ÌŠm”F
+        // 1. ãƒ­ãƒƒã‚¯ã‚ªãƒ³ã‚¿ãƒ¼ã‚²ãƒƒãƒˆã®ç¢ºèª
         if (_tpsCamController != null)
         {
             lockOnTarget = _tpsCamController.LockOnTarget;
@@ -602,10 +623,10 @@ public class TutorialPlayerController : MonoBehaviour
 
         if (lockOnTarget != null)
         {
-            // --- ƒƒbƒNƒIƒ“’†: ƒ^[ƒQƒbƒg‚ğ‘_‚¤ ---
+            // --- ãƒ­ãƒƒã‚¯ã‚ªãƒ³ä¸­: ã‚¿ãƒ¼ã‚²ãƒƒãƒˆã‚’ç‹™ã† ---
             Vector3 targetPosition;
 
-            // “G‚ÌCollider‚ª‚ ‚ê‚ÎA‚»‚Ì’†S‚ğ‘_‚¤ (‚æ‚è³Šm‚È‘_‚¢)
+            // æ•µã®ColliderãŒã‚ã‚Œã°ã€ãã®ä¸­å¿ƒã‚’ç‹™ã† (ã‚ˆã‚Šæ­£ç¢ºãªç‹™ã„)
             Collider targetCollider = lockOnTarget.GetComponent<Collider>();
             if (targetCollider != null)
             {
@@ -613,36 +634,38 @@ public class TutorialPlayerController : MonoBehaviour
             }
             else
             {
-                // Collider‚ª‚È‚¯‚ê‚ÎAƒfƒtƒHƒ‹ƒg‚Ì‚‚³ƒIƒtƒZƒbƒg‚ğ“K—p
+                // ColliderãŒãªã‘ã‚Œã°ã€ãƒ‡ãƒ•ã‚©ãƒ«ãƒˆã®é«˜ã•ã‚ªãƒ•ã‚»ãƒƒãƒˆã‚’é©ç”¨
                 targetPosition = lockOnTarget.position + Vector3.up * lockOnTargetHeightOffset;
             }
 
             fireDirection = (targetPosition - origin).normalized;
 
-            // ƒvƒŒƒCƒ„[‚ğƒ^[ƒQƒbƒg‚Ì…•½•ûŒü‚ÉŒü‚¯‚é
+            // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã‚’ã‚¿ãƒ¼ã‚²ãƒƒãƒˆã®æ°´å¹³æ–¹å‘ã«å‘ã‘ã‚‹
             Quaternion targetRotation = Quaternion.LookRotation(new Vector3(fireDirection.x, 0, fireDirection.z));
             transform.rotation = targetRotation;
 
-            Debug.Log($"ƒr[ƒ€”­ËIƒƒbƒNƒIƒ“ƒ^[ƒQƒbƒg: {lockOnTarget.name} ‚ÉŒü‚¯‚Ä”­ËB");
+            Debug.Log($"ãƒ“ãƒ¼ãƒ ç™ºå°„ï¼ãƒ­ãƒƒã‚¯ã‚ªãƒ³ã‚¿ãƒ¼ã‚²ãƒƒãƒˆ: {lockOnTarget.name} ã«å‘ã‘ã¦ç™ºå°„ã€‚");
         }
         else
         {
-            // --- ’Êí: eŒû‚ÌŒü‚¢‚Ä‚¢‚é•ûŒü‚ğŒü‚­ ---
+            // --- é€šå¸¸æ™‚: éŠƒå£ã®å‘ã„ã¦ã„ã‚‹æ–¹å‘ã‚’å‘ã ---
             fireDirection = beamFirePoint.forward;
-            Debug.Log("ƒr[ƒ€”­ËI³–Ê‚ÉŒü‚¯‚Ä”­ËB");
+            Debug.Log("ãƒ“ãƒ¼ãƒ ç™ºå°„ï¼æ­£é¢ã«å‘ã‘ã¦ç™ºå°„ã€‚");
         }
 
         RaycastHit hit;
         Vector3 endPoint;
         bool didHit = false;
 
-        // Raycast‚ÅÕ“Ë‚ğƒ`ƒFƒbƒN
+        // Raycastã§è¡çªã‚’ãƒã‚§ãƒƒã‚¯ (~0ã¯å…¨ã¦ã®ãƒ¬ã‚¤ãƒ¤ãƒ¼ã‚’å¯¾è±¡ã¨ã™ã‚‹)
         if (Physics.Raycast(origin, fireDirection, out hit, beamMaxDistance, ~0))
         {
             endPoint = hit.point;
             didHit = true;
 
-            // ƒ_ƒ[ƒW”»’è‚ğÀs?
+            Debug.Log($"[Beam] RaycastãŒãƒ’ãƒƒãƒˆ: {hit.collider.gameObject.name}");
+
+            // ãƒ€ãƒ¡ãƒ¼ã‚¸åˆ¤å®šã‚’å®Ÿè¡Œ
             ApplyDamageToEnemy(hit.collider, beamDamage);
         }
         else
@@ -650,14 +673,14 @@ public class TutorialPlayerController : MonoBehaviour
             endPoint = origin + fireDirection * beamMaxDistance;
         }
 
-        BeamController beamInstance = Instantiate(
+        BeamController beamInstance = Instantiate( // ğŸ’¡ å¤–éƒ¨ã‚¯ãƒ©ã‚¹ã®ä¾å­˜ãŒã‚ã‚‹ã“ã¨ã«æ³¨æ„
             beamPrefab,
             origin,
-            // ”­Ë•ûŒü‚ÉŒü‚¯‚Äƒr[ƒ€‚Ì‰ñ“]‚ğİ’è
+            // ç™ºå°„æ–¹å‘ã«å‘ã‘ã¦ãƒ“ãƒ¼ãƒ ã®å›è»¢ã‚’è¨­å®š
             Quaternion.LookRotation(fireDirection)
         );
-        // BeamController‚Én“_‚ÆI“_‚ğ“n‚µAƒrƒWƒ…ƒAƒ‹‚ğXV
-        beamInstance.Fire(origin, endPoint, didHit);
+        // BeamControllerã«å§‹ç‚¹ã¨çµ‚ç‚¹ã‚’æ¸¡ã—ã€ãƒ“ã‚¸ãƒ¥ã‚¢ãƒ«ã‚’æ›´æ–°
+        beamInstance.Fire(origin, endPoint, didHit); // ğŸ’¡ å¤–éƒ¨ãƒ¡ã‚½ãƒƒãƒ‰ã®ä¾å­˜ãŒã‚ã‚‹ã“ã¨ã«æ³¨æ„
 
         onBeamAttackPerformed?.Invoke();
     }
@@ -672,15 +695,15 @@ public class TutorialPlayerController : MonoBehaviour
             _isAttacking = false;
             _attackTimer = 0.0f;
 
-            // UŒ‚I—¹Œã‚Ì‚’¼‘¬“x‚Ì’²®
+            // æ”»æ’ƒçµ‚äº†å¾Œã®å‚ç›´é€Ÿåº¦ã®èª¿æ•´
             if (!_controller.isGrounded)
             {
-                // UŒ‚I—¹ŒãA‹ó’†‚Å‚ ‚ê‚Îd—Í—‰º‚ğŠJn
+                // æ”»æ’ƒçµ‚äº†å¾Œã€ç©ºä¸­ã§ã‚ã‚Œã°é‡åŠ›è½ä¸‹ã‚’é–‹å§‹
                 _velocity.y = 0;
             }
             else
             {
-                // ’n–Ê‚É‚Â‚¢‚Ä‚¢‚ê‚ÎACharacterController‚Ì‹““®‚ğˆÀ’è‚³‚¹‚é‚½‚ß‚É¬‚³‚È‰ºŒü‚«‚Ì‘¬“x‚ğˆÛ
+                // åœ°é¢ã«ã¤ã„ã¦ã„ã‚Œã°ã€CharacterControllerã®æŒ™å‹•ã‚’å®‰å®šã•ã›ã‚‹ãŸã‚ã«å°ã•ãªä¸‹å‘ãã®é€Ÿåº¦ã‚’ç¶­æŒ
                 _velocity.y = -0.1f;
             }
         }
@@ -709,11 +732,11 @@ public class TutorialPlayerController : MonoBehaviour
         }
     }
 
-    // ƒ`ƒ…[ƒgƒŠƒAƒ‹EUIŠÖ˜A‚Ìƒƒ\ƒbƒh
+    // ãƒãƒ¥ãƒ¼ãƒˆãƒªã‚¢ãƒ«ãƒ»UIé–¢é€£ã®ãƒ¡ã‚½ãƒƒãƒ‰
 
     public void ResetInputTracking()
     {
-        // ?? [FIX/NEW]: DashTimer ‚ÌƒŠƒZƒbƒg‚ğ’Ç‰Á
+        // ?? [FIX/NEW]: DashTimer ã®ãƒªã‚»ãƒƒãƒˆã‚’è¿½åŠ 
         WASDMoveTimer = JumpTimer = DescendTimer = DashTimer = 0f;
     }
 
@@ -725,16 +748,16 @@ public class TutorialPlayerController : MonoBehaviour
         }
     }
 
-    /// <summary>HPƒXƒ‰ƒCƒ_[‚ÆHPƒeƒLƒXƒg‚ğXV‚·‚éBUIXV‚Íê—pƒƒ\ƒbƒh‚ÉW–ñ</summary>
+    /// <summary>HPã‚¹ãƒ©ã‚¤ãƒ€ãƒ¼ã¨HPãƒ†ã‚­ã‚¹ãƒˆã‚’æ›´æ–°ã™ã‚‹ã€‚UIæ›´æ–°ã¯å°‚ç”¨ãƒ¡ã‚½ãƒƒãƒ‰ã«é›†ç´„</summary>
     void UpdateHPUI()
     {
-        // 1. ƒXƒ‰ƒCƒ_[‚ÌXV
+        // 1. ã‚¹ãƒ©ã‚¤ãƒ€ãƒ¼ã®æ›´æ–°
         if (hPSlider != null)
         {
             hPSlider.value = currentHP / maxHP;
         }
 
-        // 2. HPƒeƒLƒXƒg‚ÌXV
+        // 2. HPãƒ†ã‚­ã‚¹ãƒˆã®æ›´æ–°
         if (hPText != null)
         {
             int currentHPInt = Mathf.CeilToInt(currentHP);
@@ -757,9 +780,9 @@ public class TutorialPlayerController : MonoBehaviour
 
         currentHP -= finalDamage;
         currentHP = Mathf.Clamp(currentHP, 0, maxHP);
-        UpdateHPUI(); // HP‚ª•Ï‰»‚µ‚½‚çUI‚ğXV
+        UpdateHPUI(); // HPãŒå¤‰åŒ–ã—ãŸã‚‰UIã‚’æ›´æ–°
 
-        Debug.Log($"ƒ_ƒ[ƒW‚ğó‚¯‚Ü‚µ‚½Bc‚èHP: {currentHP} (Œ³‚Ìƒ_ƒ[ƒW: {damageAmount}, ÅIƒ_ƒ[ƒW: {finalDamage})");
+        Debug.Log($"ãƒ€ãƒ¡ãƒ¼ã‚¸ã‚’å—ã‘ã¾ã—ãŸã€‚æ®‹ã‚ŠHP: {currentHP} (å…ƒã®ãƒ€ãƒ¡ãƒ¼ã‚¸: {damageAmount}, æœ€çµ‚ãƒ€ãƒ¡ãƒ¼ã‚¸: {finalDamage})");
 
         if (currentHP <= 0)
         {
@@ -772,43 +795,43 @@ public class TutorialPlayerController : MonoBehaviour
         if (_isDead) return;
 
         _isDead = true;
-        isInputLocked = true; // €–S‚Í‘S‚Ä‚Ì“ü—Í‚ğƒƒbƒN
+        isInputLocked = true; // æ­»äº¡æ™‚ã¯å…¨ã¦ã®å…¥åŠ›ã‚’ãƒ­ãƒƒã‚¯
 
-        Debug.Log("ƒvƒŒƒCƒ„[‚Í”j‰ó‚³‚ê‚Ü‚µ‚½BƒQ[ƒ€ƒI[ƒo[ˆ—‚ğƒ}ƒl[ƒWƒƒ[‚ÉˆÏ÷‚µ‚Ü‚·B");
+        Debug.Log("ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã¯ç ´å£Šã•ã‚Œã¾ã—ãŸã€‚ã‚²ãƒ¼ãƒ ã‚ªãƒ¼ãƒãƒ¼å‡¦ç†ã‚’ãƒãƒãƒ¼ã‚¸ãƒ£ãƒ¼ã«å§”è­²ã—ã¾ã™ã€‚");
 
         if (gameOverManager != null)
         {
-            gameOverManager.GoToGameOverScene();
+            gameOverManager.GoToGameOverScene(); // ğŸ’¡ å¤–éƒ¨ãƒ¡ã‚½ãƒƒãƒ‰ã®ä¾å­˜ãŒã‚ã‚‹ã“ã¨ã«æ³¨æ„
         }
         else
         {
-            Debug.LogError("SceneBasedGameOverManager‚ªİ’è‚³‚ê‚Ä‚¢‚Ü‚¹‚ñBInspector‚ğŠm”F‚µ‚Ä‚­‚¾‚³‚¢B");
+            Debug.LogError("SceneBasedGameOverManagerãŒè¨­å®šã•ã‚Œã¦ã„ã¾ã›ã‚“ã€‚Inspectorã‚’ç¢ºèªã—ã¦ãã ã•ã„ã€‚");
         }
 
         enabled = false;
     }
 
     // -------------------------------------------------------------------
-    //? ? ? ? ? ? ? ? ? ? ? ?Gizmos
+    // Gizmos
     // -------------------------------------------------------------------
     private void OnDrawGizmosSelected()
     {
-        // 1. ‹ßÚUŒ‚‚Ì”ÍˆÍ (‹…‘Ì)
+        // 1. è¿‘æ¥æ”»æ’ƒã®ç¯„å›² (çƒä½“)
         Gizmos.color = new Color(1f, 0.5f, 0f, 0.5f);
         Gizmos.DrawSphere(transform.position, meleeAttackRange);
 
-        // 2. ƒr[ƒ€UŒ‚‚ÌË’ö
+        // 2. ãƒ“ãƒ¼ãƒ æ”»æ’ƒã®å°„ç¨‹
         if (beamFirePoint != null)
         {
             Vector3 origin = beamFirePoint.position;
 
-            // ƒ^[ƒQƒbƒg‚Ì•ûŒü‚ğŒˆ’è
+            // ã‚¿ãƒ¼ã‚²ãƒƒãƒˆã®æ–¹å‘ã‚’æ±ºå®š
             Vector3 fireDirection = beamFirePoint.forward;
             Transform lockOnTarget = _tpsCamController != null ? _tpsCamController.LockOnTarget : null;
 
             if (lockOnTarget != null)
             {
-                // ƒƒbƒNƒIƒ“ƒ^[ƒQƒbƒg‚Ì’†S‚ğ‘_‚¤
+                // ãƒ­ãƒƒã‚¯ã‚ªãƒ³ã‚¿ãƒ¼ã‚²ãƒƒãƒˆã®ä¸­å¿ƒã‚’ç‹™ã†
                 Collider targetCollider = lockOnTarget.GetComponent<Collider>();
                 Vector3 targetPosition = targetCollider != null
                     ? targetCollider.bounds.center
@@ -838,14 +861,14 @@ public class TutorialPlayerController : MonoBehaviour
     }
 
     /// <summary>
-    /// •Šíƒ‚[ƒh‚ğŠO•”‚©‚çİ’è‚µAUI‚ğXV‚µ‚Ü‚·Biƒ`ƒ…[ƒgƒŠƒAƒ‹ƒ}ƒl[ƒWƒƒ[—pj
+    /// æ­¦å™¨ãƒ¢ãƒ¼ãƒ‰ã‚’å¤–éƒ¨ã‹ã‚‰è¨­å®šã—ã€UIã‚’æ›´æ–°ã—ã¾ã™ã€‚ï¼ˆãƒãƒ¥ãƒ¼ãƒˆãƒªã‚¢ãƒ«ãƒãƒãƒ¼ã‚¸ãƒ£ãƒ¼ç”¨ï¼‰
     /// </summary>
     public void SwitchWeaponMode(WeaponMode newMode)
     {
         if (_currentWeaponMode == newMode) return;
 
         _currentWeaponMode = newMode;
-        Debug.Log($"[Manager] •Ší‚ğ‹­§Ø‚è‘Ö‚¦‚µ‚Ü‚µ‚½: **{_currentWeaponMode}**");
+        Debug.Log($"[Manager] æ­¦å™¨ã‚’å¼·åˆ¶åˆ‡ã‚Šæ›¿ãˆã—ã¾ã—ãŸ: **{_currentWeaponMode}**");
         UpdateWeaponUIEmphasis();
     }
 }

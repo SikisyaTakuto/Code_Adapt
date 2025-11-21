@@ -15,40 +15,6 @@ public class SceneLauncher
     //    OpenSceneWithSaveCheck("Assets/Scenes/EnemyScene/EnemyTestScene.unity");
     //}
 
-    // メニューに「Launcher/PlayerScene」という項目を追加
-    // クリックするとPlayerSceneが開かれる
-    [MenuItem("Launcher/PlayerScene", priority = 0)]
-    public static void OpenPlayerScene()
-    {
-        OpenSceneWithSaveCheck("Assets/Scenes/PlayerScene/PlayerScene.unity");
-    }
-
-    [MenuItem("Launcher/GameScene", priority = 0)]
-    public static void OpenGameScene()
-    {
-        OpenSceneWithSaveCheck("Assets/Scenes/GameScene/GameScene.unity");
-    }
-
-
-    [MenuItem("Launcher/GameScene1", priority = 0)]
-    public static void OpenGameScene1()
-    {
-        OpenSceneWithSaveCheck("Assets/Scenes/GameScene/GameScene1.unity");
-    }
-
-
-    [MenuItem("Launcher/GameScene2", priority = 0)]
-    public static void OpenGameScene2()
-    {
-        OpenSceneWithSaveCheck("Assets/Scenes/GameScene/GameScene2.unity");
-    }
-
-    [MenuItem("Launcher/ArmorSelectScene", priority = 0)]
-    public static void OpenArmorSelectScene()
-    {
-        OpenSceneWithSaveCheck("Assets/Scenes/GameScene/ArmorSelectScene.unity");
-    }
-
     [MenuItem("Launcher/TitleScene", priority = 0)]
     public static void OpenTitleScene()
     {
@@ -59,12 +25,6 @@ public class SceneLauncher
     public static void OpenStageSelectScene()
     {
         OpenSceneWithSaveCheck("Assets/Scenes/GameScene/StageSelectScene.unity");
-    }
-
-    [MenuItem("Launcher/ClearScene", priority = 0)]
-    public static void OpenSampleScene()
-    {
-        OpenSceneWithSaveCheck("Assets/Scenes/GameScene/ClearScene.unity");
     }
 
     [MenuItem("Launcher/TutorialScene", priority = 0)]
