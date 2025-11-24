@@ -7,14 +7,25 @@ using UnityEngine.SceneManagement;
 
 /// <summary>
 /// チュートリアルの進行を制御し、プレイヤーの操作制限を管理する司令塔クラス。
-/// 修正: ナビゲーションアイコンの表示/非表示制御を追加。オペレーターAIの口調を真面目に修正。
-/// 変更: ダッシュチュートリアル、敵出現と撃破を待つ攻撃チュートリアルを追加。
-/// 最終変更: ClearSceneへの遷移時カーソル修正、アイコン表示タイミング調整、エネルギー説明を追加。
+/// 変更点: 視点操作完了条件のためのカメラ回転閾値を設定。
 /// </summary>
 public class TutorialManager : MonoBehaviour
 {
-    // --- 外部参照 ---
-    [Header("コンポーネント参照")]
+    // --- 定数設定 ---
+    // プレイヤーの操作待ちの最大時間 (1分)
+    private const float DEFAULT_MAX_WAIT_TIME = 60.0f;
+
+    // ⭐ NEW: 視点操作チュートリアルに適用する強制スキップ時間 (5秒)
+    private const float CAMERA_LOOK_MAX_WAIT_TIME = 5.0f;
+
+    // ⭐ NEW: カメラ操作完了と見なすための回転の合計閾値 (PlayerController側で実装が必要)
+    [Header("視点操作設定")]
+    [Tooltip("視点操作完了と見なすために必要なマウス回転の合計移動量 (度)")]
+    public float CAMERA_LOOK_THRESHOLD = 5.0f;
+
+
+    // --- 外部参照 ---
+    [Header("コンポーネント参照")]
     [Tooltip("シーン内の TutorialPlayerController をアタッチ")]
     public TutorialPlayerController player;
     [Tooltip("指示メッセージを表示するためのUI Text (または TextMeshProUGUI)")]
@@ -22,34 +33,33 @@ public class TutorialManager : MonoBehaviour
     [Tooltip("メッセージを格納するパネル（任意）")]
     public GameObject messagePanel;
 
-    // 💡 NEW: ナビゲーションアイコンのGameObject
     [Tooltip("オペレーターAIのアイコンや立ち絵など、表示/非表示を切り替えるGameObject")]
     public GameObject navIconObject;
 
-    // 💡 NEW: チュートリアル敵関連
-    [Header("チュートリアル敵参照")]
+    // --- チュートリアル敵関連 ---
+    [Header("チュートリアル敵参照")]
     [Tooltip("出現させる敵（サンドバック）のプレハブ")]
     public GameObject enemyPrefab;
     [Tooltip("敵が出現するTransform（位置と回転）")]
     public Transform enemySpawnPoint;
     private GameObject currentEnemyInstance = null;
-    // 敵のControllerクラスが存在すると仮定します (例: TutorialEnemyController)
-    // このクラスには 'onDeath' イベントまたは 'IsAlive()' メソッドがあることを想定
 
-    // 🌟 ステップ別時間設定 🌟
-    // =======================================================
-    [Header("ステップ別時間設定 (Inspectorで個別に設定)")]
-
-    [Tooltip("移動チュートリアルの最小表示時間")]
+    // 🌟 ステップ別時間設定 🌟
+    // =======================================================
+    [Header("ステップ別時間設定 (Inspectorで個別に設定)")]
+    // ... (他の時間設定は省略) ...
+    [Tooltip("移動チュートリアルの最小表示時間")]
     public float MinDisplay_Move = 2.0f;
     [Tooltip("移動チュートリアル完了後の待機時間")]
     public float Delay_Move = 1.0f;
 
-    // 💡 NEW: ダッシュ用設定
     [Tooltip("ダッシュチュートリアルの最小表示時間")]
-    public float MinDisplay_Dash = 4.0f; // 読み取り時間を確保するため、3.0fから4.0fに増加
+    public float MinDisplay_Dash = 4.0f;
     [Tooltip("ダッシュチュートリアル完了後の待機時間")]
     public float Delay_Dash = 1.0f;
+
+    [Tooltip("エネルギー説明の最小表示時間 (分割後の各ステップ)")]
+    public float MinDisplay_EnergyFragment = 3.0f;
 
     [Tooltip("垂直移動 (浮上・降下) の最小表示時間")]
     public float MinDisplay_Vertical = 3.0f;
@@ -58,7 +68,6 @@ public class TutorialManager : MonoBehaviour
     [Tooltip("垂直移動完了後の待機時間")]
     public float Delay_Vertical_End = 1.5f;
 
-    // 💡 攻撃チュートリアルは敵の撃破を待つため、時間設定は不要。待機時間のみ必要。
     [Tooltip("武器切り替え完了後の待機時間")]
     public float Delay_WeaponSwitch = 1.0f;
     [Tooltip("近接攻撃による敵撃破完了後の待機時間")]
@@ -73,20 +82,30 @@ public class TutorialManager : MonoBehaviour
     [Tooltip("アーマー切り替え完了後の待機時間")]
     public float Delay_ArmorSwitch_End = 1.8f;
 
-    [Tooltip("チュートリアル終了メッセージの表示時間")]
-    public float EndMessageDisplayTime = 3.0f;
-    // =======================================================
+    [Tooltip("カメラ操作の最小表示時間")]
+    public float MinDisplay_CameraLook = 3.0f;
+    [Tooltip("ロックオン操作の最小表示時間")]
+    public float MinDisplay_LockOn = 3.5f;
+    [Tooltip("ロックオンチュートリアル完了後の待機時間")]
+    public float Delay_LockOn_End = 1.5f;
 
-    // --- 内部状態 ---
-    private bool isTutorialRunning = false;
+    [Tooltip("チュートリアル終了メッセージの表示時間")]
+    public float EndMessageDisplayTime = 5.0f; // 3.0f から 5.0f に変更
+    // =======================================================
+
+    // --- 内部状態 ---
+    private bool isTutorialRunning = false;
     private bool isWaitingForPlayerAction = false;
     private bool isEnemyDestroyed = false; // 敵の撃破フラグ
 
-    // =======================================================
-    // 初期化
-    // =======================================================
+    private bool isCameraLooked = false;
+    private bool isTargetLocked = false;
 
-    void Start()
+    // =======================================================
+    // 初期化
+    // =======================================================
+
+    void Start()
     {
         if (player == null)
         {
@@ -98,35 +117,32 @@ public class TutorialManager : MonoBehaviour
             Debug.LogWarning("チュートリアル敵用のPrefabまたはSpawnPointが設定されていません。攻撃チュートリアルがスキップされる可能性があります。");
         }
 
-        // 💡 NEW: ナビゲーションアイコンを初期状態で非表示にする
         SetNavIconVisible(false);
 
-        // 初期状態で全ての操作をロックし、チュートリアルを開始
         InitializePlayerState();
         StartTutorial();
     }
 
-    /// <summary>
-    /// チュートリアル開始前のプレイヤーの状態を設定する。
-    /// </summary>
+    public void SetCameraLooked() { isCameraLooked = true; }
+    public void SetTargetLocked() { isTargetLocked = true; }
+
     private void InitializePlayerState()
     {
-        // プレイヤーの全ての入力をロック
         player.isInputLocked = true;
         player.allowHorizontalMove = false;
         player.allowVerticalMove = false;
-        player.allowDash = false; // 💡 NEW: ダッシュを初期ロック
+        player.allowDash = false;
         player.allowWeaponSwitch = false;
         player.allowArmorSwitch = false;
         player.allowAttack = false;
 
-        // 入力トラッキングをリセット
         player.ResetInputTracking();
+        // ⭐ 視点操作フラグの初期化（PlayerController側に実装されている前提）
+        // player.ResetCameraInputTracking(); 
+        isCameraLooked = false;
+        isTargetLocked = false;
     }
 
-    /// <summary>
-    /// ナビゲーションアイコン（立ち絵など）の表示/非表示を切り替える。
-    /// </summary>
     private void SetNavIconVisible(bool isVisible)
     {
         if (navIconObject != null)
@@ -135,9 +151,6 @@ public class TutorialManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// チュートリアルの進行を開始する。
-    /// </summary>
     public void StartTutorial()
     {
         if (!isTutorialRunning)
@@ -149,295 +162,360 @@ public class TutorialManager : MonoBehaviour
         }
     }
 
-    // =======================================================
-    // チュートリアルのメインの流れ (コルーチン)
-    // =======================================================
+    // =======================================================
+    // チュートリアルのメインの流れ (コルーチン)
+    // =======================================================
 
-    private IEnumerator TutorialFlow()
+    public IEnumerator TutorialFlow()
     {
         Debug.Log("--- チュートリアル開始 (オペレーターAI起動) ---");
 
-        // ステップ 1: 移動のチュートリアル
-        yield return StartCoroutine(RunMovementTutorial(MinDisplay_Move, Delay_Move));
+        // ⭐ 1. 視点操作のチュートリアル (最初に移動)
+        yield return StartCoroutine(RunCameraLookTutorial(MinDisplay_CameraLook, Delay_Move));
 
-        // ステップ 2: 浮遊/降下のチュートリアル
-        yield return StartCoroutine(RunVerticalMovementTutorial(MinDisplay_Vertical, Delay_Vertical_Mid, Delay_Vertical_End));
+        // 2. 移動のチュートリアル
+        yield return StartCoroutine(RunMovementTutorial(MinDisplay_Move, Delay_Move));
 
-        // 💡 NEW: ステップ 3: ダッシュのチュートリアル
-        yield return StartCoroutine(RunDashTutorial(MinDisplay_Dash, Delay_Dash));
+        // 3. 浮遊/降下のチュートリアル
+        yield return StartCoroutine(RunVerticalMovementTutorial(MinDisplay_Vertical, Delay_Vertical_Mid, Delay_Vertical_End));
 
-        // 💡 NEW: ステップ 3.5: エネルギー説明のチュートリアル (追加)
-        yield return StartCoroutine(RunEnergyExplanationTutorial(4.0f, Delay_Dash));
+        // 4. ダッシュのチュートリアル
+        yield return StartCoroutine(RunDashTutorial(MinDisplay_Dash, Delay_Dash));
 
-        // ステップ 4: 武器切り替えのチュートリアル
-        yield return StartCoroutine(RunWeaponSwitchTutorial(Delay_WeaponSwitch)); // minTimeを削除
+        // ⭐ 5. エネルギー説明のチュートリアル (3ステップに分割)
+        yield return StartCoroutine(RunEnergyExplanation1(MinDisplay_EnergyFragment, Delay_Dash));
+        yield return StartCoroutine(RunEnergyExplanation2(MinDisplay_EnergyFragment, Delay_Dash));
+        yield return StartCoroutine(RunEnergyExplanation3(MinDisplay_EnergyFragment, Delay_Dash));
 
-        // 💡 NEW: ステップ 5: 近接攻撃のチュートリアル (敵を出現させて撃破を待つ)
-        yield return StartCoroutine(RunAttackEnemyTutorial(
-            TutorialPlayerController.WeaponMode.Melee,
-            "近接モードへの設定を完了しました。眼前の**訓練用サンドバック**を**[左クリック]**で撃破してください。",
-            Delay_MeleeAttack_Enemy));
+        // 6. 武器切り替えのチュートリアル
+        yield return StartCoroutine(RunWeaponSwitchTutorial(Delay_WeaponSwitch));
 
-        // 💡 NEW: ステップ 6: ビーム攻撃のチュートリアル (敵を出現させて撃破を待つ)
-        yield return StartCoroutine(RunAttackEnemyTutorial(
-            TutorialPlayerController.WeaponMode.Beam,
-            "ビームモードへの設定を完了しました。眼前の**訓練用サンドバック**を**[左クリック]**で撃破してください。",
-            Delay_BeamAttack_Enemy));
+        // ⭐ 7. ロックオン操作のチュートリアル (攻撃前に移動)
+        yield return StartCoroutine(RunLockOnTutorial(MinDisplay_LockOn, Delay_LockOn_End));
 
-        // ステップ 7: アーマー切り替えのチュートリアル
-        yield return StartCoroutine(RunArmorSwitchTutorial(MinDisplay_ArmorSwitch, Delay_ArmorSwitch_Mid, Delay_ArmorSwitch_End));
+        // 8. 近接攻撃のチュートリアル (ロックオン後)
+        yield return StartCoroutine(RunAttackEnemyTutorial(
+      TutorialPlayerController.WeaponMode.Melee,
+      "近接モードでロックオン状態です。標的に向かって[左クリック]で攻撃し、撃破してください。",
+      Delay_MeleeAttack_Enemy));
 
-        // チュートリアル終了
-        yield return StartCoroutine(EndTutorial());
+        // 9. ビーム攻撃のチュートリアル
+        yield return StartCoroutine(RunAttackEnemyTutorial(
+      TutorialPlayerController.WeaponMode.Beam,
+      "ビームモードに切り替えます。標的に向かって[左クリック]で攻撃し、撃破してください。",
+      Delay_BeamAttack_Enemy));
+
+        // 10. アーマー切り替えのチュートリアル
+        yield return StartCoroutine(RunArmorSwitchTutorial(MinDisplay_ArmorSwitch, Delay_ArmorSwitch_Mid, Delay_ArmorSwitch_End));
+
+        // チュートリアル終了
+        yield return StartCoroutine(EndTutorial());
     }
 
-    // --- ステップごとのコルーチン ---
+    // --- ステップごとのコルーチン (全て public に維持) ---
 
-    private IEnumerator RunMovementTutorial(float minTime, float nextStepDelay)
+    // ⭐ 視点操作のチュートリアル (完了条件を回転閾値に対応)
+    public IEnumerator RunCameraLookTutorial(float minTime, float nextStepDelay)
     {
-        // 準備: 移動、浮上/降下、ダッシュ**以外**を許可
+        // 準備: カメラ操作を許可し、トラッキングフラグをリセット
+
+        // ⭐ 修正: PlayerController側にallowCameraLookフラグがある場合はここで有効化
+        // player.allowCameraLook = true; 
+
+        isCameraLooked = false;
+
+        // ⭐ 修正: PlayerController側にResetCameraInputTrackingを実装し、ここで呼び出す
+        // player.ResetCameraInputTracking(); 
+
+        // マウスカーソルをロックし、非表示にする
+        Cursor.visible = false;
+        Cursor.lockState = CursorLockMode.Locked;
+
+        yield return StartCoroutine(ShowMessageAndWaitForAction(
+          $"システム起動。まず、視点操作を行います。[マウス]を動かして、周囲を見回してください。",
+          () => isCameraLooked, // PlayerController側が、累積回転量が閾値を超えたら SetCameraLooked() を呼ぶ前提
+                minTime,
+          nextStepDelay,
+    // ⭐ 修正: 視点操作の強制スキップ時間を5.0秒に設定
+                CAMERA_LOOK_MAX_WAIT_TIME));
+
+        // ⭐ 修正: PlayerController側にallowCameraLookフラグがある場合はここで無効化
+        // player.allowCameraLook = false;
+
+        Debug.Log("カメラ操作チュートリアル完了。");
+    }
+
+    public IEnumerator RunMovementTutorial(float minTime, float nextStepDelay)
+    {
         player.isInputLocked = false;
         player.allowHorizontalMove = true;
-        player.allowVerticalMove = true; // チュートリアルを通して移動、上昇、下降は許可
+        player.allowVerticalMove = true;
         player.allowDash = false;
         player.ResetInputTracking();
 
-        // 指示 (真面目な口調に修正)
-        yield return StartCoroutine(ShowMessageAndWaitForAction("現在よりチュートリアルを開始します。まずは基本移動から開始してください。**[WASD]キー**にて自由に移動操作を実行してください。",
-                                   () => player.HasMovedHorizontally,
-                                   minTime,
-                                   nextStepDelay));
-
-        // 💡 NEW: 移動チュートリアル完了後も移動と垂直移動は許可したままにする
-        // player.allowHorizontalMove = false; // 無効化しない
+        yield return StartCoroutine(ShowMessageAndWaitForAction("基本移動として、[WASD]キーで移動操作を実行してください。",
+                           () => player.HasMovedHorizontally,
+                           minTime,
+                           nextStepDelay,
+                           DEFAULT_MAX_WAIT_TIME));
         Debug.Log("水平移動チュートリアル完了。");
     }
 
-    private IEnumerator RunVerticalMovementTutorial(float minTime, float midStepDelay, float nextStepDelay)
+    public IEnumerator RunVerticalMovementTutorial(float minTime, float midStepDelay, float nextStepDelay)
     {
-        // 準備: 既に allowVerticalMove は true のはずだが、念のため。
         player.allowVerticalMove = true;
         player.ResetInputTracking();
 
-        // 指示 (浮上) (真面目な口調に修正)
-        yield return StartCoroutine(ShowMessageAndWaitForAction("次に垂直移動の操作です。エネルギーを充填し、浮上してください。**[Space]キー**を長押ししてください。",
-                                   () => player.HasJumped,
-                                   minTime,
-                                   midStepDelay)); // 浮上→降下間の待機
+        // 浮上
+        yield return StartCoroutine(ShowMessageAndWaitForAction("垂直移動の操作です。[Space]キーを長押しし、浮上してください。",
+                       () => player.HasJumped,
+                       minTime,
+                       midStepDelay,
+                       DEFAULT_MAX_WAIT_TIME));
 
-        player.ResetInputTracking(); // 降下操作をトラックするためリセット
+        player.ResetInputTracking();
 
-        // 指示 (降下) (真面目な口調に修正)
-        yield return StartCoroutine(ShowMessageAndWaitForAction("次は降下操作です。**[Alt]キー**を長押ししてください。",
-                                   () => player.HasDescended,
-                                   minTime,
-                                   nextStepDelay)); // ステップ終了時の待機
-
-        // player.allowVerticalMove = false; // 無効化しない
+        // 降下
+        yield return StartCoroutine(ShowMessageAndWaitForAction("降下操作です。[Alt]キーを長押ししてください。",
+                       () => player.HasDescended,
+                       minTime,
+                       nextStepDelay,
+                       DEFAULT_MAX_WAIT_TIME));
         Debug.Log("垂直移動チュートリアル完了。");
     }
 
-    // 💡 NEW: ダッシュのチュートリアル
-    private IEnumerator RunDashTutorial(float minTime, float nextStepDelay)
+    public IEnumerator RunDashTutorial(float minTime, float nextStepDelay)
     {
-        // 準備: ダッシュのみを許可し、トラックをリセット
         player.allowDash = true;
         player.ResetInputTracking();
 
-        // 指示 (ダッシュの説明と実行)
         yield return StartCoroutine(ShowMessageAndWaitForAction(
-            "緊急回避、および高速移動に使用するダッシュ操作です。**[Left Shift]キー**を押しながら**[WASD]キー**で移動し、ダッシュを実行してください。",
-            () => player.HasDashed, // player.HasDashedというプロパティがPlayerControllerにあると仮定
-            minTime,
-            nextStepDelay));
+          "[Left+Shift]キーを押しながら[WASD]キーでダッシュを実行してください。",
+          () => player.HasDashed,
+          minTime,
+          nextStepDelay,
+          DEFAULT_MAX_WAIT_TIME));
 
-        // player.allowDash = false; // 無効化しない
         Debug.Log("ダッシュチュートリアル完了。");
     }
 
-    /// <summary>
-    /// 💡 NEW: エネルギー消費に関する説明のコルーチン
-    /// </summary>
-    private IEnumerator RunEnergyExplanationTutorial(float minTime, float nextStepDelay)
+    // ⭐ エネルギー説明の分割ステップ 1/3
+    public IEnumerator RunEnergyExplanation1(float minTime, float nextStepDelay)
     {
-        // 移動系は既に許可されている
-
         yield return StartCoroutine(ShowMessageAndWaitForAction(
-            "重要事項の伝達です。現在実行したダッシュ、および今後の攻撃、浮上操作にはエネルギーを消費します。画面上のエネルギーゲージを常に確認し、残量に注意してください。",
-            () => true, // 読み上げたら即座に次のステップへ (最小時間待機は適用)
-            minTime,
-            nextStepDelay));
+          "重要事項です。ダッシュ、攻撃、浮上操作にはエネルギーを消費します。",
+          () => true,
+          minTime,
+          nextStepDelay));
+        Debug.Log("エネルギーに関する説明 1/3 完了。");
+    }
 
-        Debug.Log("エネルギーに関する説明を完了。");
+    // ⭐ エネルギー説明の分割ステップ 2/3
+    public IEnumerator RunEnergyExplanation2(float minTime, float nextStepDelay)
+    {
+        yield return StartCoroutine(ShowMessageAndWaitForAction(
+          "エネルギーは、連続的な行動を制限するための重要なリソースです。",
+          () => true,
+          minTime,
+          nextStepDelay));
+        Debug.Log("エネルギーに関する説明 2/3 完了。");
+    }
+
+    // ⭐ エネルギー説明の分割ステップ 3/3
+    public IEnumerator RunEnergyExplanation3(float minTime, float nextStepDelay)
+    {
+        yield return StartCoroutine(ShowMessageAndWaitForAction(
+          "画面上のエネルギーゲージを確認し、残量にご注意ください。",
+          () => true,
+          minTime,
+          nextStepDelay));
+        Debug.Log("エネルギーに関する説明 3/3 完了。");
     }
 
 
-    private IEnumerator RunWeaponSwitchTutorial(float nextStepDelay) // minTimeを削除
+    public IEnumerator RunWeaponSwitchTutorial(float nextStepDelay)
     {
-        // 準備: 武器切り替えのみ許可 (他は移動系のみ許可)
         player.allowWeaponSwitch = true;
         player.allowAttack = false;
 
         TutorialPlayerController.WeaponMode initialMode = player.currentWeaponMode;
 
-        // 指示 (真面目な口調に修正)
-        yield return StartCoroutine(ShowMessageAndWaitForAction($"武器の切り替え操作です。現在のモードは**[{initialMode}]**です。**[E]キー**にてモードを切り替えてください。",
-                                   () => player.currentWeaponMode != initialMode,
-                                   2.0f, // minTimeを固定値で設定
-                                   nextStepDelay));
+        yield return StartCoroutine(ShowMessageAndWaitForAction($"武器の切り替え操作です。現在のモードは[{initialMode}]です。[E]キーでモードを切り替えてください。",
+                           () => player.currentWeaponMode != initialMode,
+                           2.0f,
+                           nextStepDelay,
+                           DEFAULT_MAX_WAIT_TIME));
 
         player.allowWeaponSwitch = false;
         Debug.Log("武器切り替えチュートリアル完了。");
     }
 
-    // 💡 NEW: 敵出現＆攻撃＆撃破待ちの汎用コルーチン
-    private IEnumerator RunAttackEnemyTutorial(TutorialPlayerController.WeaponMode requiredMode, string message, float nextStepDelay)
+    // ⭐ ロックオン操作のチュートリアル (攻撃前に移動)
+    public IEnumerator RunLockOnTutorial(float minTime, float nextStepDelay)
     {
-        if (enemyPrefab == null || enemySpawnPoint == null)
-        {
-            Debug.LogWarning($"敵のPrefabまたはSpawnPointが設定されていないため、{requiredMode}攻撃チュートリアルをスキップします。");
-            yield break;
-        }
+        // player.allowLockOn = true; 
+        isTargetLocked = false;
 
-        // 準備: 攻撃のみ許可 (移動系は既に許可)
-        player.allowAttack = true;
-        player.allowWeaponSwitch = false; // 誤操作防止
-        isEnemyDestroyed = false; // 敵撃破フラグをリセット
+        // ロックオンの対象が必要なため、敵を出現させる
+        SpawnEnemy();
 
-        // 武器を必須モードに強制設定
-        player.SwitchWeaponMode(requiredMode);
+        yield return StartCoroutine(ShowMessageAndWaitForAction(
+          "戦闘ターゲットのロックオン操作です。[右クリック]を押して、標的を捕捉してください。",
+          () => isTargetLocked || Input.GetMouseButtonDown(1),
+          minTime,
+          nextStepDelay,
+          DEFAULT_MAX_WAIT_TIME));
 
-        // 敵の出現とイベント登録
-        SpawnEnemy();
-
-        // 敵コントローラーを取得し、死亡イベントに登録 (TutorialEnemyControllerが存在すると仮定)
-        // ⚠️ 要修正: 実際の TutorialEnemyController クラス名に合わせてください
-        // (ここでは仮の TutorialEnemyController クラスが存在すると仮定して処理を継続)
-        Component enemyController = currentEnemyInstance.GetComponent(typeof(TutorialEnemyController));
-        // if (enemyController != null)
-        // {
-        //     ((TutorialEnemyController)enemyController).onDeath += OnEnemyDestroyed;
-        // }
-
-        // 指示を出し、敵が破壊されるまで待機
-        yield return StartCoroutine(ShowMessageAndWaitForAction(message,
-                                   () => isEnemyDestroyed,
-                                   3.0f, // 最小表示時間
-                                   nextStepDelay));
-
-        // イベント登録を解除
-        // if (enemyController != null)
-        // {
-        //     ((TutorialEnemyController)enemyController).onDeath -= OnEnemyDestroyed;
-        // }
-
-        player.allowAttack = false;
-        Debug.Log($"{requiredMode}攻撃チュートリアル完了。敵ターゲットを撃破。");
+        // player.allowLockOn = false; 
+        Debug.Log("ロックオンチュートリアル完了。");
     }
 
-    // 💡 NEW: 敵の出現処理
-    private void SpawnEnemy()
+
+    public IEnumerator RunAttackEnemyTutorial(TutorialPlayerController.WeaponMode requiredMode, string message, float nextStepDelay)
     {
-        // 既存の敵がいれば削除
+        if (currentEnemyInstance == null)
+        {
+            if (enemyPrefab == null || enemySpawnPoint == null)
+            {
+                Debug.LogWarning($"敵のPrefabまたはSpawnPointが設定されていないため、{requiredMode}攻撃チュートリアルをスキップします。");
+                yield break;
+            }
+            SpawnEnemy();
+        }
+
+        player.allowAttack = true;
+        player.allowWeaponSwitch = false;
+        isEnemyDestroyed = false;
+
+        player.SwitchWeaponMode(requiredMode);
+
+        TutorialEnemyController enemyController = currentEnemyInstance.GetComponent<TutorialEnemyController>();
+        if (enemyController != null)
+        {
+            enemyController.onDeath += OnEnemyDestroyed;
+        }
+        else
+        {
+            Debug.LogWarning("敵にTutorialEnemyControllerがアタッチされていません。撃破待機をスキップします。");
+        }
+
+        yield return StartCoroutine(ShowMessageAndWaitForAction(message,
+                           () => isEnemyDestroyed,
+                           3.0f,
+                           nextStepDelay,
+                           DEFAULT_MAX_WAIT_TIME));
+
+        if (enemyController != null)
+        {
+            enemyController.onDeath -= OnEnemyDestroyed;
+        }
+
         if (currentEnemyInstance != null)
         {
             Destroy(currentEnemyInstance);
             currentEnemyInstance = null;
         }
 
-        // 新しい敵を生成
-        currentEnemyInstance = Instantiate(enemyPrefab, enemySpawnPoint.position, enemySpawnPoint.rotation);
+        player.allowAttack = false;
+        Debug.Log($"{requiredMode}攻撃チュートリアル完了。敵ターゲットを撃破。");
+    }
 
-        // 敵が出現したことをログに記録
+    private void SpawnEnemy()
+    {
+        if (currentEnemyInstance != null)
+        {
+            Destroy(currentEnemyInstance);
+            currentEnemyInstance = null;
+        }
+        currentEnemyInstance = Instantiate(enemyPrefab, enemySpawnPoint.position, enemySpawnPoint.rotation);
         Debug.Log("訓練用サンドバックを出現させました。");
     }
 
-    // 💡 NEW: 敵の撃破時のコールバック
-    private void OnEnemyDestroyed()
+    public void OnEnemyDestroyed()
     {
         isEnemyDestroyed = true;
         Debug.Log("サンドバックの撃破を確認。次のステップへ移行します。");
     }
 
 
-    private IEnumerator RunArmorSwitchTutorial(float minTime, float midStepDelay, float nextStepDelay)
+    public IEnumerator RunArmorSwitchTutorial(float minTime, float midStepDelay, float nextStepDelay)
     {
-        // 準備: アーマー切り替えのみ許可
         player.allowArmorSwitch = true;
         TutorialPlayerController.ArmorMode initialMode = player.currentArmorMode;
 
-        // 最初の指示 (キー説明) (真面目な口調に修正)
-        yield return StartCoroutine(ShowMessageAndWaitForAction("最後に、アーマー切り替えの説明です。**[1]キー**でNormal、**[2]キー**でBuster、**[3]キー**でSpeedモードへの切り替えが可能です。",
-                                   () => Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Alpha3),
-                                   minTime,
-                                   midStepDelay)); // キー説明→操作間の待機
+        // キー説明
+        yield return StartCoroutine(ShowMessageAndWaitForAction("アーマー切り替えの説明です。[1] Normal、[2] Buster、[3] Speedモードへの切り替えが可能です。",
+                       () => Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Alpha3),
+                       minTime,
+                       midStepDelay,
+                       DEFAULT_MAX_WAIT_TIME));
 
-        // 別のモードになったことを確認するまで待機 (実際に切り替えを促す) (真面目な口調に修正)
-        yield return StartCoroutine(ShowMessageAndWaitForAction("いずれかのキーでアーマーモードを切り替え、性能を確認してください。",
-                                   () => player.currentArmorMode != initialMode,
-                                   minTime,
-                                   nextStepDelay)); // ステップ終了時の待機
+        // 実際に切り替えを促す
+        yield return StartCoroutine(ShowMessageAndWaitForAction("任意のキーでアーマーモードを切り替え、性能を確認してください。",
+                       () => player.currentArmorMode != initialMode,
+                       minTime,
+                       nextStepDelay,
+                       DEFAULT_MAX_WAIT_TIME));
 
         player.allowArmorSwitch = false;
         Debug.Log("アーマー切り替えチュートリアル完了。");
     }
 
-    // =======================================================
-    // チュートリアル終了
-    // =======================================================
+    // =======================================================
+    // チュートリアル終了
+    // =======================================================
 
-    private IEnumerator EndTutorial()
+    private IEnumerator EndTutorial()
     {
-        // 最終メッセージ (真面目な口調に修正)
-        yield return StartCoroutine(ShowMessageAndWaitForAction("お疲れ様でした。全てのチュートリアル項目が終了し、全機能が解放されました。実戦へ移行します。",
-                                   () => true, // 常にtrue (即座に条件を満たす)
-                                   EndMessageDisplayTime, // 最小表示時間
-                                   0.0f));     // 終了後は待機しない
+        // 最終メッセージ
+        yield return StartCoroutine(ShowMessageAndWaitForAction("お疲れ様でした。全てのチュートリアル項目を終了し、全機能が解放されました。実戦へ移行します。",
+                     () => true,
+                     EndMessageDisplayTime, // 5.0f の値が使用される
+                                           0.0f));
 
-        // 全ての機能を解放する処理
-        player.isInputLocked = false;
+        // 全ての機能を解放する処理
+        player.isInputLocked = false;
         player.allowHorizontalMove = true;
         player.allowVerticalMove = true;
-        player.allowDash = true; // 💡 NEW: ダッシュも解放
+        player.allowDash = true;
         player.allowWeaponSwitch = true;
         player.allowArmorSwitch = true;
         player.allowAttack = true;
+        // 💡 備考: PlayerControllerの allowCameraLook, allowLockOn も true にする必要があります。
 
-        if (messagePanel != null) messagePanel.SetActive(false);
-        SetNavIconVisible(false); // チュートリアル終了時にアイコンを非表示にする
+        if (messagePanel != null) messagePanel.SetActive(false);
+        SetNavIconVisible(false);
         Debug.Log("--- チュートリアル終了: 全機能解放 ---");
         isTutorialRunning = false;
 
-        // ⭐ 修正点: シーン遷移前にマウスカーソルを再表示し、ロックを解除する
-        Cursor.visible = true;
+        // シーン遷移前にマウスカーソルを再表示し、ロックを解除する
+        Cursor.visible = true;
         Cursor.lockState = CursorLockMode.None;
         Debug.Log("マウスカーソル表示を解放しました。");
 
-        // 🚀 ClearSceneへの遷移処理を実行
-        Debug.Log("シーンを「ClearScene」へ遷移します...");
+        // ClearSceneへの遷移処理を実行
+        Debug.Log("シーンを「ClearScene」へ遷移します...");
         SceneManager.LoadScene("ClearScene");
     }
 
-    // =======================================================
-    // ユーティリティメソッド (ナビゲーションアイコン表示タイミングを修正)
-    // =======================================================
+    // =======================================================
+    // ユーティリティメソッド (強制スキップ機能追加)
+    // =======================================================
 
-    // ... (ShowMessageAndWaitForAction メソッドは変更なし)
-    private IEnumerator ShowMessageAndWaitForAction(string message, System.Func<bool> condition)
+    // デフォルトの maxWaitTime (0f) を使用するオーバーロード
+    private IEnumerator ShowMessageAndWaitForAction(string message, System.Func<bool> condition, float minimumTime, float nextStepDelay)
     {
-        // ここに来た場合は、デフォルト値に近い設定を使用する
-        yield return StartCoroutine(ShowMessageAndWaitForAction(message, condition, 2.5f, 1.0f));
+        // maxWaitTime が指定されない場合 (引数4つ) は、強制スキップなし (0f)
+        yield return StartCoroutine(ShowMessageAndWaitForAction(message, condition, minimumTime, nextStepDelay, 0f));
     }
 
-    /// <summary>
-    /// UIにメッセージを表示し、指定された条件が満たされるまで、または指定された時間 (minimumTime) が経過するまで待機し、
-    /// 最後に指定された時間 (nextStepDelay) だけ待機する。
-    /// </summary>
-    private IEnumerator ShowMessageAndWaitForAction(string message, System.Func<bool> condition, float minimumTime, float nextStepDelay)
+    /// <summary>
+    /// UIにメッセージを表示し、指定された条件が満たされるまで待機する。
+    /// 強制スキップ (maxWaitTime) 機能付き。
+    /// </summary>
+    private IEnumerator ShowMessageAndWaitForAction(string message, System.Func<bool> condition, float minimumTime, float nextStepDelay, float maxWaitTime)
     {
         isWaitingForPlayerAction = true;
-
-        // メッセージ表示開始時にアイコンを表示
         SetNavIconVisible(true);
 
         if (tutorialTextUI != null)
@@ -447,15 +525,25 @@ public class TutorialManager : MonoBehaviour
 
         float startTime = Time.time;
 
-        // プレイヤーの操作を待機
-        yield return new WaitUntil(condition);
+        // ⭐ プレイヤー操作を待機 (最大 maxWaitTime まで)
+        float currentWaitTime = 0f;
+        while (!condition())
+        {
+            if (maxWaitTime > 0f && currentWaitTime >= maxWaitTime)
+            {
+                Debug.LogWarning($"プレイヤー操作が {maxWaitTime} 秒を超えたため、強制的に次のステップへ移行します。");
+                break;
+            }
 
-        // ログもナビゲーションキャラ風に少し変更 (真面目な口調に修正)
+            yield return null;
+            currentWaitTime += Time.deltaTime;
+        }
+
         string logMessage = message.Contains("：") ? message.Split('：')[1] : message;
-        Debug.Log($"アクション「{logMessage.Split('！')[0].Split('。')[0]}」を**確認しました。**");
+        Debug.Log($"アクション「{logMessage.Split('！')[0].Split('。')[0]}」を確認しました。");
 
-        // 最小表示時間が経過するまで待機
-        float elapsedTime = Time.time - startTime;
+        // 最小表示時間が経過するまで待機
+        float elapsedTime = Time.time - startTime;
         float remainingTime = minimumTime - elapsedTime;
 
         if (remainingTime > 0)
@@ -463,16 +551,14 @@ public class TutorialManager : MonoBehaviour
             yield return new WaitForSeconds(remainingTime);
         }
 
-        // 待機中のフラグをリセット
         isWaitingForPlayerAction = false;
 
-        // 次のステップの準備のために待機 (ステップ間の個別待機時間)
-        if (nextStepDelay > 0)
+        // ステップ間の待機
+        if (nextStepDelay > 0)
         {
             yield return new WaitForSeconds(nextStepDelay);
         }
 
-        // ⭐ 修正点: アイコンの非表示を nextStepDelay の後 (次のメッセージが表示される直前) に移動
         SetNavIconVisible(false);
     }
 }

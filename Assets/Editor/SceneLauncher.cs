@@ -33,6 +33,14 @@ public class SceneLauncher
         OpenSceneWithSaveCheck("Assets/Scenes/GameScene/TutorialScene.unity");
     }
 
+
+    [MenuItem("Launcher/ArmorSelectScene", priority = 0)]
+    public static void OpenArmorSelectScene()
+    {
+        OpenSceneWithSaveCheck("Assets/Scenes/GameScene/ArmorSelectScene/ArmorSelectScene.unity");
+    }
+
+
     /// <summary>
     /// シーンを開く前に、現在のシーンに未保存の変更がある場合は保存を促し、
     /// 指定されたパスのシーンを開く。

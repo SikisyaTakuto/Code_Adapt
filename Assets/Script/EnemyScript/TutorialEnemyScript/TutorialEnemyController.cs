@@ -1,52 +1,58 @@
 using UnityEngine;
-using System;
+using System; // Actionを使うために必要
 
+/// <summary>
+/// チュートリアル用の訓練用敵（サンドバック）のコントローラー。
+/// 破壊された際にイベントを発生させ、TutorialManagerに通知する。
+/// </summary>
 public class TutorialEnemyController : MonoBehaviour
 {
-    // ?? ダメージと死亡判定に必要な基本設定
-    public float maxHP = 100f;
-
-    private float _currentHP;
-    private bool _isDead = false;
-
-    // ?? TutorialManager が使用するイベント (前回修正済み)
+    // ?? 外部（TutorialManager）に破壊を通知するためのイベント
     public event Action onDeath;
+
+    [Header("設定")]
+    [Tooltip("敵の初期体力")]
+    public float maxHealth = 100f;
+    private float currentHealth;
 
     void Start()
     {
-        _currentHP = maxHP;
+        currentHealth = maxHealth;
+        // サンドバックなので、通常はプレイヤーからの攻撃以外では死なない
     }
 
     /// <summary>
-    /// プレイヤーから呼び出されるメソッド
+    /// 外部からダメージを受けるメソッド。
     /// </summary>
-    /// <param name="damageAmount">受けるダメージ量</param>
+    /// <param name="damageAmount">ダメージ量</param>
     public void TakeDamage(float damageAmount)
     {
-        if (_isDead) return;
+        currentHealth -= damageAmount;
 
-        _currentHP -= damageAmount;
-
-        Debug.Log($"{gameObject.name} (敵) ダメージ:{damageAmount} | 残りHP:{_currentHP}");
-
-        if (_currentHP <= 0)
+        if (currentHealth <= 0)
         {
             Die();
         }
     }
 
+    /// <summary>
+    /// 敵が破壊された時の処理。イベントを発火させる。
+    /// </summary>
     private void Die()
     {
-        if (_isDead) return;
+        Debug.Log("TutorialEnemyController: 撃破されました。Managerに通知します。");
 
-        _isDead = true;
-
-        // 1. TutorialManager に通知 (これがないとチュートリアルが進まない)
+        // イベントが登録されていれば発火（ManagerのOnEnemyDestroyed()が呼ばれる）
         onDeath?.Invoke();
 
-        Debug.Log($"{gameObject.name} が破壊されました。");
-
-        // 2. 敵のゲームオブジェクトを削除
-        Destroy(gameObject, 0.1f); // 削除処理
+        // オブジェクトを破壊
+        Destroy(gameObject);
     }
+
+    // ?? 補足: プレイヤーの攻撃スクリプトがこのメソッドを呼ぶ必要があります。
+    // 例: playerAttackScript.cs の中で、衝突したオブジェクトに対して
+    // if (hit.transform.GetComponent<TutorialEnemyController>() is TutorialEnemyController enemy)
+    // {
+    //     enemy.TakeDamage(attackPower);
+    // }
 }

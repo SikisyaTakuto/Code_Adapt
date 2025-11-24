@@ -51,7 +51,7 @@ public class ArmorSelectManager : MonoBehaviour
     };
 
     // ★追加: 初期表示用の説明文
-    private const string InitialDescription = "クリックしてアーマーを**3つ**選びましょう。選択されたアーマーは黄色く強調表示されます。\n\n**マウスカーソルを合わせる**と詳細な説明が見られます。";
+    private const string InitialDescription = "クリックしてアーマーを3つ選びましょう。\n選択されたアーマーは黄色く強調表示されます。\n\n**マウスカーソルを合わせる**と詳細な説明が見られます。";
 
 
     // 決定ボタンを押した後のシーン名
