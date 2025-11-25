@@ -166,8 +166,8 @@ public class TPSCameraController : MonoBehaviour
 
     private void InitializeCursor()
     {
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
+        //Cursor.lockState = CursorLockMode.Locked;
+        //Cursor.visible = false;
         _cursorLockedInitially = true;
     }
 
@@ -527,8 +527,8 @@ public class TPSCameraController : MonoBehaviour
 
         if (_cursorLockedInitially)
         {
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible = false;
+            //Cursor.lockState = CursorLockMode.Locked;
+            //Cursor.visible = false;
         }
     }
 

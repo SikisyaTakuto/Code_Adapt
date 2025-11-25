@@ -119,6 +119,8 @@ public class PauseManager : MonoBehaviour
 
         Time.timeScale = 1f;
         isPaused = false;
+        Cursor.visible = true; // カーソルを常に表示
+        Cursor.lockState = CursorLockMode.None; // カーソルを画面内にロックしない
     }
 
     public void PauseGame()
