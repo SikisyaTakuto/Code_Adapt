@@ -15,6 +15,11 @@ public class PauseManager : MonoBehaviour
     [Tooltip("オプションなどのサブパネル (SoundPanel) を設定してください。")]
     public GameObject soundPanelUI;
 
+    // ? NEW: Audio Settings
+    [Header("Audio Settings")]
+    [Tooltip("ボタンをクリックしたときに再生するSEクリップ")]
+    public AudioClip buttonClickSFX;
+
     // --- 内部状態管理変数 ---
     private bool isPaused = false;
     private CanvasGroup pauseMenuCanvasGroup;
@@ -41,12 +46,12 @@ public class PauseManager : MonoBehaviour
     {
         if (pauseMenuUI != null)
         {
-            // ★ 修正点1: pauseMenuUIの最も近い親Canvasを取得する
+            // pauseMenuUIの最も近い親Canvasを取得する
             rootCanvas = pauseMenuUI.GetComponentInParent<Canvas>();
 
             if (rootCanvas != null)
             {
-                // ★ 修正点2: 取得したCanvasのSorting Orderを最大値に設定し、最前面に持ってくる
+                // 取得したCanvasのSorting Orderを最大値に設定し、最前面に持ってくる
                 rootCanvas.sortingOrder = 9999;
             }
             else
@@ -68,9 +73,11 @@ public class PauseManager : MonoBehaviour
         {
             Debug.LogError("PauseManager: pauseMenuUIがInspectorに設定されていません。ポーズ機能は動作しません。");
         }
-    }
 
-    // シーン遷移イベントの登録/解除は削除しました
+        // 【追加】ゲーム開始時にカーソルを表示し、ロックを解除する
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
+    }
 
     // --- Update: ESCキーでのポーズ切り替え ---
     void Update()
@@ -81,7 +88,15 @@ public class PauseManager : MonoBehaviour
 
             if (isPaused)
             {
-                ResumeGame();
+                // サウンドパネルが開いていたら、ESCでポーズメニューに戻る
+                if (soundPanelUI != null && soundPanelUI.activeSelf)
+                {
+                    GoToPauseMenu();
+                }
+                else
+                {
+                    ResumeGame(); // ポーズメニューからゲームへ戻る
+                }
             }
             else
             {
@@ -108,6 +123,9 @@ public class PauseManager : MonoBehaviour
 
     public void PauseGame()
     {
+        // ポーズを開始する際、SoundPanelが誤って開いていたら閉じる
+        if (soundPanelUI != null) soundPanelUI.SetActive(false);
+
         if (pauseMenuUI != null) pauseMenuUI.SetActive(true);
 
         if (pauseMenuCanvasGroup != null)
@@ -118,7 +136,6 @@ public class PauseManager : MonoBehaviour
 
         Time.timeScale = 0f;
 
-        // ★ 補足: ポーズ時に最前面のCanvasをさらに手前に持ってくる（確実性向上）
         if (rootCanvas != null)
         {
             rootCanvas.sortingOrder = 9999;
@@ -127,34 +144,65 @@ public class PauseManager : MonoBehaviour
         isPaused = true;
     }
 
+    // ? NEW: ボタンSE再生用の共通メソッド
+    /// <summary>
+    /// ボタンクリックSEを再生します。
+    /// </summary>
+    public void PlayButtonClickSFX()
+    {
+        if (AudioManager.Instance != null && buttonClickSFX != null)
+        {
+            AudioManager.Instance.PlaySFX(buttonClickSFX);
+        }
+    }
+
     // --- ボタンが呼び出す機能 ---
 
     public void RestartStage()
     {
+        PlayButtonClickSFX(); // ? SEを再生
         Time.timeScale = 1f;
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
     public void GoToTitleScene()
     {
+        PlayButtonClickSFX(); // ? SEを再生
         Time.timeScale = 1f;
         SceneManager.LoadScene("TitleScene");
     }
 
     public void ToggleSoundPanel()
     {
+        PlayButtonClickSFX(); // ? SEを再生
         if (soundPanelUI != null)
         {
-            soundPanelUI.SetActive(!soundPanelUI.activeSelf);
+            soundPanelUI.SetActive(true);
+            soundPanelUI.transform.SetAsLastSibling();
+            if (pauseMenuUI != null) pauseMenuUI.SetActive(false);
+            Debug.Log("SoundPanelUI を開きました。");
         }
         else
         {
-            Debug.LogWarning("サウンドパネルが設定されていないか、シーン内に存在しません。");
+            Debug.LogError("サウンドパネルが設定されていません。");
+        }
+    }
+
+    public void GoToPauseMenu()
+    {
+        PlayButtonClickSFX(); // ? SEを再生
+        if (soundPanelUI != null) soundPanelUI.SetActive(false);
+        if (pauseMenuUI != null)
+        {
+            pauseMenuUI.SetActive(true);
+            pauseMenuUI.transform.SetAsLastSibling();
+            Debug.Log("サウンドパネルを閉じ、ポーズメニューに戻りました。");
         }
     }
 
     public void QuitGame()
     {
+        PlayButtonClickSFX(); // ? SEを再生
         Time.timeScale = 1f;
         Application.Quit();
 

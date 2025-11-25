@@ -14,6 +14,8 @@ public class AudioManager : MonoBehaviour
     // Audio Mixerで公開したパラメータの文字列（正確に入力が必要）
     private const string BGM_VOLUME_PARAM = "BGMVolume";
     private const string SFX_VOLUME_PARAM = "SFXVolume";
+    // MasterVolumeパラメータをAudio Mixerで公開している場合に使用
+    private const string MASTER_VOLUME_PARAM = "MasterVolume";
 
     [Header("Audio Sources")]
     [Tooltip("BGM用AudioSourceをアタッチ")]
@@ -66,11 +68,13 @@ public class AudioManager : MonoBehaviour
         // Audio MixerグループをAudioSourceに割り当て
         if (gameAudioMixer != null)
         {
-            AudioMixerGroup[] groups = gameAudioMixer.FindMatchingGroups("BGM");
-            if (groups.Length > 0) bgmSource.outputAudioMixerGroup = groups[0];
+            // "BGM"グループを検索し、bgmSourceに割り当て
+            AudioMixerGroup[] bgmGroups = gameAudioMixer.FindMatchingGroups("BGM");
+            if (bgmGroups.Length > 0) bgmSource.outputAudioMixerGroup = bgmGroups[0];
 
-            groups = gameAudioMixer.FindMatchingGroups("SFX");
-            if (groups.Length > 0) sfxSource.outputAudioMixerGroup = groups[0];
+            // "SFX"グループを検索し、sfxSourceに割り当て
+            AudioMixerGroup[] sfxGroups = gameAudioMixer.FindMatchingGroups("SFX");
+            if (sfxGroups.Length > 0) sfxSource.outputAudioMixerGroup = sfxGroups[0];
         }
     }
 
@@ -82,7 +86,10 @@ public class AudioManager : MonoBehaviour
     /// <param name="clip">再生するAudioClip。</param>
     public void PlayBGM(AudioClip clip)
     {
-        if (clip == null || bgmSource.clip == clip && bgmSource.isPlaying) return;
+        if (clip == null) return;
+
+        // 現在と同じクリップが再生中であれば何もしない
+        if (bgmSource.clip == clip && bgmSource.isPlaying) return;
 
         bgmSource.clip = clip;
         bgmSource.Play();
@@ -93,45 +100,58 @@ public class AudioManager : MonoBehaviour
     {
         if (newClip == null || bgmSource.clip == newClip) return;
 
+        // 既にフェード処理が実行中の場合は停止する
+        StopAllCoroutines();
+
         StartCoroutine(FadeBGMCoroutine(newClip, fadeDuration));
     }
 
     private IEnumerator FadeBGMCoroutine(AudioClip newClip, float duration)
     {
-        float startVolume;
-        // 現在のBGM音量（ミキサー設定値）を取得
-        gameAudioMixer.GetFloat(BGM_VOLUME_PARAM, out startVolume);
+        float startVolumeDB;
 
-        // 取得したデシベル値を線形値 (0-1) に変換
+        // 1. Audio MixerからBGMVolumeパラメータ（デシベル値）を取得
+        if (!gameAudioMixer.GetFloat(BGM_VOLUME_PARAM, out startVolumeDB))
+        {
+            // 取得失敗時はデフォルト値 (0dB) を使用
+            startVolumeDB = 0f;
+        }
+
+        // 2. 取得したデシベル値を線形値 (0-1) に変換
         // UnityのAudioMixerは-80dBが最小、0dBが最大（1.0）
-        float maxLinearVolume = Mathf.Pow(10, startVolume / 20);
+        float maxLinearVolume = Mathf.Pow(10, startVolumeDB / 20);
+        // bgmSourceのvolumeが1.0fであることを保証
+        bgmSource.volume = 1.0f;
 
-        // フェードアウト
+        // 3. フェードアウト
         float timer = 0f;
-        while (timer < duration / 2f)
+        float fadeOutDuration = duration / 2f;
+        while (timer < fadeOutDuration)
         {
             timer += Time.deltaTime;
-            float newVolume = Mathf.Lerp(maxLinearVolume, 0f, timer / (duration / 2f));
+            float currentVolume = Mathf.Lerp(maxLinearVolume, 0f, timer / fadeOutDuration);
             // AudioSource.volumeで一時的に音量を制御（ミキサーのパラメータはそのまま）
-            bgmSource.volume = newVolume;
+            bgmSource.volume = currentVolume;
             yield return null;
         }
 
-        // クリップ切り替えとフェードイン開始
+        // 4. クリップ切り替えとフェードイン開始
         bgmSource.Stop();
         bgmSource.clip = newClip;
         bgmSource.Play();
+        bgmSource.volume = 0f; // フェードイン開始時に音量を0に設定
 
         timer = 0f;
-        while (timer < duration / 2f)
+        float fadeInDuration = duration / 2f;
+        while (timer < fadeInDuration)
         {
             timer += Time.deltaTime;
-            float newVolume = Mathf.Lerp(0f, maxLinearVolume, timer / (duration / 2f));
-            bgmSource.volume = newVolume;
+            float currentVolume = Mathf.Lerp(0f, maxLinearVolume, timer / fadeInDuration);
+            bgmSource.volume = currentVolume;
             yield return null;
         }
 
-        // 最終的な音量をミキサーのパラメータに戻す
+        // 5. 最終的な音量をミキサーのパラメータに戻す
         bgmSource.volume = maxLinearVolume;
     }
 
@@ -155,6 +175,7 @@ public class AudioManager : MonoBehaviour
         if (clip == null) return;
 
         // PlayOneShotでミキサー設定の音量でSEを再生
+        // プレイヤーや敵などのオブジェクトから呼び出されることを想定しています。
         sfxSource.PlayOneShot(clip);
     }
 
@@ -167,6 +188,7 @@ public class AudioManager : MonoBehaviour
     public void SetBGMVolume(float linearVolume)
     {
         // 線形値 (0-1) をデシベル値 (-80dB-0dB) に変換
+        // 0.0001fはLog10計算時のエラー回避のための最小値
         float dB = Mathf.Log10(Mathf.Clamp(linearVolume, 0.0001f, 1f)) * 20;
 
         // Audio Mixerの公開パラメータを設定
@@ -191,6 +213,40 @@ public class AudioManager : MonoBehaviour
     {
         // MasterVolumeパラメータをAudio Mixerで公開している場合のみ機能
         float dB = Mathf.Log10(Mathf.Clamp(linearVolume, 0.0001f, 1f)) * 20;
-        gameAudioMixer.SetFloat("MasterVolume", dB); // 仮に"MasterVolume"としています
+        gameAudioMixer.SetFloat(MASTER_VOLUME_PARAM, dB);
+    }
+
+    // --- 音量取得メソッド ---
+
+    /// <summary>
+    /// BGMの現在の音量（線形値 0.0f～1.0f）を取得します。
+    /// </summary>
+    public float GetBGMVolume()
+    {
+        float dB;
+        // Audio MixerからBGMVolumeパラメータ（デシベル値）を取得
+        if (gameAudioMixer.GetFloat(BGM_VOLUME_PARAM, out dB))
+        {
+            // デシベル値を線形値 (0-1) に変換
+            return Mathf.Pow(10, dB / 20);
+        }
+        // 取得失敗時はデフォルト値 (1.0f) を返す
+        return 1.0f;
+    }
+
+    /// <summary>
+    /// SEの現在の音量（線形値 0.0f～1.0f）を取得します。
+    /// </summary>
+    public float GetSFXVolume()
+    {
+        float dB;
+        // Audio MixerからSFXVolumeパラメータ（デシベル値）を取得
+        if (gameAudioMixer.GetFloat(SFX_VOLUME_PARAM, out dB))
+        {
+            // デシベル値を線形値 (0-1) に変換
+            return Mathf.Pow(10, dB / 20);
+        }
+        // 取得失敗時はデフォルト値 (1.0f) を返す
+        return 1.0f;
     }
 }

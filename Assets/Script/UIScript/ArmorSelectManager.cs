@@ -4,6 +4,8 @@ using UnityEngine.SceneManagement;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine.EventSystems;
+using System.Collections;
+using UnityEngine.Audio; // AudioMixerGroup と AudioMixer のために追加
 
 /// <summary>
 /// アーマー選択シーンの全体管理、UIの更新、モデル表示、シーン遷移を制御します。
@@ -12,13 +14,12 @@ public class ArmorSelectManager : MonoBehaviour
 {
     // --- UI/表示設定 ---
     [Header("UI References")]
-    public Text descriptionText;       // ナビゲーターの吹き出し内の説明文
-    public Button decisionButton;      // 決定ボタン
+    public Text descriptionText;// ナビゲーターの吹き出し内の説明文
+    public Button decisionButton; // 決定ボタン
 
     [Header("Armor Buttons")]
     public Button[] armorButtons = new Button[4]; // 選択肢となるボタン (1, 2, 3, 4)
 
-    // ★追加: 各アーマーボタンの上にある強調表示用のImage
     [Tooltip("各アーマーボタンに対応するハイライト/枠線用のImageを設定")]
     public Image[] armorHighlightImages = new Image[4];
 
@@ -27,18 +28,29 @@ public class ArmorSelectManager : MonoBehaviour
     public GameObject[] armorModels = new GameObject[4]; // 表示する3Dモデルの配列
     public float modelRotationSpeed = 30f; // 3Dモデルの回転速度 (Y軸)
 
+    // ★【修正・追加】オーディオ設定
+    [Header("Audio Settings")]
+    [Tooltip("アーマーを選択/解除したときに鳴らす効果音")]
+    public AudioClip selectClickSound;
+    [Tooltip("決定ボタンを押したときに鳴らす効果音")]
+    public AudioClip decisionSound;
+
+    // ★追加: AudioMixerGroup をインスペクターから設定するためのフィールド
+    [Tooltip("AudioSourceをルーティングするAudioMixerGroup")]
+    public AudioMixerGroup mixerGroup;
+
+    // ★追加: 音量がゼロかどうかを確認するためのAudioMixerParameter名
+    [Header("ボリューム設定 (Optional)")]
+    [Tooltip("音量をチェックしたいAudioMixerのExposed Parameter名 (例: SFXVolume)")]
+    public string volumeParameterName = "SFXVolume";
+
+    private AudioSource audioSource;
+    private AudioMixer audioMixer; // パラメーターチェックのために使用
     // --- データと状態 ---
-    // ★追加: 選択されたアーマーのインデックスを格納するリスト
     private List<int> selectedArmorList = new List<int>();
-    // ★変更: 最大選択数を3に設定
     private const int MaxSelectionCount = 3;
-
-    // ★追加: マウスオーバーされているアーマーのインデックスを格納するリスト
     private List<int> hoveredArmorList = new List<int>();
-
-    // ★用途変更: 現在、説明文を表示しているアーマーのインデックス (選択リストの最後の要素)
     private int currentDisplayIndex = 0;
-
     private bool isTutorialSelected = false;
 
     private readonly string[] armorNames = { "ノーマル", "バスター", "スピード", "ランダム" };
@@ -50,30 +62,43 @@ public class ArmorSelectManager : MonoBehaviour
         "【ランダム】\n開始時にランダムなアーマーが選択されます。"
     };
 
-    // ★追加: 初期表示用の説明文
     private const string InitialDescription = "クリックしてアーマーを3つ選びましょう。\n選択されたアーマーは黄色く強調表示されます。\n\n**マウスカーソルを合わせる**と詳細な説明が見られます。";
-
 
     // 決定ボタンを押した後のシーン名
     private const string GameSceneName = "TutorialScene";
 
-    // 選択されたアーマーのデータを保持・引き継ぐためのキー (単一選択から変更が必要なら、ここも修正が必要)
+    // 選択されたアーマーのデータを保持・引き継ぐためのキー 
     private const string SelectedArmorKey = "SelectedArmorIndex";
 
     // Y軸180度の初期回転値をQuaternionで定義
     private readonly Quaternion initialRotation = Quaternion.Euler(0f, 180f, 0f);
 
+    // 【修正】AwakeでAudioSourceを準備し、Mixerを設定
+    void Awake()
+    {
+        // AudioSourceコンポーネントを取得または追加
+        audioSource = GetComponent<AudioSource>();
+        if (audioSource == null)
+        {
+            audioSource = gameObject.AddComponent<AudioSource>();
+            audioSource.playOnAwake = false; // 自動再生はしない
+            // NOTE: audioSource.volume = 0.5f; はMixer使用時はMixer側で制御すべきなのでコメントアウト
+        }
+
+        // ★追加: AudioMixerGroupが設定されていればAudioSourceに割り当てる
+        if (mixerGroup != null)
+        {
+            audioSource.outputAudioMixerGroup = mixerGroup;
+            // AudioMixerの参照を取得（音量チェックに使用）
+            audioMixer = mixerGroup.audioMixer;
+        }
+    }
+
     void Start()
     {
         EnableAllArmorModels();
         SetArmorButtonsTransparent();
-
-        // ★修正点1: 初期選択の削除
-        // 最初のアーマー(0)をリストに追加する処理を削除し、初期状態を「何も選択されていない」状態にする
-
-        // ★修正点2: 初期表示テキストの更新
         UpdateDescriptionTextInitial();
-
         UpdateDecisionButtonState();
 
         for (int i = 0; i < armorButtons.Length; i++)
@@ -84,7 +109,7 @@ public class ArmorSelectManager : MonoBehaviour
                 armorButtons[i].onClick.RemoveAllListeners();
                 armorButtons[i].onClick.AddListener(() => OnArmorButtonClicked(index));
 
-                // ★追加: マウスオーバーイベントの設定
+                // マウスオーバーイベントの設定
                 SetupHoverEvents(armorButtons[i], index);
             }
         }
@@ -95,7 +120,7 @@ public class ArmorSelectManager : MonoBehaviour
             decisionButton.onClick.AddListener(OnDecisionButtonClicked);
         }
 
-        UpdateUIEmphasis(); // ボタンの強調表示を初期化 (全て透明になる)
+        UpdateUIEmphasis(); // ボタンの強調表示を初期化
     }
 
     /// <summary>
@@ -189,7 +214,6 @@ public class ArmorSelectManager : MonoBehaviour
             }
         }
     }
-    // ------------------------------------
 
     /// <summary>
     /// シーン開始時に全てのアーマーモデルを有効化し、初期回転を設定します。
@@ -248,7 +272,6 @@ public class ArmorSelectManager : MonoBehaviour
         }
         else
         {
-            // ★修正点3: 選択数の制限チェックを追加
             if (selectedArmorList.Count >= MaxSelectionCount)
             {
                 // 選択上限に達している場合は何もしない
@@ -262,12 +285,15 @@ public class ArmorSelectManager : MonoBehaviour
             // 選択されたとき（黄色になったとき）にモデルを正面に向かせる
             if (index < armorModels.Length && armorModels[index] != null)
             {
-                // ★選択された時点で回転を停止し、正面を向かせる
+                // 選択された時点で回転を停止し、正面を向かせる
                 armorModels[index].transform.localRotation = initialRotation;
             }
 
             Debug.Log($"アーマー {armorNames[index]} を追加しました。現在: {string.Join(", ", selectedArmorList.Select(i => armorNames[i]))}");
         }
+
+        // ★修正: クリック音の再生（PlaySoundに音量チェックを追加）
+        PlaySound(selectClickSound);
 
         // 常に最新の選択/解除されたアーマーを説明文に表示する
         currentDisplayIndex = index;
@@ -357,20 +383,76 @@ public class ArmorSelectManager : MonoBehaviour
             return;
         }
 
-        // 複数選択されていても、引き継ぐデータは最初の1つだけ、という前提はそのまま残しています
-        int armorToPass = selectedArmorList.First();
-
-        // 選択された全てのアーマー情報を引き継ぎたい場合は、この部分のロジックを修正してください
-        // 例: 3つのIDをカンマ区切りの文字列にしてPlayerPrefsに保存するなど
-
-        PlayerPrefs.SetInt(SelectedArmorKey, armorToPass);
-        PlayerPrefs.Save();
-
-        Debug.Log($"選択アーマー(格納順): {string.Join(", ", selectedArmorList.Select(i => armorNames[i]))} のうち、最初の {armorNames[armorToPass]} をゲームシーンへ渡します。");
-
-        // メインゲームシーンへ遷移
-        SceneManager.LoadScene(GameSceneName);
+        // 決定音を鳴らし、音が鳴り終わるのを待ってからシーン遷移するコルーチンを開始
+        StartCoroutine(LoadSceneAfterDecisionSound(GameSceneName));
     }
+
+    /// <summary>
+    /// コルーチン: 決定音を鳴らしてからシーンをロード
+    /// </summary>
+    private IEnumerator LoadSceneAfterDecisionSound(string sceneName)
+    {
+        bool isSoundMuted = IsVolumeMuted(); // ★追加: 音量チェック
+
+        // 決定音の再生
+        if (audioSource != null && decisionSound != null && !isSoundMuted)
+        {
+            audioSource.PlayOneShot(decisionSound);
+
+            // 音が鳴り終わるのを待つ
+            yield return new WaitForSeconds(decisionSound.length);
+        }
+        else if (isSoundMuted)
+        {
+            Debug.Log("決定音はミュートされています。");
+        }
+
+        // シーン遷移の実行
+        // 複数選択されていても、PlayerPrefsで引き継ぐのは最初の1つ
+        PlayerPrefs.SetInt(SelectedArmorKey, selectedArmorList.First());
+        PlayerPrefs.Save();
+        Debug.Log($"シーンを遷移します: {sceneName}");
+        SceneManager.LoadScene(sceneName);
+    }
+
+
+    /// <summary>
+    /// 指定されたAudioClipを再生します。
+    /// </summary>
+    /// <param name="clip">再生するオーディオクリップ</param>
+    private void PlaySound(AudioClip clip)
+    {
+        // ★修正: 音量チェックを追加
+        if (audioSource != null && clip != null && !IsVolumeMuted())
+        {
+            audioSource.PlayOneShot(clip);
+        }
+    }
+
+    /// <summary>
+    /// AudioMixerのボリュームがミュート状態（-80dB以下）かどうかをチェックします。
+    /// </summary>
+    private bool IsVolumeMuted()
+    {
+        if (audioMixer == null || string.IsNullOrEmpty(volumeParameterName))
+        {
+            // Mixerが設定されていない、またはパラメーター名がない場合はチェックをスキップ
+            // ただし、Awakeでvolumeが0.5fに設定されるため、意図的にミュートにされていなければfalseを返す
+            return false;
+        }
+
+        float volumeValue;
+        if (audioMixer.GetFloat(volumeParameterName, out volumeValue))
+        {
+            // Unityのミキサーでは0%が-80dBに対応することが多い
+            // 非常に小さな値（例: -79dB以下）であればミュートと見なす
+            return volumeValue < -79f;
+        }
+
+        // パラメーターが見つからなかった場合はミュートではないと見なす
+        return false;
+    }
+
 
     // 他のシーンから選択されたアーマーを取得するための静的メソッド
     public static int GetSelectedArmorIndex()
