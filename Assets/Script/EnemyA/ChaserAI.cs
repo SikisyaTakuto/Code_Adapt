@@ -1,12 +1,9 @@
 using UnityEngine;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine.AI;
 
 [RequireComponent(typeof(NavMeshAgent))]
-public class ChaserAI : MonoBehaviour
+public class ChaserAI_Stateful : MonoBehaviour
 {
-    // ★ 宣言済み変数を使用
     private Animator anim;
     private NavMeshAgent agent;
 
@@ -14,9 +11,16 @@ public class ChaserAI : MonoBehaviour
     [SerializeField] private float rotationSpeed = 10f;
 
     [Header("移動設定")]
-    [SerializeField] private float dashSpeed = 6f;
+    [SerializeField] private float dashSpeed = 6f;      // 追跡時の走行速度
+    [SerializeField] private float stopDistance = 0.5f; // この距離で停止・待機
 
-    // Animator Parameters
+    [Header("追跡開始設定")]
+    [SerializeField] private float chaseStartDistance = 3f; // この距離以上離れたら追跡開始
+
+    // AIの現在の状態を保持するフラグ
+    private bool isChasing = false;
+
+    // Animator Parameters (変更なし)
     private static readonly int SpeedParam = Animator.StringToHash("Speed");
     private static readonly int IsAimingParam = Animator.StringToHash("IsAiming");
     private static readonly int IsBackpedalingParam = Animator.StringToHash("IsBackpedaling");
@@ -24,24 +28,23 @@ public class ChaserAI : MonoBehaviour
     void Start()
     {
         anim = GetComponent<Animator>();
-        agent = GetComponent<NavMeshAgent>(); // ★ ここで一度だけ代入する
+        agent = GetComponent<NavMeshAgent>();
 
-        // Agentが取得できなかったり、無効な場合は処理を中断
-        if (agent == null) return;
+        if (agent == null || anim == null) return;
 
         agent.updateRotation = false;
+        agent.speed = dashSpeed;
+        agent.stoppingDistance = stopDistance; // NavMeshAgentの停止距離を設定しておく
 
-        // ★★★ NavMeshAgent 初期化失敗対策 (修正済み) ★★★
+        // 省略: NavMesh配置とターゲット検索の初期化処理はそのまま
         if (agent.isActiveAndEnabled)
         {
             NavMeshHit hit;
-            // エージェントがNavMeshの有効な位置にあるか確認し、補正
             if (NavMesh.SamplePosition(transform.position, out hit, 1.0f, NavMesh.AllAreas))
             {
                 transform.position = hit.position;
             }
         }
-        // ★★★ 対策コードはここまで ★★★
 
         if (target == null && GameObject.FindWithTag("Player") != null)
         {
@@ -51,20 +54,16 @@ public class ChaserAI : MonoBehaviour
 
     void Update()
     {
-        if (target == null) return;
-        // Start()でnullチェックをしているため、ここで冗長なagentのnullチェックは不要だが、念のため残す
-        if (agent == null || !agent.isActiveAndEnabled) return;
+        if (target == null || agent == null || !agent.isActiveAndEnabled) return;
 
         float distanceToTarget = Vector3.Distance(transform.position, target.position);
 
         LookAtTarget();
-        HandleChase(distanceToTarget);
-
-        agent.stoppingDistance = 0.1f;
-
+        HandleState(distanceToTarget);
         UpdateAnimatorParameters();
     }
 
+    // ターゲットを見る処理（変更なし）
     void LookAtTarget()
     {
         Vector3 direction = target.position - transform.position;
@@ -78,25 +77,64 @@ public class ChaserAI : MonoBehaviour
     }
 
     // --------------------------------------------------------------------------------
-    // AI行動ロジック
+    // AI行動ロジック (ステートベース制御)
     // --------------------------------------------------------------------------------
 
-    void HandleChase(float distanceToTarget)
+    void HandleState(float distanceToTarget)
     {
-        // 常に全力で走る (Run)
+        // アニメーションパラメータのリセット（現在の実装方針に合わせる）
         anim.SetBool(IsAimingParam, false);
         anim.SetBool(IsBackpedalingParam, false);
 
-        if (agent.isOnNavMesh)
+        if (!agent.isOnNavMesh) return;
+
+        // 【ステート遷移判定】
+
+        // 追跡中 かつ 停止距離以下になったら -> 停止ステートへ
+        if (isChasing && distanceToTarget <= stopDistance)
         {
+            isChasing = false;
+        }
+        // 停止中 かつ 追跡開始距離以上離れたら -> 追跡ステートへ
+        else if (!isChasing && distanceToTarget > chaseStartDistance)
+        {
+            isChasing = true;
+        }
+
+        // 【現在のステートに基づく行動実行】
+
+        if (isChasing)
+        {
+            // 追跡ステート: 目的地を設定し、速度をフルスピードにする
             agent.speed = dashSpeed;
+            // 目的地を毎フレーム更新することで追跡を継続
             agent.SetDestination(target.position);
+        }
+        else
+        {
+            // 停止ステート: 現在地を目的地に設定し、移動を完全に停止させる
+            agent.speed = 0f;
+            agent.SetDestination(transform.position);
         }
     }
 
+    // --------------------------------------------------------------------------------
+    // アニメーターパラメーター更新
+    // --------------------------------------------------------------------------------
+
     void UpdateAnimatorParameters()
     {
-        float currentVelocity = agent.velocity.magnitude;
-        anim.SetFloat(SpeedParam, currentVelocity, 0.1f, Time.deltaTime);
+        // 実際の移動速度を取得
+        // agent.velocity は NavMesh Agentの実際の移動速度ベクトル
+        float currentVelocityMagnitude = agent.velocity.magnitude;
+
+        float normalizedSpeed = 0f;
+        if (dashSpeed > 0.01f)
+        {
+            normalizedSpeed = Mathf.Clamp01(currentVelocityMagnitude / dashSpeed);
+        }
+
+        // アニメーターに速度をセット (DampTime 0.1f でスムーズに)
+        anim.SetFloat(SpeedParam, normalizedSpeed, 0.1f, Time.deltaTime);
     }
 }

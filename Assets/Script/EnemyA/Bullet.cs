@@ -1,79 +1,34 @@
-using UnityEngine;
-using System;
+ï»¿using UnityEngine;
 
-[RequireComponent(typeof(Rigidbody))]
 public class Bullet : MonoBehaviour
 {
-    private Rigidbody rb;
-    private Action<Bullet> returnAction;
-    private TrailRenderer trail; // ’Ç‰Á: ‹OÕ—p
+    public float speed = 20f; // å¼¾é€Ÿ
+    public float damage = 10f; // ãƒ€ãƒ¡ãƒ¼ã‚¸é‡
+    public float lifetime = 3f; // ğŸ’¡ ã“ã“ã«è¨­å®šã—ãŸæ™‚é–“ã§æ¶ˆæ»…ã—ã¾ã™
 
-    void Awake()
+    void Start()
     {
-        rb = GetComponent<Rigidbody>();
-        trail = GetComponent<TrailRenderer>(); // ’Ç‰Á
-    }
-
-    [Obsolete]
-    public void Initialize(Action<Bullet> onReturn, float speed, float lifetime)
-    {
-        returnAction = onReturn;
-
-        // 1. •¨—‹““®‚ÌŠ®‘SƒŠƒZƒbƒgiˆÀ‘Sôj
+        Rigidbody rb = GetComponent<Rigidbody>();
         if (rb != null)
         {
-            rb.velocity = Vector3.zero;
-            rb.angularVelocity = Vector3.zero;
-            rb.Sleep(); // ˆê’UƒXƒŠ[ƒv‚³‚¹‚é‚±‚Æ‚Å‘O‚Ì•¨—‰‰Z‚ğŠ®‘S‚É’f‚¿Ø‚éƒeƒNƒjƒbƒN
+            // è‡ªèº«ã®å‰æ–¹(Zè»¸)ã«é€Ÿåº¦ã‚’è¨­å®š
+            rb.velocity = transform.forward * speed;
         }
 
-        // 2. ƒgƒŒƒCƒ‹i‹OÕj‚ÌƒŠƒZƒbƒgi‚à‚µƒAƒ^ƒbƒ`‚³‚ê‚Ä‚¢‚ê‚Îj
-        if (trail != null)
-        {
-            trail.Clear(); // ‚±‚ê‚ª‚È‚¢‚ÆAƒv[ƒ‹‚©‚çoŒ»ˆÊ’u‚Ü‚Å‚ÌuˆÚ“®üv‚ªŒ©‚¦‚Ä‚µ‚Ü‚¤
-        }
-
-        // 3. õ–½İ’è
-        Invoke(nameof(ReturnToPool), lifetime); // •¶š—ñ‚æ‚ènameof()„§iƒ~ƒX–h~j
+        // ğŸ’¡ lifetimeç§’å¾Œã«GameObjectã‚’ç ´æ£„ï¼ˆè‡ªå‹•æ¶ˆæ»…ï¼‰
+        Destroy(gameObject, lifetime);
     }
 
-    [Obsolete]
-    private void OnTriggerEnter(Collider other)
+    void OnTriggerEnter(Collider other)
     {
-        // Õ“Ë”»’èiƒ^ƒO”»’è‚È‚Çj
-        if (other.CompareTag("Player") || other.CompareTag("Wall"))
+        // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã«å½“ãŸã£ãŸã‹ãƒã‚§ãƒƒã‚¯
+        if (other.CompareTag("Player"))
         {
-            // •K—v‚È‚ç‚±‚±‚Åƒ_ƒ[ƒWˆ—
-            // IDamageable target = other.GetComponent<IDamageable>();
-            // target?.TakeDamage(10);
-
-            ReturnToPool();
-        }
-    }
-
-    [Obsolete]
-    private void ReturnToPool()
-    {
-        CancelInvoke(nameof(ReturnToPool));
-
-        // ”O‚Ì‚½‚ß‚±‚±‚Å‚à•¨—ƒŠƒZƒbƒg
-        if (rb != null)
-        {
-            rb.velocity = Vector3.zero;
-            rb.angularVelocity = Vector3.zero;
+            Debug.Log("ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã«å¼¾ä¸¸ãŒãƒ’ãƒƒãƒˆï¼");
+            // ãƒ€ãƒ¡ãƒ¼ã‚¸å‡¦ç†ï¼ˆPlayerHealth.TakeDamageãªã©ï¼‰ã‚’å®Ÿè£…
         }
 
-        // ƒp[ƒeƒBƒNƒ‹’â~ˆ—
-        var ps = GetComponent<ParticleSystem>();
-        if (ps != null) ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-
-        returnAction?.Invoke(this);
-        gameObject.SetActive(false);
-    }
-
-    // ˆÀ‘S‚Ì‚½‚ßA—\Šú‚¹‚ÊDisable‚àInvoke‚ğƒLƒƒƒ“ƒZƒ‹‚·‚é
-    private void OnDisable()
-    {
-        CancelInvoke(nameof(ReturnToPool));
+        // å¼¾ä¸¸ã‚’æ¶ˆæ»…ã•ã›ã‚‹ï¼ˆå½“ãŸã‚Šåˆ¤å®šã®å¾Œã«ã™ãæ¶ˆã™ï¼‰
+        Destroy(gameObject);
     }
 }
