@@ -5,7 +5,7 @@ using System.Collections;
 using UnityEngine.Audio; // AudioMixerGroup を使用するために追加
 
 /// <summary>
-/// UIボタンからのシーン遷移を制御する汎用スクリプト。
+/// UIボタンからのシーン遷移、およびゲーム終了を制御する汎用スクリプト。
 /// </summary>
 public class SceneLoader : MonoBehaviour
 {
@@ -89,6 +89,52 @@ public class SceneLoader : MonoBehaviour
         Debug.Log($"シーンを遷移します: {sceneName}");
     }
 
+    // =======================================================
+    // ★★★ ゲーム終了メソッド ★★★
+    // =======================================================
+
+    /// <summary>
+    /// ゲームを強制終了します。
+    /// UIボタンのOnClickイベントに設定するためのパブリックメソッドです。
+    /// </summary>
+    public void QuitGame()
+    {
+        StartCoroutine(QuitGameAfterSound());
+    }
+
+    /// <summary>
+    /// 効果音を再生してからゲームを終了するコルーチン。
+    /// </summary>
+    private IEnumerator QuitGameAfterSound()
+    {
+        bool isSoundMuted = IsVolumeMuted();
+
+        // 1. 効果音の再生
+        if (audioSource != null && clickSound != null && !isSoundMuted)
+        {
+            audioSource.PlayOneShot(clickSound);
+            Debug.Log($"効果音を再生します: {clickSound.name}");
+
+            // 2. 音が鳴り終わるのを待つ
+            yield return new WaitForSeconds(clickSound.length + 0.1f);
+        }
+        else if (isSoundMuted)
+        {
+            Debug.Log("効果音はミュートされています。");
+        }
+
+        // 3. ゲーム終了の実行
+        Application.Quit();
+
+#if UNITY_EDITOR
+        Debug.Log("ゲーム終了処理が呼び出されました。ビルドされたアプリケーションでのみ終了します。");
+#endif
+    }
+
+    // =======================================================
+    // ユーティリティ
+    // =======================================================
+
     /// <summary>
     /// AudioMixerのボリュームがミュート状態（-80dB以下）かどうかをチェックします。
     /// </summary>
@@ -103,9 +149,8 @@ public class SceneLoader : MonoBehaviour
         float volumeValue;
         if (audioMixer.GetFloat(volumeParameterName, out volumeValue))
         {
-            // Unityのミキサーでは0%が-80dBに対応することが多い
-            // 非常に小さな値（例: -79dB以下）であればミュートと見なす
             // スライダーが0の場合、対応するExposed Parameterは通常 -80.0f
+            // -79dB以下であればミュートと見なす
             return volumeValue < -79f;
         }
 

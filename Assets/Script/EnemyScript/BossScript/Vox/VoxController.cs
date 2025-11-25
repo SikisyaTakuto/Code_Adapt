@@ -1,8 +1,11 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Linq; // isDestroyedの全要素チェックに使うなら必要ですが、このコードでは未使用
 
 public class VoxController : MonoBehaviour
 {
+    // --- エディタから設定する変数 ---
+    [Header("Arms")]
     [SerializeField] private GameObject Arms1;
     [SerializeField] private GameObject Arms2;
     [SerializeField] private GameObject Arms3;
@@ -12,55 +15,72 @@ public class VoxController : MonoBehaviour
     [SerializeField] private GameObject Arms7;
     [SerializeField] private GameObject Arms8;
 
-    [SerializeField] private GameObject bombPrefab;         // 落とす爆弾Prefab
-    [SerializeField] private GameObject[] enemyPrefabs;     // 敵プレハブを配列に変更！
-    [SerializeField] private GameObject explosionEffect;    // 爆発エフェクト
+    [Header("Droppable Objects & Effects")]
+    [SerializeField] private GameObject bombPrefab;         // 落とす爆弾Prefab
+    [SerializeField] private GameObject[] enemyPrefabs;     // 敵プレハブを配列に変更！
+    [SerializeField] private GameObject explosionEffect;    // 爆発エフェクト
 
-    [SerializeField] private float dropHeight = -2f;        // アームの位置からどれくらい上に爆弾を出すか
-    [SerializeField] private float moveSpeed = 20f;         // 移動速度
-    [SerializeField] private float rareChance = 0.05f;      // 確率で特殊座標を選ぶ
-    [SerializeField] private int maxHP = 5;                 // 各アームの初期HP
+    [Header("Movement & Game Params")]
+    [SerializeField] private float dropHeight = -2f;        // アームの位置からどれくらい上に爆弾を出すか (Y座標調整)
+    [SerializeField] private float moveSpeed = 20f;         // Z軸の移動速度
+    [SerializeField] private float rareChance = 0.05f;      // 確率で特殊座標を選ぶ (5%)
+    [SerializeField] private int maxHP = 5;                 // 各アームの初期HP
 
-    private GameObject[] armsArray;
-    private float[] targetZs;                               // 目標Z座標
-    private bool[] isMovingArray;                           // 移動中フラグ
-    private bool[] hasReachedSpecialZ;                      // 各アームが特殊Zに到達済みか
-    private bool[] canDropNow;                              // 各アームが「現在物を落とせる状態」か
-    private int[] armHPs;                                   // 各アームのHP
-    private bool[] isDestroyed;                             // HP0で停止したアームを判定
+    // --- プライベートな状態変数 ---
+    private GameObject[] armsArray;                         // アームオブジェクトの配列
+    private float[] targetZs;                               // 各アームの目標Z座標
+    private bool[] isMovingArray;                           // 各アームが移動中か
+    private bool[] hasReachedSpecialZ;                      // 各アームが特殊Zに過去到達済みか
+    private bool[] canDropNow;                              // 特殊Z到達後、物を落とせる状態か
+    private int[] armHPs;                                   // 各アームの現在のHP
+    private bool[] isDestroyed;                             // HP0で動作停止したか
+
+    // 特殊Z座標の定義
+    //private const float SPECIAL_Z_FAR = -310f;
+    //private const float SPECIAL_Z_NEAR = -50f;
+
+    private const float SPECIAL_Z_FAR = -310f;
+    private const float SPECIAL_Z_NEAR = -50f;
 
     void Start()
     {
-        armsArray = new GameObject[] { Arms1, Arms2, Arms3, Arms4,Arms5,Arms6,Arms7,Arms8 };
-        targetZs = new float[armsArray.Length];
-        isMovingArray = new bool[armsArray.Length];
-        hasReachedSpecialZ = new bool[armsArray.Length];
-        canDropNow = new bool[armsArray.Length];
-        armHPs = new int[armsArray.Length];
-        isDestroyed = new bool[armsArray.Length];
+        // アームの配列を初期化
+        armsArray = new GameObject[] { Arms1, Arms2, Arms3, Arms4, Arms5, Arms6, Arms7, Arms8 };
+        // 状態配列をアームの数に合わせて初期化
+        int count = armsArray.Length;
+        targetZs = new float[count];
+        isMovingArray = new bool[count];
+        hasReachedSpecialZ = new bool[count];
+        canDropNow = new bool[count];
+        armHPs = new int[count];
+        isDestroyed = new bool[count];
 
-        for (int i = 0; i < armsArray.Length; i++)
+        // HPを初期化
+        for (int i = 0; i < count; i++)
         {
             armHPs[i] = maxHP;
             isDestroyed[i] = false;
+            // 初回は物を落とせない状態からスタート
+            hasReachedSpecialZ[i] = false;
+            canDropNow[i] = false;
         }
 
-        SetNewTargets(); // 開始時に全アームへランダム目標設定
-    }
+        SetNewTargets(); // 開始時に全アームへランダム目標設定し、移動開始
+    }
 
     void Update()
     {
-        // 壊れていないアームだけ動かす
-        for (int i = 0; i < armsArray.Length; i++)
+        // 壊れていないアームだけ動かす
+        for (int i = 0; i < armsArray.Length; i++)
         {
-            if (!isDestroyed[i]) 
+            if (!isDestroyed[i])
             {
                 MoveArm(i);
             }
         }
 
-        // アームにダメージ1
-        if (Input.GetKeyDown(KeyCode.K))
+        // デバッグ用: Kキーで全アームにダメージを与える
+        if (Input.GetKeyDown(KeyCode.K))
         {
             for (int i = 0; i < armsArray.Length; i++)
             {
@@ -69,159 +89,182 @@ public class VoxController : MonoBehaviour
         }
     }
 
-    // HPを減らす関数
-    public void DamageArm(int index, int damage)
+    // HPを減らす関数（外部からの呼び出し用）
+    public void DamageArm(int index, int damage)
     {
-        if (isDestroyed[index]) return;
+        // 既に破壊されていたら処理しない
+        if (isDestroyed[index] || armsArray[index] == null) return;
 
         armHPs[index] -= damage;
         Debug.Log($"{armsArray[index].name} が {damage} ダメージを受けた！残りHP: {armHPs[index]}");
 
-        if (armHPs[index] <= 0)
+        // HPが0以下になったら破壊処理へ
+        if (armHPs[index] <= 0)
         {
             StartCoroutine(DestroyArm(index));
         }
     }
 
-    // 爆発＆停止
-    IEnumerator DestroyArm(int index)
+    // 爆発＆停止処理
+    IEnumerator DestroyArm(int index)
     {
-        isDestroyed[index] = true;
-        GameObject arm = armsArray[index];
+        isDestroyed[index] = true; // 破壊フラグを立て、Updateでの移動を停止
+        GameObject arm = armsArray[index];
+        if (arm == null) yield break;
 
         Debug.Log($"{arm.name} が破壊されました！");
 
-        if (explosionEffect != null)
+        // 爆発エフェクトの生成
+        if (explosionEffect != null)
         {
             Instantiate(explosionEffect, arm.transform.position, Quaternion.identity);
         }
 
-        // Rigidbodyがあれば物理挙動を止める
-        Rigidbody rb = arm.GetComponent<Rigidbody>();
+        // Rigidbodyがあれば物理挙動を止める（現在の移動制御を上書きしないように）
+        Rigidbody rb = arm.GetComponent<Rigidbody>();
         if (rb) rb.isKinematic = true;
 
-        // アームを非表示にする
-        //arm.SetActive(false);
+        // アームを非表示にする（オリジナルのコードではコメントアウトされているが、物理的な停止と共に非表示にすることも可能）
+        //arm.SetActive(false);
 
-        yield return null;
+        yield return null;
     }
 
-    // 新しい目標Zを設定（低確率で特殊Z）
-    void SetNewTargets()
+    // 全てのアームに新しい目標Zを設定（初期化時/リトライ時などに使用）
+    void SetNewTargets()
     {
         for (int i = 0; i < armsArray.Length; i++)
         {
+            // 破壊されたアームは移動させない
+            if (isDestroyed[i]) continue;
+
             targetZs[i] = GetRandomTargetZ();
             isMovingArray[i] = true;
             Debug.Log($"{armsArray[i].name} の新しい目標Z: {targetZs[i]:F2}");
         }
     }
 
-    // 各アームを動かす処理
-    void MoveArm(int index)
+    // 各アームを目標Z座標へ動かす処理
+    void MoveArm(int index)
     {
         GameObject arm = armsArray[index];
-        if (arm == null || !isMovingArray[index]) return;
+        // アームがnullか、移動中でない場合は処理しない
+        if (arm == null || !isMovingArray[index]) return;
 
         Vector3 pos = arm.transform.position;
         float step = moveSpeed * Time.deltaTime;
+
+        // 目標Zへスムーズに移動
         pos.z = Mathf.MoveTowards(pos.z, targetZs[index], step);
         arm.transform.position = pos;
 
-        if (Mathf.Approximately(pos.z, targetZs[index]))
+        // 目標に到達したか判定 (Approximatelyで浮動小数点数の誤差を吸収)
+        if (Mathf.Approximately(pos.z, targetZs[index]))
         {
             isMovingArray[index] = false;
             Debug.Log($"{arm.name} が Z={targetZs[index]:F2} に到達！");
 
-            // 特殊Zに到達した場合
-            if (targetZs[index] == -310f || targetZs[index] == -50f)
+            // 特殊Z座標に到達した場合の処理
+            if (targetZs[index] == SPECIAL_Z_FAR || targetZs[index] == SPECIAL_Z_NEAR)
             {
-                hasReachedSpecialZ[index] = true;
-                canDropNow[index] = true;
-                Debug.Log($"{arm.name} が特殊座標Z={targetZs[index]}に到達 → 物を落とせるようになりました。");
+                hasReachedSpecialZ[index] = true; // 特殊Zに到達したという実績フラグ
+                canDropNow[index] = true;         // 次の通常Z到達時にドロップ可能フラグ
+                Debug.Log($"{arm.name} が特殊座標Z={targetZs[index]}に到達 → 物を落とせるようになりました。");
             }
 
-            // 通常Z到達時
-            else if (hasReachedSpecialZ[index])
-            {
-                if (canDropNow[index])
+            // 通常Z座標に到達した場合の処理
+            else // targetZs[index] が通常範囲 (-255fから-110f) の場合
+            {
+                // 特殊Zに過去到達しており、かつ現在ドロップ可能な状態か
+                if (hasReachedSpecialZ[index] && canDropNow[index])
                 {
                     DropRandomObject(arm);
-                    canDropNow[index] = false;
-                    Debug.Log($"{arm.name} は物を落としました。再び特殊Zに行くまで落とせません。");
+                    canDropNow[index] = false; // ドロップしたので、次の特殊Z到達までドロップ不可に
+                    Debug.Log($"{arm.name} は物を落としました。再び特殊Zに行くまで落とせません。");
                 }
-                else
+                else if (hasReachedSpecialZ[index] && !canDropNow[index])
                 {
                     Debug.Log($"{arm.name} は特殊Zを再訪していないため、まだ落とせません。");
                 }
+                else
+                {
+                    // 特殊Zにも到達したことがない場合
+                    Debug.Log($"{arm.name} はまだ特殊Zに到達していないため、何も落としません。");
+                }
             }
 
-            // 特殊Zにも到達したことがない場合
-            else
-            {
-                Debug.Log($"{arm.name} はまだ特殊Zに到達していないため、何も落としません。");
-            }
-
-            StartCoroutine(WaitAndRetarget(index));
+            // 到達したら次の目標設定と移動再開までの待機コルーチンを開始
+            StartCoroutine(WaitAndRetarget(index));
         }
     }
 
-    // 爆弾 or 敵をランダムに落とす
-    void DropRandomObject(GameObject arm)
+    // 爆弾 or 敵をランダムに落とす処理
+    void DropRandomObject(GameObject arm)
     {
         bool dropEnemy = (Random.value < 0.5f); // 50%で敵を選択
-        GameObject prefab = null;
+        GameObject prefab = null;
         string typeName = "";
 
-        // 複数の敵からランダム選択
-        if (dropEnemy && enemyPrefabs != null && enemyPrefabs.Length > 0)
+        // 敵を選択し、敵プレハブが設定されていればランダムに選ぶ
+        if (dropEnemy && enemyPrefabs != null && enemyPrefabs.Length > 0)
         {
             prefab = enemyPrefabs[Random.Range(0, enemyPrefabs.Length)];
             typeName = prefab.name;
         }
-        else if (bombPrefab != null)
+        // 敵が選ばれなかったか、敵プレハブがない場合は爆弾を選択
+        else if (bombPrefab != null)
         {
             prefab = bombPrefab;
             typeName = "爆弾";
         }
 
-        if (prefab == null)
+        // 投下するPrefabがない場合は警告を出して終了
+        if (prefab == null)
         {
-            Debug.LogWarning("Prefab が設定されていません！");
+            Debug.LogWarning("Prefab が設定されていません！ (爆弾または敵)");
             return;
         }
 
-        Vector3 spawnPos = arm.transform.position + Vector3.up * dropHeight;
+        // アームの位置からdropHeight分Y座標を上げた位置にスポーン
+        Vector3 spawnPos = arm.transform.position + Vector3.up * dropHeight;
         GameObject dropped = Instantiate(prefab, spawnPos, Quaternion.identity);
-        Rigidbody rb = dropped.GetComponent<Rigidbody>() ?? dropped.AddComponent<Rigidbody>();
+
+        // Rigidbodyを取得または追加し、重力を有効にする
+        Rigidbody rb = dropped.GetComponent<Rigidbody>();
+        if (rb == null) rb = dropped.AddComponent<Rigidbody>();
         rb.useGravity = true;
 
         Debug.Log($"{arm.name} が {typeName} を投下しました！");
     }
 
-    // 少し待って次の移動を再スタート
-    IEnumerator WaitAndRetarget(int index)
+    // 目標に到達後、少し待機してから次の移動目標を設定
+    IEnumerator WaitAndRetarget(int index)
     {
-        yield return new WaitForSeconds(2f);
-        targetZs[index] = GetRandomTargetZ();  // 特殊確率付きの関数を使用
-        isMovingArray[index] = true;
+        yield return new WaitForSeconds(2f); // 2秒待機
+
+        // 待機中に破壊された場合はスキップ
+        if (isDestroyed[index]) yield break;
+
+        targetZs[index] = GetRandomTargetZ();  // 特殊確率付きの関数で次の目標Zを決定
+        isMovingArray[index] = true;
         Debug.Log($"{armsArray[index].name} が次の目標Z={targetZs[index]:F2} へ移動開始！");
     }
 
-    // 低確率で特殊Zを返す関数
-    float GetRandomTargetZ()
+    // 低確率 (rareChance) で特殊Zを返す関数
+    float GetRandomTargetZ()
     {
         float roll = Random.value; // 0〜1の乱数
 
-        if (roll < rareChance)
+        if (roll < rareChance)
         {
-            // 特殊Zのどちらかを選択
-            return (Random.value < 0.5f) ? -310f : -50f;
+            // 特殊Zのどちらかを選択 (-310f または -50f)
+            return (Random.value < 0.5f) ? SPECIAL_Z_FAR : SPECIAL_Z_NEAR;
         }
         else
         {
-            // 通常の範囲からランダム
-            return Random.Range(-255f, -110f);
+            // 通常の範囲からランダム (-255fから-110f)
+            // Random.Range(min, max) はfloatの場合、min以上、max以下を返す
+            return Random.Range(-255f, -110f);
         }
     }
 }
