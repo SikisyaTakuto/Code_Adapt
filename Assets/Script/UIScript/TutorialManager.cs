@@ -50,48 +50,48 @@ public class TutorialManager : MonoBehaviour
     [Header("ステップ別時間設定 (Inspectorで個別に設定)")]
     // ... (他の時間設定は省略) ...
     [Tooltip("移動チュートリアルの最小表示時間")]
-    public float MinDisplay_Move = 2.0f;
+    public float MinDisplay_Move = 3.0f; // 2.0f から変更
     [Tooltip("移動チュートリアル完了後の待機時間")]
-    public float Delay_Move = 1.0f;
+    public float Delay_Move = 1.5f; // 1.0f から変更
 
     [Tooltip("ダッシュチュートリアルの最小表示時間")]
-    public float MinDisplay_Dash = 4.0f;
+    public float MinDisplay_Dash = 5.0f; // 4.0f から変更
     [Tooltip("ダッシュチュートリアル完了後の待機時間")]
-    public float Delay_Dash = 1.0f;
+    public float Delay_Dash = 1.5f; // 1.0f から変更
 
     [Tooltip("エネルギー説明の最小表示時間 (分割後の各ステップ)")]
-    public float MinDisplay_EnergyFragment = 3.0f;
+    public float MinDisplay_EnergyFragment = 4.0f; // 3.0f から変更
 
     [Tooltip("垂直移動 (浮上・降下) の最小表示時間")]
-    public float MinDisplay_Vertical = 3.0f;
+    public float MinDisplay_Vertical = 4.0f; // 3.0f から変更
     [Tooltip("浮上→降下間の待機時間")]
     public float Delay_Vertical_Mid = 0.5f;
     [Tooltip("垂直移動完了後の待機時間")]
-    public float Delay_Vertical_End = 1.5f;
+    public float Delay_Vertical_End = 2.0f; // 1.5f から変更
 
     [Tooltip("武器切り替え完了後の待機時間")]
-    public float Delay_WeaponSwitch = 1.0f;
+    public float Delay_WeaponSwitch = 1.5f; // 1.0f から変更
     [Tooltip("近接攻撃による敵撃破完了後の待機時間")]
-    public float Delay_MeleeAttack_Enemy = 1.5f;
+    public float Delay_MeleeAttack_Enemy = 2.0f; // 1.5f から変更
     [Tooltip("ビーム攻撃による敵撃破完了後の待機時間")]
-    public float Delay_BeamAttack_Enemy = 1.5f;
+    public float Delay_BeamAttack_Enemy = 2.0f; // 1.5f から変更
 
     [Tooltip("アーマー切り替えチュートリアルの最小表示時間")]
-    public float MinDisplay_ArmorSwitch = 3.5f;
+    public float MinDisplay_ArmorSwitch = 4.5f; // 3.5f から変更
     [Tooltip("キー説明→操作間の待機時間")]
     public float Delay_ArmorSwitch_Mid = 0.5f;
     [Tooltip("アーマー切り替え完了後の待機時間")]
-    public float Delay_ArmorSwitch_End = 1.8f;
+    public float Delay_ArmorSwitch_End = 2.5f; // 1.8f から変更
 
     [Tooltip("カメラ操作の最小表示時間")]
     public float MinDisplay_CameraLook = 3.0f;
     [Tooltip("ロックオン操作の最小表示時間")]
-    public float MinDisplay_LockOn = 3.5f;
+    public float MinDisplay_LockOn = 4.5f; // 3.5f から変更
     [Tooltip("ロックオンチュートリアル完了後の待機時間")]
-    public float Delay_LockOn_End = 1.5f;
+    public float Delay_LockOn_End = 2.0f; // 1.5f から変更
 
     [Tooltip("チュートリアル終了メッセージの表示時間")]
-    public float EndMessageDisplayTime = 5.0f; // 3.0f から 5.0f に変更
+    public float EndMessageDisplayTime = 7.0f; // 5.0f から変更
     // =======================================================
 
     // --- 内部状態 ---
@@ -200,15 +200,15 @@ public class TutorialManager : MonoBehaviour
 
         // 8. 近接攻撃のチュートリアル (ロックオン後)
         yield return StartCoroutine(RunAttackEnemyTutorial(
-      TutorialPlayerController.WeaponMode.Melee,
-      "近接モードでロックオン状態です。標的に向かって[左クリック]で攻撃し、撃破してください。",
-      Delay_MeleeAttack_Enemy));
+        TutorialPlayerController.WeaponMode.Melee,
+        "近接モードでロックオン状態です。標的に向かって[左クリック]で攻撃し、撃破してください。",
+        Delay_MeleeAttack_Enemy));
 
         // 9. ビーム攻撃のチュートリアル
         yield return StartCoroutine(RunAttackEnemyTutorial(
-      TutorialPlayerController.WeaponMode.Beam,
-      "ビームモードに切り替えます。標的に向かって[左クリック]で攻撃し、撃破してください。",
-      Delay_BeamAttack_Enemy));
+        TutorialPlayerController.WeaponMode.Beam,
+        "ビームモードに切り替えます。標的に向かって[左クリック]で攻撃し、撃破してください。",
+        Delay_BeamAttack_Enemy));
 
         // 10. アーマー切り替えのチュートリアル
         yield return StartCoroutine(RunArmorSwitchTutorial(MinDisplay_ArmorSwitch, Delay_ArmorSwitch_Mid, Delay_ArmorSwitch_End));
@@ -238,10 +238,10 @@ public class TutorialManager : MonoBehaviour
         // Cursor.lockState = CursorLockMode.Locked;
 
         yield return StartCoroutine(ShowMessageAndWaitForAction(
-            $"システム起動。まず、視点操作を行います。[マウス]を動かして、周囲を見回してください。",
-            () => isCameraLooked, // PlayerController側が、累積回転量が閾値を超えたら SetCameraLooked() を呼ぶ前提
+                $"システム起動。まず、視点操作を行います。[マウス]を動かして、周囲を見回してください。",
+                () => isCameraLooked, // PlayerController側が、累積回転量が閾値を超えたら SetCameraLooked() を呼ぶ前提
                 minTime,
-            nextStepDelay,
+                nextStepDelay,
         // ⭐ 修正: 視点操作の強制スキップ時間を5.0秒に設定
                 CAMERA_LOOK_MAX_WAIT_TIME));
 
@@ -274,19 +274,19 @@ public class TutorialManager : MonoBehaviour
 
         // 浮上
         yield return StartCoroutine(ShowMessageAndWaitForAction("垂直移動の操作です。[Space]キーを長押しし、浮上してください。",
-                       () => player.HasJumped,
-                       minTime,
-                       midStepDelay,
-                       DEFAULT_MAX_WAIT_TIME));
+                               () => player.HasJumped,
+                               minTime,
+                               midStepDelay,
+                               DEFAULT_MAX_WAIT_TIME));
 
         player.ResetInputTracking();
 
         // 降下
         yield return StartCoroutine(ShowMessageAndWaitForAction("降下操作です。[Alt]キーを長押ししてください。",
-                       () => player.HasDescended,
-                       minTime,
-                       nextStepDelay,
-                       DEFAULT_MAX_WAIT_TIME));
+                               () => player.HasDescended,
+                               minTime,
+                               nextStepDelay,
+                               DEFAULT_MAX_WAIT_TIME));
         Debug.Log("垂直移動チュートリアル完了。");
     }
 
@@ -296,11 +296,11 @@ public class TutorialManager : MonoBehaviour
         player.ResetInputTracking();
 
         yield return StartCoroutine(ShowMessageAndWaitForAction(
-            "[Left+Shift]キーを押しながら[WASD]キーでダッシュを実行してください。",
-            () => player.HasDashed,
-            minTime,
-            nextStepDelay,
-            DEFAULT_MAX_WAIT_TIME));
+                "[LeftShift]キーを押しながら[WASD]キーでダッシュを実行してください。",
+                () => player.HasDashed,
+                minTime,
+                nextStepDelay,
+                DEFAULT_MAX_WAIT_TIME));
 
         Debug.Log("ダッシュチュートリアル完了。");
     }
@@ -309,10 +309,10 @@ public class TutorialManager : MonoBehaviour
     public IEnumerator RunEnergyExplanation1(float minTime, float nextStepDelay)
     {
         yield return StartCoroutine(ShowMessageAndWaitForAction(
-            "重要事項です。ダッシュ、攻撃、浮上操作にはエネルギーを消費します。",
-            () => true,
-            minTime,
-            nextStepDelay));
+                "重要事項です。ダッシュ、攻撃、浮上操作にはエネルギーを消費します。",
+                () => true,
+                minTime,
+                nextStepDelay));
         Debug.Log("エネルギーに関する説明 1/3 完了。");
     }
 
@@ -320,10 +320,10 @@ public class TutorialManager : MonoBehaviour
     public IEnumerator RunEnergyExplanation2(float minTime, float nextStepDelay)
     {
         yield return StartCoroutine(ShowMessageAndWaitForAction(
-            "エネルギーは、連続的な行動を制限するための重要なリソースです。",
-            () => true,
-            minTime,
-            nextStepDelay));
+                "エネルギーは、連続的な行動を制限するための重要なリソースです。",
+                () => true,
+                minTime,
+                nextStepDelay));
         Debug.Log("エネルギーに関する説明 2/3 完了。");
     }
 
@@ -331,10 +331,10 @@ public class TutorialManager : MonoBehaviour
     public IEnumerator RunEnergyExplanation3(float minTime, float nextStepDelay)
     {
         yield return StartCoroutine(ShowMessageAndWaitForAction(
-            "画面上のエネルギーゲージを確認し、残量にご注意ください。",
-            () => true,
-            minTime,
-            nextStepDelay));
+                "画面上のエネルギーゲージを確認し、残量にご注意ください。",
+                () => true,
+                minTime,
+                nextStepDelay));
         Debug.Log("エネルギーに関する説明 3/3 完了。");
     }
 
@@ -366,11 +366,11 @@ public class TutorialManager : MonoBehaviour
         SpawnEnemy();
 
         yield return StartCoroutine(ShowMessageAndWaitForAction(
-            "戦闘ターゲットのロックオン操作です。[右クリック]を押して、標的を捕捉してください。",
-            () => isTargetLocked || Input.GetMouseButtonDown(1),
-            minTime,
-            nextStepDelay,
-            DEFAULT_MAX_WAIT_TIME));
+                "戦闘ターゲットのロックオン操作です。[右クリック]を押して、標的を捕捉してください。",
+                () => isTargetLocked || Input.GetMouseButtonDown(1),
+                minTime,
+                nextStepDelay,
+                DEFAULT_MAX_WAIT_TIME));
 
         // player.allowLockOn = false; 
         Debug.Log("ロックオンチュートリアル完了。");
@@ -451,17 +451,17 @@ public class TutorialManager : MonoBehaviour
 
         // キー説明
         yield return StartCoroutine(ShowMessageAndWaitForAction("アーマー切り替えの説明です。[1] Normal、[2] Buster、[3] Speedモードへの切り替えが可能です。",
-                       () => Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Alpha3),
-                       minTime,
-                       midStepDelay,
-                       DEFAULT_MAX_WAIT_TIME));
+                               () => Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Alpha3),
+                               minTime,
+                               midStepDelay,
+                               DEFAULT_MAX_WAIT_TIME));
 
         // 実際に切り替えを促す
         yield return StartCoroutine(ShowMessageAndWaitForAction("任意のキーでアーマーモードを切り替え、性能を確認してください。",
-                       () => player.currentArmorMode != initialMode,
-                       minTime,
-                       nextStepDelay,
-                       DEFAULT_MAX_WAIT_TIME));
+                               () => player.currentArmorMode != initialMode,
+                               minTime,
+                               nextStepDelay,
+                               DEFAULT_MAX_WAIT_TIME));
 
         player.allowArmorSwitch = false;
         Debug.Log("アーマー切り替えチュートリアル完了。");
@@ -475,9 +475,9 @@ public class TutorialManager : MonoBehaviour
     {
         // 最終メッセージ
         yield return StartCoroutine(ShowMessageAndWaitForAction("お疲れ様でした。全てのチュートリアル項目を終了し、全機能が解放されました。実戦へ移行します。",
-                     () => true,
-                     EndMessageDisplayTime, // 5.0f の値が使用される
-                                                0.0f));
+                               () => true,
+                               EndMessageDisplayTime, // 7.0f の値が使用される
+                               0.0f));
 
         // 全ての機能を解放する処理
         player.isInputLocked = false;
