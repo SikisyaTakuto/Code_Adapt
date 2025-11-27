@@ -1,155 +1,125 @@
-using UnityEngine;
+﻿using UnityEngine;
+using UnityEngine.AI; // NavMeshAgentを使うために必要
 
 public class ElsController : MonoBehaviour
 {
-    [Header("Target")]
-    public Transform player;
+    // ボスの動きを制御するためのフラグ
+    public bool isActivated = false;
 
-    [Header("Boss Active")]
-    public bool isActive = false;
+    // プレイヤーのTransform
+    public Transform playerTransform;
 
-    public enum BossState { Orbit, Retreat }
-    public BossState state = BossState.Orbit;
+    // プレイヤーと保ちたい最小距離
+    public float keepDistance = 10f;
 
-    [Header("Orbit Movement")]
-    public float orbitDistance = 6f;
-    public float orbitSpeed = 2f;
-    public float height = 3f;
-    public float heightSmooth = 2f;
-    public float changeDirInterval = 3f;
+    // ランダムな速度設定のための変数
+    [Header("Random Speed Settings")]
+    public float minSpeed = 3f;     // 最小速度
+    public float maxSpeed = 8f;     // 最大速度
+    public float speedChangeInterval = 3f; // 速度を切り替える間隔 (秒)
 
-    [Header("Retreat Movement")]
-    public float retreatDistance = 10f;   // �v���C���[���痣��鋗��
-    public float retreatSpeed = 6f;       // ������X�s�[�h
-    public float retreatTime = 2f;        // ���������鎞��
-    private float retreatTimer = 0f;
+    private float speedChangeTimer; // 速度切り替え用のタイマー
 
-    [Header("Attack")]
-    public GameObject bulletPrefab;
-    public Transform firePoint;
-    public float attackInterval = 2f;
+    // ボスのNavMeshAgentコンポーネント
+    private NavMeshAgent agent;
 
-    // �n�ʂƕǂ̔���p�����[�^
-    [Header("Collision Avoidance")]
-    public float wallCheckDistance = 1f;
-    public LayerMask groundLayer;
-    public LayerMask wallLayer;
+    void Start()
+    {
+        // NavMeshAgentコンポーネントを取得
+        agent = GetComponent<NavMeshAgent>();
 
-    private float angle = 0f;
-    private float attackTimer = 0f;
-    private float dir = 1f;
-    private float dirTimer = 0f;
+        // NavMeshAgentがアタッチされているか確認
+        if (agent == null)
+        {
+            Debug.LogError("NavMeshAgentコンポーネントが見つかりません。");
+            enabled = false; // スクリプトを無効化
+        }
+
+        // プレイヤーのTransformが設定されているか確認
+        if (playerTransform == null)
+        {
+            Debug.LogError("Player Transformが設定されていません。");
+        }
+
+        // 慣性を調整するための設定
+        agent.stoppingDistance = keepDistance;
+
+        // 減速度を下げて、停止時に滑らかに（慣性のような動き）する
+        agent.acceleration = 8f; // デフォルト(6)より少し大きく、あるいは小さくして調整
+
+        // 方向転換を緩やかにする
+        agent.angularSpeed = 360f; // デフォルト(1200)より低くして調整
+
+        // タイマーを初期化し、即座に速度が設定されるようにする
+        speedChangeTimer = speedChangeInterval;
+    }
 
     void Update()
     {
-        if (!isActive) return;
-        if (player == null) return;
-
-        // �s���p�^�[��
-        switch (state)
+        if (isActivated && playerTransform != null)
         {
-            case BossState.Orbit:
-                OrbitMovement();
-                ChangeDirectionRandom();
-                TryStartRetreat();
-                break;
+            // プレイヤーとボスの現在の距離を計算
+            float distanceToPlayer = Vector3.Distance(transform.position, playerTransform.position);
 
-            case BossState.Retreat:
-                RetreatMovement();
-                break;
+            // プレイヤーとの距離をチェックし、追跡/停止を切り替える
+            if (distanceToPlayer > keepDistance)
+            {
+                // 距離が離れすぎている場合 (設定距離より大きい)
+                // プレイヤーの場所を目的地に設定し、追いかける
+                agent.SetDestination(playerTransform.position);
+
+                // ボスを動かす (NavMeshAgentが自動で移動)
+                agent.isStopped = false;
+
+                //Debug.Log("Boss: プレイヤーを追跡中");
+            }
+            else
+            {
+                // 設定距離内にある場合ボスを停止させる
+                agent.isStopped = true;
+
+                Debug.Log("Boss: プレイヤーと一定距離を保って停止");
+            }
+
+            // ランダムな速度の切り替えロジック
+            HandleRandomSpeed();
         }
-
-        HandleAttack();
-    }
-
-    // �v���C���[����
-    void OrbitMovement()
-    {
-        angle += orbitSpeed * dir * Time.deltaTime;
-        float rad = angle * Mathf.Deg2Rad;
-
-        Vector3 targetPos = new Vector3(
-            player.position.x + Mathf.Cos(rad) * orbitDistance,
-            player.position.y + height,
-            player.position.z + Mathf.Sin(rad) * orbitDistance
-        );
-
-        // �ǃ`�F�b�N�i�O���ɕǂ�����Ύ~�܂�j
-        if (Physics.Raycast(transform.position, (targetPos - transform.position).normalized, wallCheckDistance, wallLayer))
+        else if (agent != null)
         {
-            // �ǂ��߂��̂ŁA�^�[�Q�b�g�ʒu��␳�i���̈ʒu�ɋ߂Â���j
-            targetPos = transform.position + (targetPos - transform.position).normalized * 0.2f;
-        }
-
-        // �n�ʃ`�F�b�N�iY���W��n�ʂɍ��킹��j
-        RaycastHit hit;
-        if (Physics.Raycast(targetPos + Vector3.up * 5f, Vector3.down, out hit, 20f, groundLayer))
-        {
-            targetPos.y = hit.point.y + height;  // �n�ʂ̏�ɕ�������
-        }
-
-        // �ŏI�ړ�
-        transform.position = Vector3.Lerp(transform.position, targetPos, Time.deltaTime * heightSmooth);
-
-        transform.LookAt(player);
-    }
-
-    // �����_���ŕ����]��
-    void ChangeDirectionRandom()
-    {
-        dirTimer += Time.deltaTime;
-        if (dirTimer >= changeDirInterval)
-        {
-            dirTimer = 0f;
-            dir = Random.value > 0.5f ? 1f : -1f;
-            orbitSpeed = Random.Range(1.5f, 3.5f);
+            // ボスの動きが無効化されている場合、念のため停止させる
+            agent.isStopped = true;
         }
     }
-
-    // ���m���œ����s���ɓ���
-    void TryStartRetreat()
+    // ランダムな移動速度を定期的に設定する
+    private void HandleRandomSpeed()
     {
-        if (Random.value < 0.002f)  // 0.2%/frame �� ��5�b��1�񂭂炢
+        // タイマーを減らす
+        speedChangeTimer -= Time.deltaTime;
+
+        // タイマーが0以下になったら速度を変更
+        if (speedChangeTimer <= 0)
         {
-            state = BossState.Retreat;
-            retreatTimer = 0f;
+            float newSpeed;
+
+            // Random.value (0.0f～1.0f) を使って、50%の確率でどちらかを選ぶ
+            if (Random.value < 0.5f)
+            {
+                // 50%の確率で minSpeed を選ぶ
+                newSpeed = minSpeed;
+            }
+            else
+            {
+                // 残り50%の確率で maxSpeed を選ぶ
+                newSpeed = maxSpeed;
+            }
+
+            // NavMeshAgentの速度に設定
+            agent.speed = newSpeed;
+
+            // 次の速度変更までのタイマーをリセット
+            speedChangeTimer = speedChangeInterval;
+
+            Debug.Log($"Boss: 移動速度を **{newSpeed:F2}** に変更しました。");
         }
-    }
-
-    // �v���C���[���狗������铮��
-    void RetreatMovement()
-    {
-        retreatTimer += Time.deltaTime;
-
-        // �v���C���[�̔��Ε����ֈړ�
-        Vector3 dirAway = (transform.position - player.position).normalized;
-        Vector3 targetPos = player.position + dirAway * retreatDistance;
-
-        transform.position = Vector3.Lerp(transform.position, targetPos, Time.deltaTime * retreatSpeed);
-
-        transform.LookAt(player);
-
-        // ��莞�ԓ����������ɖ߂�
-        if (retreatTimer >= retreatTime)
-        {
-            state = BossState.Orbit;
-        }
-    }
-
-    // �U������
-    void HandleAttack()
-    {
-        attackTimer += Time.deltaTime;
-
-        if (attackTimer >= attackInterval)
-        {
-            attackTimer = 0f;
-            Shoot();
-        }
-    }
-
-    void Shoot()
-    {
-        Instantiate(bulletPrefab, firePoint.position, firePoint.rotation);
     }
 }

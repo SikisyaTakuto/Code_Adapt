@@ -45181,6 +45181,7 @@ GameObject:
   - component: {fileID: 1631850926}
   - component: {fileID: 1631850931}
   - component: {fileID: 1631850932}
+  - component: {fileID: 1631850933}
   m_Layer: 0
   m_Name: Boss
   m_TagString: Untagged
@@ -45317,27 +45318,34 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c6f07ef5280b68a4b92a49bd7e7447ca, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  player: {fileID: 1479760280}
-  isActive: 0
-  state: 0
-  orbitDistance: 6
-  orbitSpeed: 2
-  height: 3
-  heightSmooth: 2
-  changeDirInterval: 3
-  retreatDistance: 10
-  retreatSpeed: 6
-  retreatTime: 2
-  bulletPrefab: {fileID: 216633344060643235, guid: d1d5ef304e401e347b0488116cb4cf5d, type: 3}
-  firePoint: {fileID: 755029637}
-  attackInterval: 2
-  wallCheckDistance: 5.1
-  groundLayer:
-    serializedVersion: 2
-    m_Bits: 8
-  wallLayer:
-    serializedVersion: 2
-    m_Bits: 1024
+  isActivated: 0
+  playerTransform: {fileID: 1479760280}
+  keepDistance: 15
+  minSpeed: 10
+  maxSpeed: 40
+  speedChangeInterval: 3
+--- !u!195 &1631850933
+NavMeshAgent:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1631850925}
+  m_Enabled: 1
+  m_AgentTypeID: 0
+  m_Radius: 0.5000001
+  m_Speed: 3.5
+  m_Acceleration: 8
+  avoidancePriority: 50
+  m_AngularSpeed: 120
+  m_StoppingDistance: 0
+  m_AutoTraverseOffMeshLink: 1
+  m_AutoBraking: 1
+  m_AutoRepath: 1
+  m_Height: 2
+  m_BaseOffset: 1
+  m_WalkableMask: 4294967295
+  m_ObstacleAvoidanceType: 4
 --- !u!1 &1639342437
 GameObject:
   m_ObjectHideFlags: 0
