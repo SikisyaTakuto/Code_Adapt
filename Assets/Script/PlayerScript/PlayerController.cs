@@ -105,6 +105,7 @@ public class PlayerController : MonoBehaviour
     // =======================================================
     private CharacterController _controller;
     private TPSCameraController _tpsCamController;
+    private Animator _animator; // ★ NEW: アニメーターの参照
 
     private ArmorMode _currentArmorMode = ArmorMode.Normal;
     private ArmorStats _currentArmorStats;
@@ -118,6 +119,7 @@ public class PlayerController : MonoBehaviour
 
     private Vector3 _velocity;
     private float _moveSpeed;
+    private bool _isDashing = false; // ★ 既存: ダッシュ状態を管理するフラグ
 
     [HideInInspector] public float currentHP { get => _currentHP; private set => _currentHP = value; }
     [HideInInspector] public float currentEnergy { get => _currentEnergy; private set => _currentEnergy = value; }
@@ -205,6 +207,19 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
+        // ★ NEW: Animatorコンポーネントを取得
+        _animator = GetComponent<Animator>();
+        if (_animator == null)
+        {
+            _animator = GetComponentInChildren<Animator>();
+        }
+
+        if (_animator == null)
+        {
+            Debug.LogWarning($"{nameof(PlayerController)}: Animatorコンポーネントが見つかりません。アニメーションは再生されません。");
+        }
+        // ------------------------------------
+
         _tpsCamController = FindObjectOfType<TPSCameraController>();
         if (_tpsCamController == null)
         {
@@ -253,12 +268,40 @@ public class PlayerController : MonoBehaviour
         HandleAttackInputs();
         HandleWeaponSwitchInput();
         HandleArmorSwitchInput();
+
+        HandleDashInput();
     }
+
+    // 既存: ダッシュ入力の処理
+    private void HandleDashInput()
+    {
+        bool isSpeedMode = _currentArmorMode == ArmorMode.Speed;
+
+        if (isSpeedMode)
+        {
+            // ダッシュ開始
+            if (Input.GetKeyDown(KeyCode.LeftShift) && currentEnergy > 0.01f)
+            {
+                _isDashing = true;
+                Debug.Log("ダッシュ開始 (Speed Mode)");
+            }
+            // ダッシュ終了: キーを離す、またはエネルギーがなくなる
+            else if (Input.GetKeyUp(KeyCode.LeftShift) || (Input.GetKey(KeyCode.LeftShift) && currentEnergy <= 0.01f))
+            {
+                _isDashing = false;
+                if (currentEnergy <= 0.01f) Debug.Log("ダッシュ終了: エネルギー不足");
+            }
+        }
+        else
+        {
+            // Speed Mode でない場合は強制的にダッシュをオフにする
+            _isDashing = false;
+        }
+    }
+    // --------------------------------------------------------
 
     private void HandleArmorSwitchInput()
     {
-        // チュートリアル固有の制御 (allowArmorSwitch) は削除
-
         if (Input.GetKeyDown(KeyCode.Alpha1)) SwitchArmor(ArmorMode.Normal);
         else if (Input.GetKeyDown(KeyCode.Alpha2)) SwitchArmor(ArmorMode.Buster);
         else if (Input.GetKeyDown(KeyCode.Alpha3)) SwitchArmor(ArmorMode.Speed);
@@ -266,8 +309,6 @@ public class PlayerController : MonoBehaviour
 
     private void HandleWeaponSwitchInput()
     {
-        // チュートリアル固有の制御 (allowWeaponSwitch) は削除
-
         if (Input.GetKeyDown(KeyCode.E))
         {
             SwitchWeapon();
@@ -276,7 +317,6 @@ public class PlayerController : MonoBehaviour
 
     private void HandleAttackInputs()
     {
-        // チュートリアル固有の制御 (allowAttack) は削除
         if (_isAttacking) return;
 
         if (Input.GetMouseButtonDown(0))
@@ -302,8 +342,10 @@ public class PlayerController : MonoBehaviour
         float h = Input.GetAxis("Horizontal");
         float v = Input.GetAxis("Vertical");
 
-        if (h == 0f && v == 0f)
+        // 停止中の処理（ダッシュ中でも入力を受け付けていない場合は静止）
+        if (h == 0f && v == 0f && !_isDashing)
         {
+            if (_animator != null) _animator.SetFloat("Speed", 0f);
             return Vector3.zero;
         }
 
@@ -321,24 +363,45 @@ public class PlayerController : MonoBehaviour
             moveDirection = transform.right * h + transform.forward * v;
         }
 
-        moveDirection.Normalize();
+        // 入力方向がゼロでない場合のみ正規化（停止状態での方向維持を防ぐ）
+        if (inputDirection.magnitude > 0.01f)
+        {
+            moveDirection.Normalize();
+        }
 
         float currentSpeed = _moveSpeed;
         bool isConsumingEnergy = false;
 
-        // チュートリアル固有の制御 (allowDash) は削除
-        bool isDashing = Input.GetKey(KeyCode.LeftShift) && currentEnergy > 0.01f;
-
-        if (isDashing)
+        // ダッシュ判定を _isDashing フラグに基づいて行う
+        if (_isDashing && inputDirection.magnitude > 0.01f) // 入力があるときのみダッシュ速度を適用
         {
             currentSpeed *= dashMultiplier;
             currentEnergy -= energyConsumptionRate * Time.deltaTime;
             isConsumingEnergy = true;
         }
+        else if (_isDashing && inputDirection.magnitude <= 0.01f)
+        {
+            // ダッシュキーは押されているが、移動入力がない場合
+            _isDashing = false;
+        }
+
+        Vector3 actualMove = moveDirection * currentSpeed;
+
+        // ★ NEW: アニメーションの速度パラメーターを更新
+        // CharacterControllerが実際に移動する水平速度を計算（垂直速度は無視）
+        float currentHorizontalSpeed = new Vector3(actualMove.x, 0, actualMove.z).magnitude;
+
+        if (_animator != null)
+        {
+            // _moveSpeed（基本速度）に対する正規化された速度を渡すと、アニメーション遷移がスムーズ
+            // DashMultiplierを含めてSpeedパラメーターに渡す
+            _animator.SetFloat("Speed", currentHorizontalSpeed);
+        }
+        // ------------------------------------------
 
         if (isConsumingEnergy) _lastEnergyConsumptionTime = Time.time;
 
-        return moveDirection * currentSpeed;
+        return actualMove;
     }
 
     private Vector3 HandleVerticalMovement()
@@ -397,6 +460,13 @@ public class PlayerController : MonoBehaviour
         _isAttacking = true;
         _attackTimer = 0f;
 
+        // ★ NEW: アニメーションのトリガーを引く
+        if (_animator != null)
+        {
+            _animator.SetTrigger("MeleeAttack");
+        }
+        // ------------------------------------------
+
         Transform lockOnTarget = _tpsCamController != null ? _tpsCamController.LockOnTarget : null;
         Collider[] hitColliders = Physics.OverlapSphere(transform.position, meleeAttackRange, enemyLayer);
 
@@ -414,8 +484,6 @@ public class PlayerController : MonoBehaviour
 
             ApplyDamageToEnemy(hitCollider, meleeDamage);
         }
-
-        // チュートリアルイベント (onMeleeAttackPerformed) は削除
     }
 
     private void HandleBeamAttack()
@@ -435,6 +503,13 @@ public class PlayerController : MonoBehaviour
         _isAttacking = true;
         _attackTimer = 0f;
         _velocity.y = 0f; // ビーム発射時は垂直移動を停止
+
+        // ★ NEW: アニメーションのトリガーを引く
+        if (_animator != null)
+        {
+            _animator.SetTrigger("BeamAttack");
+        }
+        // ------------------------------------------
 
         currentEnergy -= beamAttackEnergyCost;
         _lastEnergyConsumptionTime = Time.time;
@@ -476,8 +551,6 @@ public class PlayerController : MonoBehaviour
             Quaternion.LookRotation(fireDirection)
         );
         beamInstance.Fire(origin, endPoint, didHit);
-
-        // チュートリアルイベント (onBeamAttackPerformed) は削除
     }
 
     private Vector3 GetLockOnTargetPosition(Transform target, bool useOffsetIfNoCollider = false)
@@ -529,6 +602,13 @@ public class PlayerController : MonoBehaviour
 
     private void HandleEnergy()
     {
+        // ダッシュ中または垂直移動中はエネルギー消費中と判断
+        bool isConsumingEnergy = _isDashing || (!_controller.isGrounded && (Input.GetKey(KeyCode.Space) || Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt)));
+        if (isConsumingEnergy)
+        {
+            _lastEnergyConsumptionTime = Time.time;
+        }
+
         if (Time.time >= _lastEnergyConsumptionTime + recoveryDelay)
         {
             float recoveryMultiplier = _currentArmorStats != null ? _currentArmorStats.energyRecoveryMultiplier : 1.0f;
@@ -538,8 +618,6 @@ public class PlayerController : MonoBehaviour
 
         currentEnergy = Mathf.Clamp(currentEnergy, 0, maxEnergy);
         UpdateEnergyUI();
-
-        // エネルギー枯渇イベントの管理 (チュートリアル固有のイベントは削除)
     }
 
     public void TakeDamage(float damageAmount)
@@ -568,7 +646,13 @@ public class PlayerController : MonoBehaviour
         if (_isDead) return;
 
         _isDead = true;
-        // チュートリアル固有の制御 (isInputLocked) は削除
+
+        // ★ NEW: 死亡時にアニメーションパラメーターをリセット（または死亡アニメーションを再生）
+        if (_animator != null)
+        {
+            _animator.SetFloat("Speed", 0f); // 移動を停止
+            // 死亡アニメーションがあれば _animator.SetTrigger("Die"); など
+        }
 
         if (gameOverManager != null)
         {
@@ -588,7 +672,6 @@ public class PlayerController : MonoBehaviour
         bool isHit = false;
 
         // 💡 敵コンポーネントへの依存
-        // IDamageable インターフェースを実装していない場合、この処理は冗長になりますが、
         // チュートリアル版のコード構造を維持するため、そのまま残します。
         if (target.TryGetComponent<TutorialEnemyController>(out var tutorialEnemy))
         {
@@ -641,6 +724,9 @@ public class PlayerController : MonoBehaviour
         _currentArmorStats = armorConfigurations[index];
 
         _moveSpeed = baseMoveSpeed * _currentArmorStats.moveSpeedMultiplier;
+
+        // アーマー切り替え時にダッシュ状態をリセット
+        _isDashing = false;
 
         PlayerPrefs.SetInt(SelectedArmorKey, index);
         PlayerPrefs.Save();
@@ -731,7 +817,7 @@ public class PlayerController : MonoBehaviour
     }
 
     // =======================================================
-    // Public Utility Methods (Tutorial functions removed)
+    // Public Utility Methods
     // =======================================================
 
     public void SwitchWeaponMode(WeaponMode newMode)
