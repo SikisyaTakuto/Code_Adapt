@@ -7,11 +7,24 @@ public class EnemyAI : MonoBehaviour
     public enum EnemyState { Idle, Idle_Shoot, Attack }
     public EnemyState currentState = EnemyState.Idle;
 
+    // EnemyAI.cs クラスの最初に追加
+
+    // --- 弾薬とリロード設定 ---
+    public int maxAmmo = 10;
+    private int currentAmmo;
+    public float reloadTime = 3.0f;
+    private bool isReloading = false; // 💡 リロード中かどうかを示すフラグ
+
     // --- AI 設定 ---
     public float sightRange = 15f;
     public float viewAngle = 90f;
     public float rotationSpeed = 3f;
     public float shootDuration = 1.0f;
+
+    // 💡 1回の攻撃で発射する弾数
+    public int bulletsPerBurst = 1;
+    // 💡 バースト内の弾と弾の間の時間（連射速度）
+    public float timeBetweenShots = 0.1f;
 
     // ★★★ 銃弾の発射に必要な参照 ★★★
     [SerializeField] private GameObject bulletPrefab;
@@ -23,11 +36,7 @@ public class EnemyAI : MonoBehaviour
     private Transform player;
     private float nextRotationTime;
 
-    // 💡 視界判定の結果を保持する変数 (Updateで計算され、LateUpdateで参照される)
-    private bool isPlayerInSight = false;
-
-    // 💡 ステートに入った時刻を記録
-    private float stateEnterTime;
+    // 💡 弾薬とリロード関連の変数を全て削除
 
     // ★★★ Start() 関数 ★★★
     void Start()
@@ -46,50 +55,87 @@ public class EnemyAI : MonoBehaviour
 
         if (agent != null)
         {
-            agent.updateRotation = false; // 回転無効化
-            agent.isStopped = true;       // 移動停止
+            agent.isStopped = true;
+            agent.updateRotation = false;
         }
 
         nextRotationTime = Time.time + Random.Range(3f, 6f);
+
+        // 💡 弾薬を満タンに初期化
+        currentAmmo = maxAmmo;
+       
+    }
+
+    // EnemyAI.cs に追加
+
+    // --- リロード処理 ---
+
+    void StartReload()
+    {
+        isReloading = true; // 💡 リロード中フラグをON
+        Debug.Log("静止型ロボット：リロード開始...");
+
+        // 攻撃中のInvokeを全てキャンセルし、アニメーションを発動
+        CancelInvoke("ShootBullet");
+        CancelInvoke("TransitionToIdle_Shoot");
+
+        if (animator != null)
+        {
+            // 💡 攻撃態勢を解除し、リロードアニメーションを発動
+            animator.SetBool("IsAiming", false);
+            animator.SetTrigger("Reload");
+        }
+
+        // リロード時間が経過したら FinishReload を呼び出す
+        Invoke("FinishReload", reloadTime);
+    }
+
+    void FinishReload()
+    {
+        isReloading = false; // 💡 リロード中フラグをOFF
+        currentAmmo = maxAmmo;
+        Debug.Log("静止型ロボット：リロード完了！");
+
+        // プレイヤーがまだ視界内にいるか再チェック
+        if (CheckForPlayer())
+        {
+            // 視界内なら、すぐに攻撃態勢 (Idle_Shoot) に戻る
+            TransitionToIdle_Shoot();
+        }
+        else
+        {
+            // 視界外なら、通常の待機 (Idle) に戻る
+            TransitionToIdle();
+        }
+    }
+
+    // ★★★ FixedUpdate() 関数 ★★★
+    void FixedUpdate()
+    {
+        if (player == null || agent == null || animator == null || isReloading) return; // 💡 リロード中は処理をスキップ
+
+        if (currentState == EnemyState.Idle_Shoot)
+        {
+            bool playerFoundInFixed = CheckForPlayer();
+            Idle_ShootLogic(playerFoundInFixed);
+        }
     }
 
     // ★★★ Update() 関数 ★★★
     void Update()
     {
-        if (player == null || agent == null || animator == null) return;
-
+        if (player == null || agent == null || animator == null || isReloading) return; // 💡 リロード中は処理をスキップ
         animator.SetFloat("Speed", 0f);
 
-        // 💡 視界判定を Update で一回だけ実行し、メンバー変数に保存
-        isPlayerInSight = CheckForPlayer();
+        bool playerFound = CheckForPlayer();
 
-        // Idle Logic のみ Update で実行
         if (currentState == EnemyState.Idle)
         {
-            // 💡 メンバー変数を渡すように変更
-            IdleLogic(isPlayerInSight);
+            IdleLogic(playerFound);
         }
     }
 
-    // ★★★ LateUpdate() 関数 ★★★
-    void LateUpdate()
-    {
-        if (player == null || agent == null || animator == null) return;
-
-        // Idle_Shoot ステートでのみ実行
-        if (currentState == EnemyState.Idle_Shoot)
-        {
-            // 💡 引数なしで呼び出し
-            Idle_ShootLogic();
-        }
-    }
-
-
-    // ----------------------------------------------------
-    // --- ロジック関数 ---
-    // ----------------------------------------------------
-
-    // 💡 引数ありのまま維持（既存のロジックを変更しないため）
+    // ★★★ Idle (待機・見回し) ロジック ★★★
     void IdleLogic(bool playerFound)
     {
         if (playerFound)
@@ -109,41 +155,32 @@ public class EnemyAI : MonoBehaviour
         }
     }
 
-    // 💡 引数なしに変更し、isPlayerInSight を直接参照
-    void Idle_ShootLogic()
+    // ★★★ Idle_Shoot (照準合わせ) ロジック ★★★
+    void Idle_ShootLogic(bool playerFound)
     {
         if (player == null) return;
 
         Vector3 direction = (player.position - transform.position).normalized;
         Quaternion lookRotation = Quaternion.LookRotation(new Vector3(direction.x, 0, direction.z));
 
-        // プレイヤーの方向へ滑らかに向きを変える（追尾回転）
-        transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.deltaTime * rotationSpeed * 2f);
+        float maxDegreesPerFrame = rotationSpeed * 30f * Time.fixedDeltaTime;
 
-        // 💡 3秒以上このステートに留まったら、何らかのブロックと見なし強制リセット
-        if (Time.time > stateEnterTime + 3.0f)
-        {
-            Debug.LogError("Idle_Shoot滞在時間超過！強制的にIDLEへ戻ります。");
-            TransitionToIdle();
-            return;
-        }
+        transform.rotation = Quaternion.RotateTowards(transform.rotation, lookRotation, maxDegreesPerFrame);
 
-        // 回転が完了したと見なす角度差でAttackへ移行
-        if (Quaternion.Angle(transform.rotation, lookRotation) < 25f)
+        // 💡 向きがほぼ完了したらAttackへ移行
+        if (Quaternion.Angle(transform.rotation, lookRotation) < 15f)
         {
             TransitionToAttack();
         }
 
         // プレイヤーを見失ったらIdleに戻る
-        // 💡 メンバー変数 isPlayerInSight を参照
-        if (!isPlayerInSight)
+        if (!playerFound)
         {
             TransitionToIdle();
         }
     }
 
-    // CheckForPlayer() は変更なし
-
+    // ★★★ プレイヤー視界判定 ★★★
     bool CheckForPlayer()
     {
         if (player == null || agent == null) return false;
@@ -151,15 +188,14 @@ public class EnemyAI : MonoBehaviour
         Vector3 directionToPlayer = player.position - transform.position;
         float distanceToPlayer = directionToPlayer.magnitude;
 
-        // 1. 距離と角度チェック
         if (distanceToPlayer > sightRange) return false;
         float angle = Vector3.Angle(transform.forward, directionToPlayer);
         if (angle > viewAngle / 2f) return false;
 
         RaycastHit hit;
-        Vector3 eyePosition = transform.position + Vector3.up * (agent.height / 2f);
+        Vector3 eyePosition = transform.position + Vector3.up * 0.1f;
 
-        // 2. 遮蔽物チェック (Raycast)
+        // Raycastで障害物チェック
         if (Physics.Raycast(eyePosition, directionToPlayer.normalized, out hit, sightRange))
         {
             if (hit.collider.CompareTag("Player"))
@@ -167,23 +203,20 @@ public class EnemyAI : MonoBehaviour
                 Debug.DrawLine(eyePosition, hit.point, Color.red);
                 return true;
             }
-            else
-            {
-                Debug.DrawLine(eyePosition, hit.point, Color.yellow);
-                return false;
-            }
         }
-
         return false;
     }
 
-
     // ----------------------------------------------------
-    // --- 状態遷移関数 (変更なし) ---
+    // --- 状態遷移関数 ---
     // ----------------------------------------------------
 
     void TransitionToIdle()
     {
+        CancelInvoke("ShootBullet");
+        CancelInvoke("TransitionToIdle_Shoot");
+        // 💡 StartReload/FinishReload 関連のInvokeキャンセルを削除
+
         currentState = EnemyState.Idle;
         animator.SetBool("IsAiming", false);
         nextRotationTime = Time.time + Random.Range(3f, 6f);
@@ -193,29 +226,63 @@ public class EnemyAI : MonoBehaviour
     {
         currentState = EnemyState.Idle_Shoot;
         animator.SetBool("IsAiming", true);
-        animator.ResetTrigger("Shoot");
-
-        // 💡 ステートに入った時刻を記録
-        stateEnterTime = Time.time;
-        Debug.Log("==> IDLE_SHOOT: 構え、追尾開始");
     }
 
+    // ★★★ TransitionToAttack ★★★
     void TransitionToAttack()
     {
+        // 💡 弾薬チェックと StartReload() の呼び出しを削除
+
+        // 🚨 攻撃開始前に弾薬チェック
+        if (currentAmmo <= 0)
+        {
+            StartReload();
+            return; // リロードに切り替えるため、これ以降の攻撃処理はスキップ
+        }
+
         currentState = EnemyState.Attack;
         animator.SetTrigger("Shoot");
+
+        CancelInvoke("ShootBullet");
+        CancelInvoke("TransitionToIdle_Shoot");
+
+        for (int i = 0; i < bulletsPerBurst; i++)
+        {
+            Invoke("ShootBullet", i * timeBetweenShots);
+        }
+
+        float totalBurstTime = (bulletsPerBurst - 1) * timeBetweenShots;
+        float totalAttackTime = totalBurstTime + shootDuration;
+
+        Invoke("TransitionToIdle_Shoot", totalAttackTime);
     }
+
+    // ----------------------------------------------------
+    // --- 弾丸生成処理 ---
+    // ----------------------------------------------------
 
     public void ShootBullet()
     {
+        // 💡 弾切れの場合は即座に処理を終了
+        if (currentAmmo <= 0) return;
+
+        currentAmmo--; // 💡 弾薬を消費
+
+        // 💡 弾薬消費のロジックを削除
+        if (gameObject == null || !gameObject.activeInHierarchy) return;
+
         if (bulletPrefab == null || muzzlePoint == null)
         {
             Debug.LogError("弾丸プレハブまたは銃口が未設定です！");
             return;
         }
 
-        Instantiate(bulletPrefab, muzzlePoint.position, muzzlePoint.rotation);
+        GameObject newBullet = Instantiate(bulletPrefab, muzzlePoint.position, muzzlePoint.rotation);
+        newBullet.transform.parent = null;
 
         Debug.Log("弾が生成されました！");
     }
+
+    // 💡 StartReload/FinishReload 関数を削除
+    // ... (OnDisable, OnDestroy は変更なし) ...
 }

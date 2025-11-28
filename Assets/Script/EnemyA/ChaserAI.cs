@@ -1,140 +1,296 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 using UnityEngine.AI;
 
-[RequireComponent(typeof(NavMeshAgent))]
-public class ChaserAI_Stateful : MonoBehaviour
+public class ChaserAI : MonoBehaviour
 {
-    private Animator anim;
+    // --- çŠ¶æ…‹å®šç¾© ---
+    // ğŸ’¡ Reload ã‚¹ãƒ†ãƒ¼ãƒˆã‚’å‰Šé™¤
+    public enum EnemyState { Idle, Chase, Attack, Reload }
+    public EnemyState currentState = EnemyState.Idle;
+
+    // --- AI è¨­å®š ---
+    public Transform player;
+    public float sightRange = 15f;
+    public float attackRange = 5f;
+    public float rotationSpeed = 10f;
+
+    // --- æ”»æ’ƒè¨­å®š ---
+    public int bulletsPerBurst = 3;
+    public float timeBetweenShots = 0.1f;
+    public float shootDuration = 0.5f;
+
+    // --- å¼¾è–¬ã¨ãƒªãƒ­ãƒ¼ãƒ‰è¨­å®š ---
+    public int maxAmmo = 10;
+    private int currentAmmo;
+    public float reloadTime = 3.0f;
+
+    // â˜…â˜…â˜… éŠƒå¼¾ã®ç™ºå°„ã«å¿…è¦ãªå‚ç…§ â˜…â˜…â˜…
+    [SerializeField] private GameObject bulletPrefab;
+    public Transform muzzlePoint;
+
+    // --- ã‚³ãƒ³ãƒãƒ¼ãƒãƒ³ãƒˆ ---
     private NavMeshAgent agent;
+    private Animator animator;
 
-    [SerializeField] private Transform target;
-    [SerializeField] private float rotationSpeed = 10f;
-
-    [Header("ˆÚ“®İ’è")]
-    [SerializeField] private float dashSpeed = 6f;      // ’ÇÕ‚Ì‘–s‘¬“x
-    [SerializeField] private float stopDistance = 0.5f; // ‚±‚Ì‹——£‚Å’â~E‘Ò‹@
-
-    [Header("’ÇÕŠJnİ’è")]
-    [SerializeField] private float chaseStartDistance = 3f; // ‚±‚Ì‹——£ˆÈã—£‚ê‚½‚ç’ÇÕŠJn
-
-    // AI‚ÌŒ»İ‚Ìó‘Ô‚ğ•Û‚·‚éƒtƒ‰ƒO
-    private bool isChasing = false;
-
-    // Animator Parameters (•ÏX‚È‚µ)
-    private static readonly int SpeedParam = Animator.StringToHash("Speed");
-    private static readonly int IsAimingParam = Animator.StringToHash("IsAiming");
-    private static readonly int IsBackpedalingParam = Animator.StringToHash("IsBackpedaling");
+    // ----------------------------------------------------------------------
 
     void Start()
     {
-        anim = GetComponent<Animator>();
         agent = GetComponent<NavMeshAgent>();
+        animator = GetComponent<Animator>();
 
-        if (agent == null || anim == null) return;
-
-        agent.updateRotation = false;
-        agent.speed = dashSpeed;
-        agent.stoppingDistance = stopDistance; // NavMeshAgent‚Ì’â~‹——£‚ğİ’è‚µ‚Ä‚¨‚­
-
-        // È—ª: NavMesh”z’u‚Æƒ^[ƒQƒbƒgŒŸõ‚Ì‰Šú‰»ˆ—‚Í‚»‚Ì‚Ü‚Ü
-        if (agent.isActiveAndEnabled)
+        if (player == null)
         {
-            NavMeshHit hit;
-            if (NavMesh.SamplePosition(transform.position, out hit, 1.0f, NavMesh.AllAreas))
-            {
-                transform.position = hit.position;
-            }
+            GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
+            if (playerObject != null) player = playerObject.transform;
         }
 
-        if (target == null && GameObject.FindWithTag("Player") != null)
+        if (agent != null)
         {
-            target = GameObject.FindWithTag("Player").transform;
+            agent.isStopped = true;
+            TransitionToIdle();
         }
+        currentAmmo = maxAmmo; // ğŸ’¡ å¼¾è–¬ã‚’æº€ã‚¿ãƒ³ã«åˆæœŸåŒ–
     }
+
+    // ----------------------------------------------------------------------
 
     void Update()
     {
-        if (target == null || agent == null || !agent.isActiveAndEnabled) return;
+        if (player == null || agent == null) return;
 
-        float distanceToTarget = Vector3.Distance(transform.position, target.position);
+        float distanceToPlayer = Vector3.Distance(transform.position, player.position);
 
-        LookAtTarget();
-        HandleState(distanceToTarget);
-        UpdateAnimatorParameters();
-    }
-
-    // ƒ^[ƒQƒbƒg‚ğŒ©‚éˆ—i•ÏX‚È‚µj
-    void LookAtTarget()
-    {
-        Vector3 direction = target.position - transform.position;
-        direction.y = 0;
-
-        if (direction != Vector3.zero)
+        // --- çŠ¶æ…‹é·ç§»åˆ¤å®š ---
+        switch (currentState)
         {
-            Quaternion lookRotation = Quaternion.LookRotation(direction);
-            transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.deltaTime * rotationSpeed);
+            case EnemyState.Idle:
+                IdleLogic(distanceToPlayer);
+                break;
+            case EnemyState.Chase:
+                ChaseLogic(distanceToPlayer);
+                break;
+            case EnemyState.Attack:
+                AttackLogic(distanceToPlayer);
+                break;
+            case EnemyState.Reload: // ğŸ’¡ Reload ã‚¹ãƒ†ãƒ¼ãƒˆã®è¿½åŠ 
+                ReloadLogic();
+                break;
+        }
+
+        // ğŸ’¡ ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³åˆ¶å¾¡ï¼ˆç§»å‹•é€Ÿåº¦é€£å‹•ï¼‰
+        if (animator != null)
+        {
+            bool isMoving = agent.velocity.magnitude > 0.1f;
+            animator.SetBool("IsRunning", isMoving);
         }
     }
 
-    // --------------------------------------------------------------------------------
-    // AIs“®ƒƒWƒbƒN (ƒXƒe[ƒgƒx[ƒX§Œä)
-    // --------------------------------------------------------------------------------
+    // ----------------------------------------------------
+    // --- ãƒ­ã‚¸ãƒƒã‚¯é–¢æ•° ---
+    // ----------------------------------------------------
+    // IdleLogic, ChaseLogic, AttackLogic ã¯å¤‰æ›´ãªã—
 
-    void HandleState(float distanceToTarget)
+    void IdleLogic(float distance)
     {
-        // ƒAƒjƒ[ƒVƒ‡ƒ“ƒpƒ‰ƒ[ƒ^‚ÌƒŠƒZƒbƒgiŒ»İ‚ÌÀ‘••ûj‚É‡‚í‚¹‚éj
-        anim.SetBool(IsAimingParam, false);
-        anim.SetBool(IsBackpedalingParam, false);
-
-        if (!agent.isOnNavMesh) return;
-
-        // yƒXƒe[ƒg‘JˆÚ”»’èz
-
-        // ’ÇÕ’† ‚©‚Â ’â~‹——£ˆÈ‰º‚É‚È‚Á‚½‚ç -> ’â~ƒXƒe[ƒg‚Ö
-        if (isChasing && distanceToTarget <= stopDistance)
+        if (distance <= sightRange)
         {
-            isChasing = false;
+            TransitionToChase();
         }
-        // ’â~’† ‚©‚Â ’ÇÕŠJn‹——£ˆÈã—£‚ê‚½‚ç -> ’ÇÕƒXƒe[ƒg‚Ö
-        else if (!isChasing && distanceToTarget > chaseStartDistance)
+    }
+
+    void ChaseLogic(float distance)
+    {
+        agent.SetDestination(player.position);
+
+        if (distance <= attackRange)
         {
-            isChasing = true;
+            TransitionToAttack();
+        }
+        else if (distance > sightRange)
+        {
+            TransitionToIdle();
+        }
+    }
+
+    void AttackLogic(float distance)
+    {
+        Vector3 direction = (player.position - transform.position).normalized;
+        Quaternion lookRotation = Quaternion.LookRotation(new Vector3(direction.x, 0, direction.z));
+        transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.deltaTime * rotationSpeed);
+
+        if (distance > attackRange * 1.2f)
+        {
+            TransitionToChase();
+        }
+    }
+
+    // ----------------------------------------------------
+    // --- çŠ¶æ…‹é·ç§»é–¢æ•° ---
+    // ----------------------------------------------------
+
+    void TransitionToIdle()
+    {
+        currentState = EnemyState.Idle;
+        if (agent != null)
+        {
+            agent.isStopped = true;
+            agent.updateRotation = true;
+        }
+        CancelInvoke("ShootBullet");
+        if (animator != null) animator.SetBool("IsAiming", false);
+    }
+
+    void TransitionToChase()
+    {
+        currentState = EnemyState.Chase;
+        if (agent != null)
+        {
+            agent.isStopped = false;
+            agent.updateRotation = true;
+        }
+        if (animator != null) animator.SetBool("IsAiming", false);
+        CancelInvoke("ShootBullet");
+        CancelInvoke("TransitionToAttackComplete");
+    }
+
+    void TransitionToAttack()
+    {
+        // ğŸ’¡ å¼¾åˆ‡ã‚Œã®å ´åˆã€Attackã§ã¯ãªãReloadã¸é·ç§»
+        if (currentAmmo <= 0)
+        {
+            TransitionToReload();
+            return;
         }
 
-        // yŒ»İ‚ÌƒXƒe[ƒg‚ÉŠî‚Ã‚­s“®Àsz
+        // ğŸ’¡ å¼¾è–¬ãƒã‚§ãƒƒã‚¯ã‚’å‰Šé™¤
+        currentState = EnemyState.Attack;
 
-        if (isChasing)
+        if (agent != null)
         {
-            // ’ÇÕƒXƒe[ƒg: –Ú“I’n‚ğİ’è‚µA‘¬“x‚ğƒtƒ‹ƒXƒs[ƒh‚É‚·‚é
-            agent.speed = dashSpeed;
-            // –Ú“I’n‚ğ–ˆƒtƒŒ[ƒ€XV‚·‚é‚±‚Æ‚Å’ÇÕ‚ğŒp‘±
-            agent.SetDestination(target.position);
+            agent.isStopped = true;
+            agent.updateRotation = false;
+        }
+
+        if (animator != null)
+        {
+            // ğŸš¨ ä¿®æ­£: IsRunningã‚’ã‚ªãƒ•ã«ã—ã¦ã€Run/Idleã‚¹ãƒ†ãƒ¼ãƒˆã¸ã®å½±éŸ¿ã‚’å®Œå…¨ã«æ–­ã¤
+            animator.SetBool("IsRunning", false);
+
+            // ğŸ’¡ Shootset ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ã‚’èµ·å‹•ãƒ»ç¶­æŒ
+            animator.SetBool("IsAiming", true);
+
+            // ğŸ’¡ å°„æ’ƒãƒˆãƒªã‚¬ãƒ¼ã‚’å³åº§ã«èµ·å‹•ã—ã€ãƒ¢ãƒ¼ã‚·ãƒ§ãƒ³ã«å…¥ã‚‰ã›ã‚‹
+            animator.SetTrigger("Shoot");
+        }
+
+        CancelInvoke("ShootBullet");
+
+        for (int i = 0; i < bulletsPerBurst; i++)
+        {
+            Invoke("ShootBullet", i * timeBetweenShots);
+        }
+
+        float totalBurstTime = (bulletsPerBurst - 1) * timeBetweenShots;
+        float totalAttackTime = totalBurstTime + shootDuration;
+
+        Invoke("TransitionToAttackComplete", totalAttackTime);
+    }
+
+    void TransitionToAttackComplete()
+    {
+        // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ãŒã¾ã å°„ç¨‹å†…ã«ã„ã‚Œã°Attackã‚’ç¶šè¡Œã€ã„ãªã‘ã‚Œã°Chaseã¸æˆ»ã‚‹
+        float distance = Vector3.Distance(transform.position, player.position);
+        if (distance <= attackRange * 1.2f)
+        {
+            TransitionToAttack(); // æ”»æ’ƒã‚’ç¹°ã‚Šè¿”ã™
         }
         else
         {
-            // ’â~ƒXƒe[ƒg: Œ»İ’n‚ğ–Ú“I’n‚Éİ’è‚µAˆÚ“®‚ğŠ®‘S‚É’â~‚³‚¹‚é
-            agent.speed = 0f;
-            agent.SetDestination(transform.position);
+            TransitionToChase(); // è¿½è·¡ã«æˆ»ã‚‹
         }
     }
 
-    // --------------------------------------------------------------------------------
-    // ƒAƒjƒ[ƒ^[ƒpƒ‰ƒ[ƒ^[XV
-    // --------------------------------------------------------------------------------
+    // ----------------------------------------------------
+    // --- å¼¾ä¸¸ç”Ÿæˆå‡¦ç† ---
+    // ----------------------------------------------------
 
-    void UpdateAnimatorParameters()
+    public void ShootBullet()
     {
-        // ÀÛ‚ÌˆÚ“®‘¬“x‚ğæ“¾
-        // agent.velocity ‚Í NavMesh Agent‚ÌÀÛ‚ÌˆÚ“®‘¬“xƒxƒNƒgƒ‹
-        float currentVelocityMagnitude = agent.velocity.magnitude;
+        if (currentAmmo <= 0) return; // å¼¾åˆ‡ã‚Œãªã‚‰æ’ƒãŸãªã„
 
-        float normalizedSpeed = 0f;
-        if (dashSpeed > 0.01f)
+        currentAmmo--; // ğŸ’¡ å¼¾è–¬ã‚’æ¶ˆè²»
+
+        // ğŸ’¡ å¼¾è–¬æ¶ˆè²»ãƒ­ã‚¸ãƒƒã‚¯ã‚’å‰Šé™¤
+        if (gameObject == null || !gameObject.activeInHierarchy || bulletPrefab == null || muzzlePoint == null)
         {
-            normalizedSpeed = Mathf.Clamp01(currentVelocityMagnitude / dashSpeed);
+            return;
         }
 
-        // ƒAƒjƒ[ƒ^[‚É‘¬“x‚ğƒZƒbƒg (DampTime 0.1f ‚ÅƒXƒ€[ƒY‚É)
-        anim.SetFloat(SpeedParam, normalizedSpeed, 0.1f, Time.deltaTime);
+        GameObject newBullet = Instantiate(bulletPrefab, muzzlePoint.position, muzzlePoint.rotation);
+        newBullet.transform.parent = null;
+
+        Debug.Log("å¼¾ãŒç™ºå°„ã•ã‚Œã¾ã—ãŸï¼");
+    }
+
+    void ReloadLogic()
+    {
+        // ãƒªãƒ­ãƒ¼ãƒ‰ä¸­ã¯ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ã¨æ™‚é–“å¾…ã¡ãŒãƒ¡ã‚¤ãƒ³ãªã®ã§ã€ã“ã“ã§ã¯ç‰¹ã«ä½•ã‚‚ã—ã¾ã›ã‚“ã€‚
+    }
+
+    void TransitionToReload()
+    {
+        currentState = EnemyState.Reload;
+        if (agent != null)
+        {
+            agent.isStopped = true;
+            agent.updateRotation = false; // ãƒªãƒ­ãƒ¼ãƒ‰ä¸­ã¯åœæ­¢
+        }
+
+        // æ”»æ’ƒä¸­ã®Invokeã‚’å…¨ã¦ã‚­ãƒ£ãƒ³ã‚»ãƒ«
+        CancelInvoke("ShootBullet");
+        CancelInvoke("TransitionToAttackComplete");
+
+        if (animator != null)
+        {
+            animator.SetBool("IsAiming", false);
+            // ğŸ’¡ Animator ã®ãƒªãƒ­ãƒ¼ãƒ‰ãƒˆãƒªã‚¬ãƒ¼ã‚’ç™ºå‹•ï¼
+            animator.SetTrigger("Reload");
+        }
+
+        Debug.Log("ãƒªãƒ­ãƒ¼ãƒ‰é–‹å§‹... (" + reloadTime + "ç§’)");
+        // ãƒªãƒ­ãƒ¼ãƒ‰æ™‚é–“ãŒçµŒéã—ãŸã‚‰ FinishReload ã‚’å‘¼ã³å‡ºã™
+        Invoke("FinishReload", reloadTime);
+    }
+
+    void FinishReload()
+    {
+        currentAmmo = maxAmmo;
+        Debug.Log("ãƒªãƒ­ãƒ¼ãƒ‰å®Œäº†ï¼");
+
+        // ğŸ’¡ ãƒªãƒ­ãƒ¼ãƒ‰ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ãŒçµ‚äº†ã—ã¦ã„ã‚‹ã“ã¨ã‚’ç¢ºèªã™ã‚‹ï¼ˆå®‰å…¨ã®ãŸã‚ï¼‰
+        if (animator != null)
+        {
+            // Has Exit Timeã§æ¬¡ã®ã‚¹ãƒ†ãƒ¼ãƒˆã«æˆ»ã‚‹ãŸã‚ã€ã“ã“ã§ã¯Triggerã®ã‚¯ãƒªã‚¢ã¯ä¸è¦ã§ã™ãŒã€
+            // å¿µã®ãŸã‚ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ã®çŠ¶æ…‹ã‚’ç¢ºå®Ÿã«ãƒªã‚»ãƒƒãƒˆã—ã¾ã™ã€‚
+            animator.SetBool("IsRunning", false);
+        }
+
+        // å®Œäº†å¾Œã€æ¬¡ã®è¡Œå‹•ã‚’æ±ºå®šã™ã‚‹
+        float distance = Vector3.Distance(transform.position, player.position);
+
+        // ä»¥å‰ã®ãƒ‡ãƒãƒƒã‚°ã§ç¢ºèªã—ãŸã€å³åº§ã«Idleã«æˆ»ã‚‹ã®ã‚’é˜²ããŸã‚ã®ãƒ­ã‚¸ãƒƒã‚¯
+        if (distance <= attackRange * 1.2f)
+        {
+            TransitionToAttack(); // æ”»æ’ƒå†é–‹
+        }
+        else if (distance <= sightRange)
+        {
+            TransitionToChase(); // è¿½è·¡ã«æˆ»ã‚‹
+        }
+        else
+        {
+            TransitionToIdle(); // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ãŒè¦–ç•Œå¤–ãªã‚‰å¾…æ©Ÿ
+        }
     }
 }
