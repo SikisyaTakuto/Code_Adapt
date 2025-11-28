@@ -19,23 +19,31 @@ public class PauseManager : MonoBehaviour
     [Tooltip("操作手順などのさらに深いサブパネル (OperatingInstructionsPanel) を設定してください。")]
     public GameObject operatingInstructionsPanelUI;
 
-    // ★ NEW: Player/Enemy/Extra Explanation Panelの参照を追加
+    // Player/Enemy/Extra Explanation Panelの参照
     [Header("Explanation Details")]
     [Tooltip("プレイヤー説明パネルを設定してください。")]
-    public GameObject playerExplanationPanelUI;       // ★ 追加
+    public GameObject playerExplanationPanelUI;
     [Tooltip("エネミー説明パネルを設定してください。")]
-    public GameObject enemyExplanationPanelUI;        // ★ 追加
+    public GameObject enemyExplanationPanelUI;
     [Tooltip("追加情報パネル (Extra) を設定してください。")]
-    public GameObject extraPanelUI;                   // ★ 追加
+    public GameObject extraPanelUI;
 
-    // ★ NEW: キーボード/ゲームパッド操作説明パネルの参照を追加
+    // PlayerExplanationPanelUI の子パネル
+    [Header("Player Explanation Sub Panels")]
+    [Tooltip("バランスタイプの説明パネルを設定してください。")]
+    public GameObject BalancePanelUI;
+    [Tooltip("バスタータイプの説明パネルを設定してください。")]
+    public GameObject BusterPanelUI;
+    [Tooltip("スピードタイプの説明パネルを設定してください。")]
+    public GameObject SpeedPanelUI;
+
+    // キーボード/ゲームパッド操作説明パネルの参照
     [Tooltip("キーボード操作説明パネルを設定してください。")]
-    public GameObject KeyBordPanelUI;                 // ★ NEW: 追加
+    public GameObject KeyBordPanelUI;
     [Tooltip("ゲームパッド操作説明パネルを設定してください。")]
-    public GameObject GamePadPanelUI;                 // ★ NEW: 追加
-    // -----------------------------------------------------------------
+    public GameObject GamePadPanelUI;
 
-    // ? NEW: Audio Settings
+    // Audio Settings
     [Header("Audio Settings")]
     [Tooltip("ボタンをクリックしたときに再生するSEクリップ")]
     public AudioClip buttonClickSFX;
@@ -44,7 +52,7 @@ public class PauseManager : MonoBehaviour
     private bool isPaused = false;
     private CanvasGroup pauseMenuCanvasGroup;
 
-    // ★ 追加: 親Canvasを保持する変数
+    // 親Canvasを保持する変数
     private Canvas rootCanvas;
 
     // --- 1. Awakeでシングルトン処理を行う ---
@@ -94,10 +102,6 @@ public class PauseManager : MonoBehaviour
         {
             Debug.LogError("PauseManager: pauseMenuUIがInspectorに設定されていません。ポーズ機能は動作しません。");
         }
-
-        // 【修正】ゲーム開始時にカーソルを非表示/ロック
-        Cursor.visible = false;
-        Cursor.lockState = CursorLockMode.Locked;
     }
 
     // --- Update: ESCキーでのポーズ切り替え ---
@@ -109,23 +113,30 @@ public class PauseManager : MonoBehaviour
 
             if (isPaused)
             {
-                // ★ 4階層目のパネル（KeyBordPanel, GamePadPanel）が開いていたら、3階層目(OperatingInstructionsPanel)に戻る
-                if ((KeyBordPanelUI != null && KeyBordPanelUI.activeSelf) || // ★ 修正: 追加
-                    (GamePadPanelUI != null && GamePadPanelUI.activeSelf))    // ★ 修正: 追加
+                // 5階層目のパネル（Balance, Buster, Speed）が開いていたら、4階層目(PlayerExplanationPanel)に戻る
+                if ((BalancePanelUI != null && BalancePanelUI.activeSelf) ||
+                    (BusterPanelUI != null && BusterPanelUI.activeSelf) ||
+                    (SpeedPanelUI != null && SpeedPanelUI.activeSelf))
                 {
-                    GoToOperatingInstructionsPanel(); // ★ 修正: GoToOperatingInstructionsPanelを呼び出す
+                    GoToPlayerExplanationPanel(); // PlayerExplanationPanelに戻る
+                }
+                // 4階層目のパネル（KeyBordPanel, GamePadPanel）が開いていたら、3階層目(OperatingInstructionsPanel)に戻る
+                else if ((KeyBordPanelUI != null && KeyBordPanelUI.activeSelf) ||
+                          (GamePadPanelUI != null && GamePadPanelUI.activeSelf))
+                {
+                    GoToOperatingInstructionsPanel();
                 }
                 // 3階層目のパネル（OperatingInstructions, PlayerExplanation, EnemyExplanation, Extra）が開いていたら、2階層目(ExplanationPanel)に戻る
                 else if ((operatingInstructionsPanelUI != null && operatingInstructionsPanelUI.activeSelf) ||
-                    (playerExplanationPanelUI != null && playerExplanationPanelUI.activeSelf) || // ★ 追加
-                    (enemyExplanationPanelUI != null && enemyExplanationPanelUI.activeSelf) ||  // ★ 追加
-                    (extraPanelUI != null && extraPanelUI.activeSelf))                         // ★ 追加
+                    (playerExplanationPanelUI != null && playerExplanationPanelUI.activeSelf) ||
+                    (enemyExplanationPanelUI != null && enemyExplanationPanelUI.activeSelf) ||
+                    (extraPanelUI != null && extraPanelUI.activeSelf))
                 {
                     GoToExplanationPanel();
                 }
                 // 2階層目のパネルが開いていたら、1階層目(ポーズメニュー)に戻る
                 else if ((soundPanelUI != null && soundPanelUI.activeSelf) ||
-                            (explanationPanelUI != null && explanationPanelUI.activeSelf))
+                             (explanationPanelUI != null && explanationPanelUI.activeSelf))
                 {
                     GoToPauseMenu();
                 }
@@ -142,21 +153,47 @@ public class PauseManager : MonoBehaviour
         }
     }
 
+    // --- NEW: 歯車ボタンから呼び出すためのメソッド（ボタンアクション） ---
+    /// <summary>
+    /// ポーズ状態を切り替えます。歯車ボタンなど、UIボタンのクリックイベントにアタッチします。
+    /// </summary>
+    public void TogglePauseState()
+    {
+        // ボタン操作によるSE再生は、各メニュー開閉メソッドまたはResumeGame/PauseGame内で行う
+        PlayButtonClickSFX();
+
+        // ESCキーと同じ動作でポーズ/ポーズ解除を切り替える
+        if (isPaused)
+        {
+            // ポーズ中の場合はゲームに戻る（メニュー階層の戻る処理はESCキーに任せる）
+            ResumeGame();
+        }
+        else
+        {
+            // ポーズ解除中の場合はポーズメニューを開く
+            PauseGame();
+        }
+    }
+    // ------------------------------------------------------------------
+
     // --- ポーズ/ポーズ解除処理 ---
     public void ResumeGame()
     {
-        PlayButtonClickSFX(); // ボタンクリックSEを再生
+        // PlayButtonClickSFX(); // ボタンアクションから呼び出される場合は、呼び出し元でSEを再生する
 
         if (soundPanelUI != null) soundPanelUI.SetActive(false);
         if (explanationPanelUI != null) explanationPanelUI.SetActive(false);
         if (operatingInstructionsPanelUI != null) operatingInstructionsPanelUI.SetActive(false);
-        // ★ 修正: 新しいパネルを非表示
+        // 新しいパネルを非表示
         if (playerExplanationPanelUI != null) playerExplanationPanelUI.SetActive(false);
         if (enemyExplanationPanelUI != null) enemyExplanationPanelUI.SetActive(false);
         if (extraPanelUI != null) extraPanelUI.SetActive(false);
-        if (KeyBordPanelUI != null) KeyBordPanelUI.SetActive(false);   // ★ 追加
-        if (GamePadPanelUI != null) GamePadPanelUI.SetActive(false);   // ★ 追加
-        // ---
+        if (KeyBordPanelUI != null) KeyBordPanelUI.SetActive(false);
+        if (GamePadPanelUI != null) GamePadPanelUI.SetActive(false);
+        // PlayerExplanationPanelUIの子パネルを非表示
+        if (BalancePanelUI != null) BalancePanelUI.SetActive(false);
+        if (BusterPanelUI != null) BusterPanelUI.SetActive(false);
+        if (SpeedPanelUI != null) SpeedPanelUI.SetActive(false);
         if (pauseMenuUI != null) pauseMenuUI.SetActive(false);
 
         if (pauseMenuCanvasGroup != null)
@@ -167,23 +204,26 @@ public class PauseManager : MonoBehaviour
 
         Time.timeScale = 1f;
         isPaused = false;
-        Cursor.visible = false;
-        Cursor.lockState = CursorLockMode.Locked;
     }
 
     public void PauseGame()
     {
-        // ポーズを開始する際、すべてのサブパネルを閉じる
+        // PlayButtonClickSFX(); // ボタンアクションから呼び出される場合は、呼び出し元でSEを再生する
+
+        // ポーズを開始する際、すべてのサブパネルを閉じてメインポーズメニューに戻す
         if (soundPanelUI != null) soundPanelUI.SetActive(false);
         if (explanationPanelUI != null) explanationPanelUI.SetActive(false);
         if (operatingInstructionsPanelUI != null) operatingInstructionsPanelUI.SetActive(false);
-        // ★ 修正: 新しいパネルを非表示
+        // 新しいパネルを非表示
         if (playerExplanationPanelUI != null) playerExplanationPanelUI.SetActive(false);
         if (enemyExplanationPanelUI != null) enemyExplanationPanelUI.SetActive(false);
         if (extraPanelUI != null) extraPanelUI.SetActive(false);
-        if (KeyBordPanelUI != null) KeyBordPanelUI.SetActive(false);   // ★ 追加
-        if (GamePadPanelUI != null) GamePadPanelUI.SetActive(false);   // ★ 追加
-        // ---
+        if (KeyBordPanelUI != null) KeyBordPanelUI.SetActive(false);
+        if (GamePadPanelUI != null) GamePadPanelUI.SetActive(false);
+        // PlayerExplanationPanelUIの子パネルを非表示
+        if (BalancePanelUI != null) BalancePanelUI.SetActive(false);
+        if (BusterPanelUI != null) BusterPanelUI.SetActive(false);
+        if (SpeedPanelUI != null) SpeedPanelUI.SetActive(false);
 
         if (pauseMenuUI != null) pauseMenuUI.SetActive(true);
 
@@ -201,11 +241,9 @@ public class PauseManager : MonoBehaviour
         }
 
         isPaused = true;
-        Cursor.visible = true;
-        Cursor.lockState = CursorLockMode.None;
     }
 
-    // ? NEW: ボタンSE再生用の共通メソッド
+    // ボタンSE再生用の共通メソッド
     /// <summary>
     /// ボタンクリックSEを再生します。
     /// </summary>
@@ -219,21 +257,12 @@ public class PauseManager : MonoBehaviour
         }
     }
 
-    // --- ボタンが呼び出す機能 ---
-
-    public void RestartStage()
-    {
-        PlayButtonClickSFX();
-        Time.timeScale = 1f;
-        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
-    }
-
-    public void GoToTitleScene()
-    {
-        PlayButtonClickSFX();
-        Time.timeScale = 1f;
-        SceneManager.LoadScene("TitleScene");
-    }
+    // 以下、UIパネル操作メソッド（変更なし）
+    // ... (ToggleSoundPanel, ToggleExplanationPanel, ToggleOperatingInstructionsPanel, 
+    //      TogglePlayerExplanationPanel, ToggleEnemyExplanationPanel, ToggleExtraPanel,
+    //      ToggleKeyBordPanel, ToggleGamePadPanel, ToggleBalancePanel, ToggleBusterPanel, ToggleSpeedPanel) ...
+    // ... (GoToPauseMenu, GoToExplanationPanel, GoToOperatingInstructionsPanel, GoToPlayerExplanationPanel) ...
+    // ... (GoToTitle, QuitGame) ...
 
     // サウンドパネル表示/非表示の切り替え (ボタンアクション)
     public void ToggleSoundPanel()
@@ -247,11 +276,16 @@ public class PauseManager : MonoBehaviour
             // 他のパネルを閉じる
             if (explanationPanelUI != null) explanationPanelUI.SetActive(false);
             if (operatingInstructionsPanelUI != null) operatingInstructionsPanelUI.SetActive(false);
-            if (playerExplanationPanelUI != null) playerExplanationPanelUI.SetActive(false); // ★ 追加
-            if (enemyExplanationPanelUI != null) enemyExplanationPanelUI.SetActive(false);   // ★ 追加
-            if (extraPanelUI != null) extraPanelUI.SetActive(false);                        // ★ 追加
-            if (KeyBordPanelUI != null) KeyBordPanelUI.SetActive(false);   // ★ 追加
-            if (GamePadPanelUI != null) GamePadPanelUI.SetActive(false);   // ★ 追加
+            if (playerExplanationPanelUI != null) playerExplanationPanelUI.SetActive(false);
+            if (enemyExplanationPanelUI != null) enemyExplanationPanelUI.SetActive(false);
+            if (extraPanelUI != null) extraPanelUI.SetActive(false);
+            if (KeyBordPanelUI != null) KeyBordPanelUI.SetActive(false);
+            if (GamePadPanelUI != null) GamePadPanelUI.SetActive(false);
+            // ★ 追加: PlayerExplanationPanelUIの子パネルを非表示
+            if (BalancePanelUI != null) BalancePanelUI.SetActive(false);
+            if (BusterPanelUI != null) BusterPanelUI.SetActive(false);
+            if (SpeedPanelUI != null) SpeedPanelUI.SetActive(false);
+            // ---
             if (pauseMenuUI != null) pauseMenuUI.SetActive(false);
 
             Debug.Log("SoundPanelUI を開きました。");
@@ -274,11 +308,16 @@ public class PauseManager : MonoBehaviour
             // 他のパネルを閉じる
             if (soundPanelUI != null) soundPanelUI.SetActive(false);
             if (operatingInstructionsPanelUI != null) operatingInstructionsPanelUI.SetActive(false);
-            if (playerExplanationPanelUI != null) playerExplanationPanelUI.SetActive(false); // ★ 追加
-            if (enemyExplanationPanelUI != null) enemyExplanationPanelUI.SetActive(false);   // ★ 追加
-            if (extraPanelUI != null) extraPanelUI.SetActive(false);                        // ★ 追加
-            if (KeyBordPanelUI != null) KeyBordPanelUI.SetActive(false);   // ★ 追加
-            if (GamePadPanelUI != null) GamePadPanelUI.SetActive(false);   // ★ 追加
+            if (playerExplanationPanelUI != null) playerExplanationPanelUI.SetActive(false);
+            if (enemyExplanationPanelUI != null) enemyExplanationPanelUI.SetActive(false);
+            if (extraPanelUI != null) extraPanelUI.SetActive(false);
+            if (KeyBordPanelUI != null) KeyBordPanelUI.SetActive(false);
+            if (GamePadPanelUI != null) GamePadPanelUI.SetActive(false);
+            // ★ 追加: PlayerExplanationPanelUIの子パネルを非表示
+            if (BalancePanelUI != null) BalancePanelUI.SetActive(false);
+            if (BusterPanelUI != null) BusterPanelUI.SetActive(false);
+            if (SpeedPanelUI != null) SpeedPanelUI.SetActive(false);
+            // ---
             if (pauseMenuUI != null) pauseMenuUI.SetActive(false);
 
             Debug.Log("ExplanationPanelUI を開きました。");
@@ -303,8 +342,12 @@ public class PauseManager : MonoBehaviour
             if (enemyExplanationPanelUI != null) enemyExplanationPanelUI.SetActive(false);
             if (extraPanelUI != null) extraPanelUI.SetActive(false);
             // OperatingInstructionsPanelの子パネル（キーボード/ゲームパッド）を閉じる
-            if (KeyBordPanelUI != null) KeyBordPanelUI.SetActive(false);   // ★ 追加
-            if (GamePadPanelUI != null) GamePadPanelUI.SetActive(false);   // ★ 追加
+            if (KeyBordPanelUI != null) KeyBordPanelUI.SetActive(false);
+            if (GamePadPanelUI != null) GamePadPanelUI.SetActive(false);
+            // PlayerExplanationPanelUIの子パネルを非表示
+            if (BalancePanelUI != null) BalancePanelUI.SetActive(false);
+            if (BusterPanelUI != null) BusterPanelUI.SetActive(false);
+            if (SpeedPanelUI != null) SpeedPanelUI.SetActive(false);
 
             // ポーズメニューの他の兄弟パネルを閉じる (サウンドパネルなど)
             if (soundPanelUI != null) soundPanelUI.SetActive(false);
@@ -319,7 +362,7 @@ public class PauseManager : MonoBehaviour
         }
     }
 
-    // ★ NEW: PlayerExplanationPanel表示/非表示の切り替え (ボタンアクション)
+    // PlayerExplanationPanel表示/非表示の切り替え (ボタンアクション)
     public void TogglePlayerExplanationPanel()
     {
         PlayButtonClickSFX();
@@ -337,6 +380,11 @@ public class PauseManager : MonoBehaviour
             if (enemyExplanationPanelUI != null) enemyExplanationPanelUI.SetActive(false);
             if (extraPanelUI != null) extraPanelUI.SetActive(false);
 
+            // PlayerExplanationPanelUIの子パネルをすべて閉じる (初期状態)
+            if (BalancePanelUI != null) BalancePanelUI.SetActive(false);
+            if (BusterPanelUI != null) BusterPanelUI.SetActive(false);
+            if (SpeedPanelUI != null) SpeedPanelUI.SetActive(false);
+
             // 親パネルやポーズメニューを閉じる
             if (soundPanelUI != null) soundPanelUI.SetActive(false);
             if (explanationPanelUI != null) explanationPanelUI.SetActive(true); // 親は表示状態を維持
@@ -350,7 +398,7 @@ public class PauseManager : MonoBehaviour
         }
     }
 
-    // ★ NEW: EnemyExplanationPanel表示/非表示の切り替え (ボタンアクション)
+    // EnemyExplanationPanel表示/非表示の切り替え (ボタンアクション)
     public void ToggleEnemyExplanationPanel()
     {
         PlayButtonClickSFX();
@@ -367,6 +415,10 @@ public class PauseManager : MonoBehaviour
             // ExplanationPanelの他の子パネルを閉じる
             if (playerExplanationPanelUI != null) playerExplanationPanelUI.SetActive(false);
             if (extraPanelUI != null) extraPanelUI.SetActive(false);
+            // PlayerExplanationPanelUIの子パネルを非表示
+            if (BalancePanelUI != null) BalancePanelUI.SetActive(false);
+            if (BusterPanelUI != null) BusterPanelUI.SetActive(false);
+            if (SpeedPanelUI != null) SpeedPanelUI.SetActive(false);
 
             // 親パネルやポーズメニューを閉じる
             if (soundPanelUI != null) soundPanelUI.SetActive(false);
@@ -381,7 +433,7 @@ public class PauseManager : MonoBehaviour
         }
     }
 
-    // ★ NEW: ExtraPanel表示/非表示の切り替え (ボタンアクション)
+    // ExtraPanel表示/非表示の切り替え (ボタンアクション)
     public void ToggleExtraPanel()
     {
         PlayButtonClickSFX();
@@ -398,6 +450,10 @@ public class PauseManager : MonoBehaviour
             // ExplanationPanelの他の子パネルを閉じる
             if (playerExplanationPanelUI != null) playerExplanationPanelUI.SetActive(false);
             if (enemyExplanationPanelUI != null) enemyExplanationPanelUI.SetActive(false);
+            // PlayerExplanationPanelUIの子パネルを非表示
+            if (BalancePanelUI != null) BalancePanelUI.SetActive(false);
+            if (BusterPanelUI != null) BusterPanelUI.SetActive(false);
+            if (SpeedPanelUI != null) SpeedPanelUI.SetActive(false);
 
             // 親パネルやポーズメニューを閉じる
             if (soundPanelUI != null) soundPanelUI.SetActive(false);
@@ -412,7 +468,7 @@ public class PauseManager : MonoBehaviour
         }
     }
 
-    // --- NEW: KeyBordPanel表示/非表示の切り替え (ボタンアクション) ---
+    // --- KeyBordPanel表示/非表示の切り替え (ボタンアクション) ---
     /// <summary>
     /// KeyBordPanelを表示し、OperatingInstructionsPanel内の他のパネルを閉じます。
     /// </summary>
@@ -431,6 +487,10 @@ public class PauseManager : MonoBehaviour
             if (playerExplanationPanelUI != null) playerExplanationPanelUI.SetActive(false);
             if (enemyExplanationPanelUI != null) enemyExplanationPanelUI.SetActive(false);
             if (extraPanelUI != null) extraPanelUI.SetActive(false);
+            // PlayerExplanationPanelUIの子パネルを非表示
+            if (BalancePanelUI != null) BalancePanelUI.SetActive(false);
+            if (BusterPanelUI != null) BusterPanelUI.SetActive(false);
+            if (SpeedPanelUI != null) SpeedPanelUI.SetActive(false);
 
             // 親パネルは表示状態を維持
             if (operatingInstructionsPanelUI != null) operatingInstructionsPanelUI.SetActive(true);
@@ -445,7 +505,7 @@ public class PauseManager : MonoBehaviour
         }
     }
 
-    // --- NEW: GamePadPanel表示/非表示の切り替え (ボタンアクション) ---
+    // GamePadPanel表示/非表示の切り替え (ボタンアクション) ---
     /// <summary>
     /// GamePadPanelを表示し、OperatingInstructionsPanel内の他のパネルを閉じます。
     /// </summary>
@@ -464,6 +524,10 @@ public class PauseManager : MonoBehaviour
             if (playerExplanationPanelUI != null) playerExplanationPanelUI.SetActive(false);
             if (enemyExplanationPanelUI != null) enemyExplanationPanelUI.SetActive(false);
             if (extraPanelUI != null) extraPanelUI.SetActive(false);
+            // PlayerExplanationPanelUIの子パネルを非表示
+            if (BalancePanelUI != null) BalancePanelUI.SetActive(false);
+            if (BusterPanelUI != null) BusterPanelUI.SetActive(false);
+            if (SpeedPanelUI != null) SpeedPanelUI.SetActive(false);
 
             // 親パネルは表示状態を維持
             if (operatingInstructionsPanelUI != null) operatingInstructionsPanelUI.SetActive(true);
@@ -478,6 +542,111 @@ public class PauseManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// BalancePanelを表示し、PlayerExplanationPanel内の他のパネルを閉じます。
+    /// </summary>
+    public void ToggleBalancePanel()
+    {
+        PlayButtonClickSFX();
+        if (BalancePanelUI != null)
+        {
+            BalancePanelUI.SetActive(true);
+            BalancePanelUI.transform.SetAsLastSibling(); // 最前面に表示
+
+            // PlayerExplanationPanel内の他のパネルを閉じる
+            if (BusterPanelUI != null) BusterPanelUI.SetActive(false);
+            if (SpeedPanelUI != null) SpeedPanelUI.SetActive(false);
+
+            // その他の兄弟パネルや親パネルは状態を維持
+            if (playerExplanationPanelUI != null) playerExplanationPanelUI.SetActive(true);
+            if (enemyExplanationPanelUI != null) enemyExplanationPanelUI.SetActive(false);
+            if (extraPanelUI != null) extraPanelUI.SetActive(false);
+            if (operatingInstructionsPanelUI != null) operatingInstructionsPanelUI.SetActive(false);
+            if (KeyBordPanelUI != null) KeyBordPanelUI.SetActive(false);
+            if (GamePadPanelUI != null) GamePadPanelUI.SetActive(false);
+
+            // 親パネルは表示状態を維持
+            if (explanationPanelUI != null) explanationPanelUI.SetActive(true);
+            if (pauseMenuUI != null) pauseMenuUI.SetActive(false);
+
+            Debug.Log("BalancePanelUI を開きました。");
+        }
+        else
+        {
+            Debug.LogError("バランスパネル (BalancePanelUI) が設定されていません。");
+        }
+    }
+
+    /// <summary>
+    /// BusterPanelを表示し、PlayerExplanationPanel内の他のパネルを閉じます。
+    /// </summary>
+    public void ToggleBusterPanel()
+    {
+        PlayButtonClickSFX();
+        if (BusterPanelUI != null)
+        {
+            BusterPanelUI.SetActive(true);
+            BusterPanelUI.transform.SetAsLastSibling(); // 最前面に表示
+
+            // PlayerExplanationPanel内の他のパネルを閉じる
+            if (BalancePanelUI != null) BalancePanelUI.SetActive(false);
+            if (SpeedPanelUI != null) SpeedPanelUI.SetActive(false);
+
+            // その他の兄弟パネルや親パネルは状態を維持
+            if (playerExplanationPanelUI != null) playerExplanationPanelUI.SetActive(true);
+            if (enemyExplanationPanelUI != null) enemyExplanationPanelUI.SetActive(false);
+            if (extraPanelUI != null) extraPanelUI.SetActive(false);
+            if (operatingInstructionsPanelUI != null) operatingInstructionsPanelUI.SetActive(false);
+            if (KeyBordPanelUI != null) KeyBordPanelUI.SetActive(false);
+            if (GamePadPanelUI != null) GamePadPanelUI.SetActive(false);
+
+            // 親パネルは表示状態を維持
+            if (explanationPanelUI != null) explanationPanelUI.SetActive(true);
+            if (pauseMenuUI != null) pauseMenuUI.SetActive(false);
+
+            Debug.Log("BusterPanelUI を開きました。");
+        }
+        else
+        {
+            Debug.LogError("バスターパネル (BusterPanelUI) が設定されていません。");
+        }
+    }
+
+    /// <summary>
+    /// SpeedPanelを表示し、PlayerExplanationPanel内の他のパネルを閉じます。
+    /// </summary>
+    public void ToggleSpeedPanel()
+    {
+        PlayButtonClickSFX();
+        if (SpeedPanelUI != null)
+        {
+            SpeedPanelUI.SetActive(true);
+            SpeedPanelUI.transform.SetAsLastSibling(); // 最前面に表示
+
+            // PlayerExplanationPanel内の他のパネルを閉じる
+            if (BalancePanelUI != null) BalancePanelUI.SetActive(false);
+            if (BusterPanelUI != null) BusterPanelUI.SetActive(false);
+
+            // その他の兄弟パネルや親パネルは状態を維持
+            if (playerExplanationPanelUI != null) playerExplanationPanelUI.SetActive(true);
+            if (enemyExplanationPanelUI != null) enemyExplanationPanelUI.SetActive(false);
+            if (extraPanelUI != null) extraPanelUI.SetActive(false);
+            if (operatingInstructionsPanelUI != null) operatingInstructionsPanelUI.SetActive(false);
+            if (KeyBordPanelUI != null) KeyBordPanelUI.SetActive(false);
+            if (GamePadPanelUI != null) GamePadPanelUI.SetActive(false);
+
+            // 親パネルは表示状態を維持
+            if (explanationPanelUI != null) explanationPanelUI.SetActive(true);
+            if (pauseMenuUI != null) pauseMenuUI.SetActive(false);
+
+            Debug.Log("SpeedPanelUI を開きました。");
+        }
+        else
+        {
+            Debug.LogError("スピードパネル (SpeedPanelUI) が設定されていません。");
+        }
+    }
+
     // サブパネルを閉じ、ポーズメニューに戻る (ESCキー、または「戻る」ボタンアクション)
     public void GoToPauseMenu()
     {
@@ -489,8 +658,12 @@ public class PauseManager : MonoBehaviour
         if (playerExplanationPanelUI != null) playerExplanationPanelUI.SetActive(false);
         if (enemyExplanationPanelUI != null) enemyExplanationPanelUI.SetActive(false);
         if (extraPanelUI != null) extraPanelUI.SetActive(false);
-        if (KeyBordPanelUI != null) KeyBordPanelUI.SetActive(false);   // ★ 追加
-        if (GamePadPanelUI != null) GamePadPanelUI.SetActive(false);   // ★ 追加
+        if (KeyBordPanelUI != null) KeyBordPanelUI.SetActive(false);
+        if (GamePadPanelUI != null) GamePadPanelUI.SetActive(false);
+        // ★ 追加: PlayerExplanationPanelUIの子パネルを非表示
+        if (BalancePanelUI != null) BalancePanelUI.SetActive(false);
+        if (BusterPanelUI != null) BusterPanelUI.SetActive(false);
+        if (SpeedPanelUI != null) SpeedPanelUI.SetActive(false);
         // ---
 
         if (pauseMenuUI != null)
@@ -507,12 +680,17 @@ public class PauseManager : MonoBehaviour
         PlayButtonClickSFX();
         // 3階層目のパネルをすべて非表示
         if (operatingInstructionsPanelUI != null) operatingInstructionsPanelUI.SetActive(false);
-        if (playerExplanationPanelUI != null) playerExplanationPanelUI.SetActive(false);       // ★ 追加
-        if (enemyExplanationPanelUI != null) enemyExplanationPanelUI.SetActive(false);         // ★ 追加
-        if (extraPanelUI != null) extraPanelUI.SetActive(false);                              // ★ 追加
+        if (playerExplanationPanelUI != null) playerExplanationPanelUI.SetActive(false);
+        if (enemyExplanationPanelUI != null) enemyExplanationPanelUI.SetActive(false);
+        if (extraPanelUI != null) extraPanelUI.SetActive(false);
         // 4階層目のパネルも非表示
-        if (KeyBordPanelUI != null) KeyBordPanelUI.SetActive(false);          // ★ 追加
-        if (GamePadPanelUI != null) GamePadPanelUI.SetActive(false);          // ★ 追加
+        if (KeyBordPanelUI != null) KeyBordPanelUI.SetActive(false);
+        if (GamePadPanelUI != null) GamePadPanelUI.SetActive(false);
+        // ★ 追加: 5階層目のパネルも非表示
+        if (BalancePanelUI != null) BalancePanelUI.SetActive(false);
+        if (BusterPanelUI != null) BusterPanelUI.SetActive(false);
+        if (SpeedPanelUI != null) SpeedPanelUI.SetActive(false);
+        // ---
 
         if (explanationPanelUI != null)
         {
@@ -523,7 +701,7 @@ public class PauseManager : MonoBehaviour
         }
     }
 
-    // --- NEW: KeyBordPanel/GamePadPanelを閉じ、OperatingInstructionsPanelに戻る ---
+    // --- KeyBordPanel/GamePadPanelを閉じ、OperatingInstructionsPanelに戻る ---
     /// <summary>
     /// キーボード/ゲームパッドパネルを閉じ、操作手順パネルに戻ります。（ESCキー用）
     /// </summary>
@@ -533,6 +711,11 @@ public class PauseManager : MonoBehaviour
         // 4階層目のパネルをすべて非表示
         if (KeyBordPanelUI != null) KeyBordPanelUI.SetActive(false);
         if (GamePadPanelUI != null) GamePadPanelUI.SetActive(false);
+        // ★ 追加: 5階層目のパネルも非表示
+        if (BalancePanelUI != null) BalancePanelUI.SetActive(false);
+        if (BusterPanelUI != null) BusterPanelUI.SetActive(false);
+        if (SpeedPanelUI != null) SpeedPanelUI.SetActive(false);
+        // ---
 
         if (operatingInstructionsPanelUI != null)
         {
@@ -551,7 +734,58 @@ public class PauseManager : MonoBehaviour
             GoToExplanationPanel();
         }
     }
-    // -----------------------------------------------------------------------------------
+
+    // BalancePanel/BusterPanel/SpeedPanelを閉じ、PlayerExplanationPanelに戻る ---
+    /// <summary>
+    /// バランス/バスター/スピードパネルを閉じ、プレイヤー説明パネルに戻ります。（ESCキー用）
+    /// </summary>
+    public void GoToPlayerExplanationPanel()
+    {
+        PlayButtonClickSFX();
+        // 5階層目のパネルをすべて非表示
+        if (BalancePanelUI != null) BalancePanelUI.SetActive(false);
+        if (BusterPanelUI != null) BusterPanelUI.SetActive(false);
+        if (SpeedPanelUI != null) SpeedPanelUI.SetActive(false);
+
+        if (playerExplanationPanelUI != null)
+        {
+            playerExplanationPanelUI.SetActive(true);
+            playerExplanationPanelUI.transform.SetAsLastSibling();
+
+            // 親パネルは表示状態を維持
+            if (explanationPanelUI != null) explanationPanelUI.SetActive(true);
+            if (pauseMenuUI != null) pauseMenuUI.SetActive(false);
+
+            Debug.Log("詳細プレイヤー情報パネルを閉じ、プレイヤー説明パネルに戻りました。");
+        }
+        else
+        {
+            // PlayerExplanationPanelが設定されていない場合は、さらに親のExplanationPanelに戻る
+            GoToExplanationPanel();
+        }
+    }
+
+    /// <summary>
+    /// 現在のゲームシーンをアンロードし、指定されたタイトルシーンをロードします。
+    /// </summary>
+    public void GoToTitle()
+    {
+        PlayButtonClickSFX();
+        Time.timeScale = 1f; // タイムスケールを元に戻す
+
+        // タイトルシーンの名前に置き換えてください
+        const string titleSceneName = "TitleScene";
+
+        try
+        {
+            SceneManager.LoadScene(titleSceneName);
+            Debug.Log("タイトルシーン (" + titleSceneName + ") へ移動します。");
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError("タイトルシーンのロードに失敗しました。シーン名が正しいか、Build Settingsに含まれているか確認してください。エラー: " + e.Message);
+        }
+    }
 
 
     public void QuitGame()
