@@ -43,7 +43,7 @@ public class SceneLauncher
     [MenuItem("Launcher/GameScene1", priority = 0)]
     public static void OpenGameScene1()
     {
-        OpenSceneWithSaveCheck("Assets/Scenes/GameScene/GameScene/GameSceneStage1.unity");
+        OpenSceneWithSaveCheck("Assets/Scenes/GameScene/GameScenes/GameSceneStage1.unity");
     }
 
 
