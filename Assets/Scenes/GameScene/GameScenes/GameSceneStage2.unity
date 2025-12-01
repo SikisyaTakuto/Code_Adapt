@@ -12709,7 +12709,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dcba512f5fc2dc24788101a01026a062, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  boss: {fileID: 0}
+  boss: {fileID: 1631850931}
 --- !u!1 &492702170
 GameObject:
   m_ObjectHideFlags: 0
@@ -44493,7 +44493,7 @@ GameObject:
   - component: {fileID: 1631850929}
   - component: {fileID: 1631850928}
   - component: {fileID: 1631850927}
-  - component: {fileID: 1631850930}
+  - component: {fileID: 1631850931}
   m_Layer: 9
   m_Name: Boss
   m_TagString: Enemy
@@ -44578,7 +44578,7 @@ Transform:
   - {fileID: 888371376}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1631850930
+--- !u!114 &1631850931
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -44587,9 +44587,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 1631850925}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2e1b4fa89fdcaba4db965aad3e7c89f1, type: 3}
+  m_Script: {fileID: 11500000, guid: 82a5330a949fc8c4389f16dc588f2599, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  isActivated: 0
   moveSpeed: 5
   target: {fileID: 1761972087}
   beamRifleFireRate: 0.5
@@ -44603,6 +44604,8 @@ MonoBehaviour:
   - {fileID: 647839886}
   holsterBitCooldown: 12
   bitAttackDuration: 8
+  minHolsterBitCount: 4
+  maxHolsterBitCount: 9
   shieldBitPrefab: {fileID: 4342347466176812867, guid: 77192a90e7d14bd4b8dce3fc9dd0442b, type: 3}
   shieldBitSpawnPoints:
   - {fileID: 1534476601}
@@ -47938,7 +47941,7 @@ Transform:
   m_GameObject: {fileID: 1761972086}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 1, z: -0, w: 0}
-  m_LocalPosition: {x: 36.799988, y: 1.23, z: -225.09999}
+  m_LocalPosition: {x: 20.5, y: 4.4, z: -150.5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -48000,7 +48003,7 @@ MonoBehaviour:
     defenseMultiplier: 1.2
     moveSpeedMultiplier: 1.5
     energyRecoveryMultiplier: 1.2
-  maxHP: 1000
+  maxHP: 10000
   hPSlider: {fileID: 15092799}
   hPText: {fileID: 768329557}
   maxEnergy: 500

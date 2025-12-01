@@ -3,7 +3,7 @@ using UnityEngine;
 public class BossRoomTrigger : MonoBehaviour
 {
     // インスペクターから操作対象の ElsController コンポーネントをアタッチ
-    public ElsController boss;
+    public ProvidenceBoss2 boss;
 
     private void OnTriggerEnter(Collider other)
     {
