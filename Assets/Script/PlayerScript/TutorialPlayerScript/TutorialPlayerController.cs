@@ -47,6 +47,15 @@ public class TutorialPlayerController : MonoBehaviour
     [Header("Base Stats")]
     public float baseMoveSpeed = 15.0f;
     public float dashMultiplier = 2.5f;
+
+    // 慣性用の追加設定 🚀
+    [Tooltip("水平移動の加速速度 (値が大きいほど速く目標速度に達する)")]
+    public float accelerationSpeed = 0.1f;
+    [Tooltip("水平移動の減速速度 (値が大きいほど速く停止する)")]
+    public float decelerationSpeed = 0.15f;
+    [Tooltip("空中での水平移動の加速速度")]
+    public float airAccelerationSpeed = 0.3f;
+
     public float verticalSpeed = 10.0f;
     public float energyConsumptionRate = 15.0f;
     public float energyRecoveryRate = 10.0f;
@@ -125,10 +134,13 @@ public class TutorialPlayerController : MonoBehaviour
     private float _lastEnergyConsumptionTime;
     private bool _hasTriggeredEnergyDepletedEvent = false;
     private bool _isDead = false;
-    // private bool _isMeleeDashing = false; // 削除
 
-    private Vector3 _velocity;
+    private Vector3 _velocity; // 垂直方向の速度 (Gravity, Jump, Fly)
     private float _moveSpeed;
+
+    // 慣性用の追加変数 🚀
+    private Vector3 _currentMoveVelocity; // 現在の水平移動速度 (慣性)
+    private Vector3 _currentVelocityRef; // SmoothDamp用の参照速度
 
     [HideInInspector] public float currentHP { get => _currentHP; private set => _currentHP = value; }
     [HideInInspector] public float currentEnergy { get => _currentEnergy; private set => _currentEnergy = value; }
@@ -167,6 +179,9 @@ public class TutorialPlayerController : MonoBehaviour
         LoadAndSwitchArmor();
         UpdateUI();
 
+        // 慣性初期化 🚀
+        _currentMoveVelocity = Vector3.zero;
+
         if (gameOverManager == null)
         {
             gameOverManager = FindObjectOfType<SceneBasedGameOverManager>();
@@ -190,7 +205,6 @@ public class TutorialPlayerController : MonoBehaviour
         {
             HandleAttackState();
 
-            // if (!_isMeleeDashing) // 削除
             {
                 // ロック/攻撃中に垂直方向の慣性を維持するため、重力を手動で適用
                 if (!_controller.isGrounded)
@@ -202,7 +216,6 @@ public class TutorialPlayerController : MonoBehaviour
                 // ロック/攻撃中は移動関連のタイマーをリセット
                 ResetMovementTimers();
             }
-            // 突進中はMeleeDashTowardsTargetコルーチンが移動を制御 (削除)
             return;
         }
 
@@ -217,7 +230,10 @@ public class TutorialPlayerController : MonoBehaviour
 
         Vector3 finalMove = Vector3.zero;
 
+        // 垂直移動は慣性なし
         if (allowVerticalMove) finalMove += HandleVerticalMovement();
+
+        // 水平移動に慣性を適用
         if (allowHorizontalMove) finalMove += HandleHorizontalMovement();
 
         _controller.Move(finalMove * Time.deltaTime);
@@ -324,17 +340,18 @@ public class TutorialPlayerController : MonoBehaviour
 
     private Vector3 HandleHorizontalMovement()
     {
-        float h = Input.GetAxis("Horizontal");
-        float v = Input.GetAxis("Vertical");
+        float h = Input.GetAxisRaw("Horizontal"); // GetAxisRawを使用
+        float v = Input.GetAxisRaw("Vertical"); // GetAxisRawを使用
 
-        if (h == 0f && v == 0f)
+        Vector3 inputDirection = new Vector3(h, 0, v).normalized;
+
+        // WASD入力がない場合、タイマーのみリセットし、減速処理へ移行
+        if (inputDirection.magnitude < 0.01f)
         {
             WASDMoveTimer = 0f;
             DashTimer = 0f;
-            return Vector3.zero;
         }
 
-        Vector3 inputDirection = new Vector3(h, 0, v);
         Vector3 moveDirection;
 
         // カメラ基準の移動方向を決定
@@ -350,28 +367,55 @@ public class TutorialPlayerController : MonoBehaviour
 
         moveDirection.Normalize();
 
-        float currentSpeed = _moveSpeed;
+        float targetSpeed = _moveSpeed;
         bool isConsumingEnergy = false;
 
         bool isDashing = allowDash && Input.GetKey(KeyCode.LeftShift) && currentEnergy > 0.01f;
 
         if (isDashing)
         {
-            currentSpeed *= dashMultiplier;
+            targetSpeed *= dashMultiplier;
             currentEnergy -= energyConsumptionRate * Time.deltaTime;
             isConsumingEnergy = true;
             DashTimer += Time.deltaTime;
         }
         else
         {
-            DashTimer = 0f;
+            // DashTimer = 0f; // 上でリセット済み
         }
 
-        WASDMoveTimer += Time.deltaTime;
+        if (inputDirection.magnitude > 0.01f)
+        {
+            WASDMoveTimer += Time.deltaTime;
+        }
 
         if (isConsumingEnergy) _lastEnergyConsumptionTime = Time.time;
 
-        return moveDirection * currentSpeed;
+        // 目標の移動速度ベクトル
+        Vector3 targetVelocity = moveDirection * targetSpeed;
+
+        // 慣性を適用 🚀
+        float currentAcceleration = _controller.isGrounded ? accelerationSpeed : airAccelerationSpeed;
+        float currentDeceleration = _controller.isGrounded ? decelerationSpeed : airAccelerationSpeed;
+
+        float smoothTime;
+        if (inputDirection.magnitude > 0.01f)
+        {
+            // 入力がある場合 (加速/移動)
+            smoothTime = currentAcceleration;
+        }
+        else
+        {
+            // 入力がない場合 (減速/停止)
+            smoothTime = currentDeceleration;
+            // 停止時の減速目標は常にゼロ
+            targetVelocity = Vector3.zero;
+        }
+
+        // SmoothDampで慣性移動を計算
+        _currentMoveVelocity = Vector3.SmoothDamp(_currentMoveVelocity, targetVelocity, ref _currentVelocityRef, smoothTime);
+
+        return _currentMoveVelocity;
     }
 
     private Vector3 HandleVerticalMovement()
@@ -438,7 +482,7 @@ public class TutorialPlayerController : MonoBehaviour
         // 突進の判定と実行 (削除)
         if (lockOnTarget != null)
         {
-            // ターゲットの方向を向く (突進はしない)
+            // ターゲットの方向を向く
             Vector3 targetPosition = GetLockOnTargetPosition(lockOnTarget);
             RotateTowards(targetPosition);
         }
@@ -537,20 +581,9 @@ public class TutorialPlayerController : MonoBehaviour
         transform.rotation = targetRotation;
     }
 
-    /*
-    // MeleeDashTowardsTarget コルーチンは削除されました。
-    private IEnumerator MeleeDashTowardsTarget(Vector3 targetPosition)
-    {
-        // ... (削除)
-    }
-    */
-
     void HandleAttackState()
     {
         if (!_isAttacking) return;
-
-        // 突進中の時間計測はMeleeDashTowardsTargetコルーチンに任せる (削除)
-        // if (_isMeleeDashing) return; 
 
         _attackTimer += Time.deltaTime;
         if (_attackTimer >= attackFixedDuration)
@@ -567,6 +600,7 @@ public class TutorialPlayerController : MonoBehaviour
             {
                 _velocity.y = -0.1f;
             }
+            // 攻撃終了時に慣性移動をリセットせずに現在の速度を維持する
         }
     }
 
@@ -799,9 +833,7 @@ public class TutorialPlayerController : MonoBehaviour
         Gizmos.color = new Color(1f, 0.5f, 0f, 0.5f);
         Gizmos.DrawSphere(transform.position, meleeAttackRange);
 
-        // 2. 近接突進の範囲 (ワイヤーフレーム) は削除されました。
-
-        // 3. ビーム攻撃の射程
+        // 2. ビーム攻撃の射程
         if (beamFirePoint != null)
         {
             Vector3 origin = beamFirePoint.position;
