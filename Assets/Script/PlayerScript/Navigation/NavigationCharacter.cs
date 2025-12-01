@@ -36,6 +36,13 @@ public class NavigationCharacter : MonoBehaviour
     [Tooltip("UI上に表示されるナビゲーターのアイコン (Image コンポーネント)")]
     public Image characterIconUI;
 
+    // =======================================================
+    // ? NEW: 矢印モデルの参照と設定
+    // =======================================================
+    [Header("ナビゲーション矢印設定")]
+    [Tooltip("方向を示すための3D矢印モデルのTransform")]
+    public Transform directionArrow;
+
     private bool isMoving = false;
 
     // =======================================================
@@ -47,6 +54,7 @@ public class NavigationCharacter : MonoBehaviour
     private bool message1Displayed = false;
     private bool message2Displayed = false;
     private bool message3Displayed = false;
+    private bool message4Displayed = false; // 矢印の表示/非表示テスト用
 
     private float startTime;
 
@@ -68,11 +76,17 @@ public class NavigationCharacter : MonoBehaviour
         }
         else
         {
-            Debug.LogWarning("テスト用ウェイポイント 'TestWaypoint' がシーンに見つかりません。テスト3は動作しません。");
+            Debug.LogWarning("テスト用ウェイポイント 'TestWaypoint' がシーンに見つかりません。テスト3/矢印ナビゲーションは動作しません。");
         }
 
         // 初期状態としてUIを非表示にしておく
         HideGuidanceMessage();
+
+        // 矢印を初期状態で非表示にしておく
+        if (directionArrow != null)
+        {
+            directionArrow.gameObject.SetActive(false);
+        }
     }
 
 
@@ -94,11 +108,43 @@ public class NavigationCharacter : MonoBehaviour
         // 追尾ロジックの実行
         HandleMovement(distanceToTarget);
 
-        // ターゲットの方を向く
+        // ターゲットの方を向く (ナビゲーションキャラ本体の回転)
         HandleRotation();
+
+        // ? NEW: ウェイポイントの方を向く (矢印モデルの回転)
+        HandleArrowDirection();
 
         // ? NEW: テスト用メッセージ表示ロジック
         RunTestNavigation();
+    }
+
+    /// <summary>
+    /// ? NEW: 矢印を指定したウェイポイントの方向へ回転させる。
+    /// </summary>
+    private void HandleArrowDirection()
+    {
+        // 矢印オブジェクトとウェイポイントが設定されていることを確認
+        if (directionArrow == null || testWaypoint == null)
+        {
+            return;
+        }
+
+        // ウェイポイントの方向ベクトルを計算 (Y軸の高さの差は無視)
+        Vector3 targetDirection = testWaypoint.position - directionArrow.position;
+        targetDirection.y = 0; // 上下方向の回転を無視
+
+        if (targetDirection != Vector3.zero)
+        {
+            // ウェイポイントの方向を向くクォータニオンを作成
+            Quaternion targetRotation = Quaternion.LookRotation(targetDirection);
+
+            // 矢印の向きをスムーズに更新
+            directionArrow.rotation = Quaternion.Slerp(
+                directionArrow.rotation,
+                targetRotation,
+                rotationSpeed * Time.deltaTime * 2.0f // キャラクター本体よりも少し速く回転させても良い
+            );
+        }
     }
 
     /// <summary>
@@ -112,9 +158,20 @@ public class NavigationCharacter : MonoBehaviour
             DisplayGuidanceMessage("オペレーターAIです。聞こえますか？これが最初のナビゲーションメッセージです。");
             message1Displayed = true;
             // 3秒後に自動的にメッセージを消す
-            StartCoroutine(AutoHideMessage(3.0f));
+            StartCoroutine(AutoHideMessage(3.0f, 1));
             return; // 複数のメッセージが同時に表示されるのを防ぐ
         }
+
+        // Test 4: ウェイポイントが見つかり、ゲーム開始から8秒後に矢印を表示
+        if (testWaypoint != null && directionArrow != null && !message4Displayed && Time.time >= startTime + 8.0f)
+        {
+            directionArrow.gameObject.SetActive(true);
+            DisplayGuidanceMessage("目標地点へのナビゲーションを開始します。矢印の示す方向へ進んでください。");
+            message4Displayed = true;
+            StartCoroutine(AutoHideMessage(4.0f, 4));
+            return;
+        }
+
 
         // Test 2: プレイヤーが 'I' キーを押したときにメッセージを表示/非表示
         if (Input.GetKeyDown(KeyCode.I) && !message2Displayed)
@@ -130,15 +187,21 @@ public class NavigationCharacter : MonoBehaviour
             return;
         }
 
-        // Test 3: プレイヤーがウェイポイントに近づいたときにメッセージを表示
+        // Test 3: プレイヤーがウェイポイントに近づいたときにメッセージを表示 (矢印を非表示にする)
         if (testWaypoint != null && !message3Displayed)
         {
             if (Vector3.Distance(target.position, testWaypoint.position) < 5.0f)
             {
-                DisplayGuidanceMessage("目標地点に接近！そこが最初のチェックポイントです。警戒を怠らないように。");
+                DisplayGuidanceMessage("目標地点に到着しました！矢印ナビゲーションを終了します。");
                 message3Displayed = true;
-                // 到達メッセージは非表示にしない
-                // HideGuidanceMessage(); // テスト後、必要に応じてメッセージを消すロジックを追加
+
+                // 矢印を非表示にする
+                if (directionArrow != null)
+                {
+                    directionArrow.gameObject.SetActive(false);
+                }
+                // HideGuidanceMessage(); // メッセージはそのまま表示し続ける
+                return;
             }
         }
     }
@@ -146,11 +209,16 @@ public class NavigationCharacter : MonoBehaviour
     /// <summary>
     /// メッセージを指定時間後に非表示にするコルーチン
     /// </summary>
-    private IEnumerator AutoHideMessage(float delay)
+    private IEnumerator AutoHideMessage(float delay, int messageId)
     {
         yield return new WaitForSeconds(delay);
-        // 現在表示されているメッセージが、このコルーチンで表示したメッセージと一致するか確認するロジックは省略
-        if (message1Displayed) // テスト1のメッセージが残っていると仮定して非表示
+
+        // コルーチン実行時に表示されていたメッセージを非表示にする（簡単な判定）
+        if (messageId == 1 && message1Displayed)
+        {
+            HideGuidanceMessage();
+        }
+        else if (messageId == 4 && message4Displayed)
         {
             HideGuidanceMessage();
         }
@@ -188,12 +256,12 @@ public class NavigationCharacter : MonoBehaviour
     {
         isMoving = true;
         // ターゲットの方向へ移動
-        Vector3 direction = (target.position - transform.position).normalized;
+        // Vector3 direction = (target.position - transform.position).normalized; // 現在は使われていない
         transform.position = Vector3.MoveTowards(transform.position, target.position, moveSpeed * Time.deltaTime);
     }
 
     /// <summary>
-    /// ターゲットの方向へスムーズに回転する。
+    /// ターゲットの方向へスムーズに回転する。（ナビゲーションキャラ本体）
     /// </summary>
     private void HandleRotation()
     {
@@ -209,7 +277,7 @@ public class NavigationCharacter : MonoBehaviour
     }
 
     // =======================================================
-    // ?? 外部連携 (メッセージ表示の例)
+    // 外部連携 (メッセージ表示の例)
     // =======================================================
 
     /// <summary>

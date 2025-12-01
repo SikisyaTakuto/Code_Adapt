@@ -1,61 +1,62 @@
 using UnityEngine;
 using UnityEngine.AI;
-using System.Collections; // �R���[�`�����g�p���邽�ߕK�v
+using System.Collections;
+using UnityEngine.UI; // UIコンポーネント(Slider)を使用するため追加
 
 public class ScorpionEnemy : MonoBehaviour
 {
-    // --- HP�ݒ� ---
-    [Header("�w���X�ݒ�")]
-    public float maxHealth = 100f; // �ő�HP
-    private float currentHealth;   // ���݂�HP
-    private bool isDead = false;   // ���S�t���O
+    // --- HP設定 ---
+    [Header("ヘルス設定")]
+    public float maxHealth = 100f; // 最大HP
+    private float currentHealth;    // 現在のHP
+    private bool isDead = false;    // 死亡フラグ
 
-    // �V�K�ǉ�: �����G�t�F�N�g��Prefab
-    [Header("�G�t�F�N�g�ݒ�")]
+    // 💡 NEW: HPバーへの参照 (TPSCameraControllerから設定される)
+    private Slider healthBarSlider;
+
+    // VFX設定
+    [Header("エフェクト設定")]
     public GameObject explosionPrefab;
 
-    // ���S�A�j���[�V�������� (Inspector�Őݒ�)
-    [Header("�A�j���[�V�����ݒ�")]
+    // 死亡アニメーション設定
+    [Header("アニメーション設定")]
     public float deathAnimationDuration = 3.0f;
 
-    // --- ���J�p�����[�^ ---
-    [Header("�^�[�Q�b�g�ݒ�")]
-    public Transform playerTarget;             // Player��Transform�������ɐݒ�
-    public float detectionRange = 15f;         // Player�����o����͈�
-    public Transform beamOrigin;               // �r�[���̔��ˌ��ƂȂ�Transform (�T�\���̔��̐�Ȃ�)
+    // --- 索敵用パラメータ ---
+    [Header("ターゲット設定")]
+    public Transform playerTarget;              // PlayerのTransformを事前に設定
+    public float detectionRange = 15f;          // Playerを発見する範囲
+    public Transform beamOrigin;                // ビームの発射地点となるTransform
 
-    [Range(0, 180)] // ����p�iDegree�j
-    public float attackAngle = 30f;            // �U���\�Ȑ��ʎ���p�i�S�p�j
+    [Range(0, 180)] // 視界角(Degree)
+    public float attackAngle = 30f;             // 攻撃可能な視界角度(全角)
 
-    [Header("�U���ݒ�")]
-    public float attackRate = 1f;              // 1�b�ԂɍU������� 
-    public GameObject beamPrefab;              // ���˂���r�[����Prefab
-    public float beamSpeed = 30f;              // �r�[���̑��x
+    [Header("攻撃設定")]
+    public float attackRate = 1f;               // 1秒間に攻撃する回数
+    public GameObject beamPrefab;               // 発射するビームのPrefab
+    public float beamSpeed = 30f;               // ビームの速度
 
-    // ? �C��: �ǂ̃^�O�������Œ�` (�U�������ɂ��g�p)
     private const string WALL_TAG = "Wall";
 
-    [Header("�d���ݒ�")]
-    public float hardStopDuration = 2f;        // �U����̍d�����ԁi�b�j
+    [Header("硬直設定")]
+    public float hardStopDuration = 2f;         // 攻撃後の硬直時間(秒)
 
-    [Header("�ړ��ݒ�")]
-    public float rotationSpeed = 5f;             // Player�ǐՎ��̉�]���x
-    public float wanderRadius = 10f;             // �����_���ړ��̍ő唼�a
-    public float destinationThreshold = 1.5f;    // �ړI�n���B�ƌ��Ȃ�����
-    public float maxIdleTime = 5f;             // �V�����ړI�n��ݒ肷��܂ł̍ő�Î~���ԁi�b�j
+    [Header("移動設定")]
+    public float rotationSpeed = 5f;             // Player追尾時の回転速度
+    public float wanderRadius = 10f;             // ランダム移動の最大半径
+    public float destinationThreshold = 1.5f;    // 移動目標地点と見なす距離
+    public float maxIdleTime = 5f;               // 新しい移動目標を設定するまでの最大停止時間(秒)
 
-    // ?? �V�K�ǉ�: �ǉ���̂��߂̐ݒ�
-    [Header("�Փˉ��ݒ� (NavMesh�p)")]
-    public float wallAvoidanceDistance = 1.5f; // NavMesh Agent�̐i�s�����̃`�F�b�N����
-    public LayerMask obstacleLayer;             // ��Q���ƂȂ郌�C���[ (Wall��Default�Ȃ�)
+    [Header("衝突回避設定 (NavMesh用)")]
+    public float wallAvoidanceDistance = 1.5f; // NavMesh Agentの進行方向へのチェック距離
+    public LayerMask obstacleLayer;              // 障害物となるレイヤー
 
-
-    // --- �����ϐ� ---
-    private float nextAttackTime = 0f;          // ���ɍU���\�Ȏ���
-    private float hardStopEndTime = 0f;         // �d������������鎞��
-    private NavMeshAgent agent;                 // NavMeshAgent�R���|�[�l���g
-    private float lastMoveTime = 0f;            // �Ō�Ɉړ���������
-    private Animator animator;                  // Animator�R���|�[�l���g�ւ̎Q��
+    // --- 内部変数 ---
+    private float nextAttackTime = 0f;          // 次に攻撃可能な時間
+    private float hardStopEndTime = 0f;         // 硬直が終わる時間
+    private NavMeshAgent agent;                 // NavMeshAgentコンポーネント
+    private float lastMoveTime = 0f;            // 最後に移動した時間
+    private Animator animator;                  // Animatorコンポーネントへの参照
 
     private void Awake()
     {
@@ -64,17 +65,17 @@ public class ScorpionEnemy : MonoBehaviour
         agent = GetComponent<NavMeshAgent>();
         if (agent == null)
         {
-            Debug.LogError("NavMeshAgent component��������܂���B�G��NavMeshAgent���A�^�b�`���Ă��������B");
+            Debug.LogError("NavMeshAgent componentが見つかりません。敵にNavMeshAgentをアタッチしてください。");
             enabled = false;
         }
 
         animator = GetComponent<Animator>();
         if (animator == null)
         {
-            Debug.LogWarning("Animator component��������܂���B�G��Animator���A�^�b�`���Ă��������B");
+            Debug.LogWarning("Animator componentが見つかりません。敵にAnimatorをアタッチしてください。");
         }
 
-        // Player�^�[�Q�b�g�̎������o (AWAKE�ɒǉ�)
+        // Playerターゲットの自動検出
         if (playerTarget == null)
         {
             GameObject playerObject = GameObject.FindWithTag("Player");
@@ -90,14 +91,14 @@ public class ScorpionEnemy : MonoBehaviour
 
     private void Update()
     {
-        // �f�o�b�O�p�R�[�h: O�L�[��HP��0�ɂ���
+        // デバッグ用コード: OキーでHPを0にする
         if (Input.GetKeyDown(KeyCode.O))
         {
             TakeDamage(maxHealth);
             return;
         }
 
-        // ���S���A�d�����A�܂��̓^�[�Q�b�g���Ȃ��ꍇ�͏������X�L�b�v
+        // 死亡中、硬直中、またはターゲットがない場合は処理をスキップ
         if (isDead || playerTarget == null || Time.time < hardStopEndTime)
         {
             if (agent != null && agent.enabled) agent.isStopped = true;
@@ -108,16 +109,14 @@ public class ScorpionEnemy : MonoBehaviour
 
         float distanceToPlayer = Vector3.Distance(transform.position, playerTarget.position);
 
-        // --- �ړ���Ԃ̃`�F�b�N�ƍX�V ---
+        // --- 移動時間のチェックと更新 ---
         if (agent.velocity.sqrMagnitude > 0.01f)
         {
             lastMoveTime = Time.time;
-
-            // ?? �V�K�ǉ�: �ړ����ɕǂɋ߂Â������Ă��Ȃ����`�F�b�N
             CheckForWallCollision();
         }
 
-        // 2. Player���U���͈͓��ɂ��邩�H
+        // 2. Playerが攻撃範囲内にいるか？
         if (distanceToPlayer <= detectionRange)
         {
             agent.isStopped = true;
@@ -146,54 +145,98 @@ public class ScorpionEnemy : MonoBehaviour
     }
 
     // -------------------------------------------------------------------
-    //          �Փˉ������ (NavMesh�p)
+    //      HPバー制御のための公開メソッド (TPSCameraControllerから呼び出される)
     // -------------------------------------------------------------------
 
     /// <summary>
-    /// NavMeshAgent�̐i�s�����ɕǂ��Ȃ����`�F�b�N���A����΋����I�Ɉړ��𒆒f�E�ĒT��������
+    /// ロックオン時にカメラコントローラーからHPバー（Slider）を設定します。
+    /// </summary>
+    public void SetHealthBar(Slider slider)
+    {
+        healthBarSlider = slider;
+        if (healthBarSlider != null)
+        {
+            // Sliderの最大値を設定し、現在のHPで値を初期化
+            healthBarSlider.maxValue = maxHealth;
+            healthBarSlider.value = currentHealth;
+            healthBarSlider.gameObject.SetActive(true); // HPバーを表示
+        }
+    }
+
+    /// <summary>
+    /// HPバーの現在の値を更新します。
+    /// </summary>
+    public void UpdateHealthBarValue()
+    {
+        if (healthBarSlider != null)
+        {
+            healthBarSlider.value = currentHealth;
+        }
+    }
+
+    /// <summary>
+    /// HPバーへの参照を削除し、UIを非表示にします（ロックオン解除時など）。
+    /// </summary>
+    public void ClearHealthBar()
+    {
+        if (healthBarSlider != null)
+        {
+            healthBarSlider.gameObject.SetActive(false); // HPバーを非表示
+            healthBarSlider = null; // 参照をクリア
+        }
+    }
+
+    // -------------------------------------------------------------------
+    //      衝突回避処理 (NavMesh用)
+    // -------------------------------------------------------------------
+
+    /// <summary>
+    /// NavMeshAgentの進行方向の壁をチェックし、あれば強制的に移動目標を再設定します。
     /// </summary>
     private void CheckForWallCollision()
     {
-        // Agent���ړ����ŁA�܂��ړI�n�ɓ��B���Ă��Ȃ��ꍇ�̂݃`�F�b�N
+        // Agentが移動中で、かつまだ移動目標に到着していない場合のみチェック
         if (agent.isStopped || agent.remainingDistance <= agent.stoppingDistance)
         {
             return;
         }
 
         RaycastHit hit;
-        // Agent�̐i�s�����ivelocity�𐳋K���������́j
+        // Agentの進行方向 (velocityを正規化)
         Vector3 movementDirection = agent.velocity.normalized;
 
-        // Raycast�őO���ɕǂ����邩�`�F�b�N
-        // Agent�̐i�s�����ivelocity�j���g���ă`�F�b�N���邱�ƂŁANavMeshAgent�̋O�����ǂ݂��܂��B
+        // Raycastで前方に壁があるかチェック
         if (Physics.Raycast(transform.position, movementDirection, out hit, wallAvoidanceDistance, obstacleLayer))
         {
-            // Raycast�����������o���A���ꂪWALL_TAG�������Ă���ꍇ
+            // Raycastがヒットし、それがWALL_TAGを持っていた場合
             if (hit.collider.CompareTag(WALL_TAG))
             {
-                Debug.LogWarning($"[{gameObject.name}] **�ړ������̖ڂ̑O�ɕǂ����o**�INavMeshAgent�̂��蔲����h�~���A�V�����ړI�n��T���܂��B");
+                Debug.LogWarning($"[{gameObject.name}] **移動方向の壁に衝突**! NavMeshAgentの動きを一時停止し、新しい移動目標を探します。");
 
-                // �����I�Ɉړ����~
+                // 強制的に移動を停止
                 agent.isStopped = true;
 
-                // �V�����ړI�n��T���iWander���W�b�N���Ď��s�j
+                // 新しい移動目標を探す (Wanderロジックを再実行)
                 Wander();
             }
         }
     }
 
     // -------------------------------------------------------------------
-    //          �w���X�Ǝ��S���� (�ύX�Ȃ�)
+    //      ヘルスと死亡処理
     // -------------------------------------------------------------------
 
     /// <summary>
-    /// �O������_���[�W���󂯎�邽�߂̌��J���\�b�h
+    /// 外部からダメージを受け入れるためのメソッド
     /// </summary>
     public void TakeDamage(float damageAmount)
     {
         if (isDead) return;
 
         currentHealth -= damageAmount;
+
+        // 💡 UPDATE: ダメージを受けるたびにHPバーを更新
+        UpdateHealthBarValue();
 
         if (currentHealth <= 0)
         {
@@ -202,34 +245,37 @@ public class ScorpionEnemy : MonoBehaviour
     }
 
     /// <summary>
-    /// ���S����
+    /// 死亡処理
     /// </summary>
     private void Die()
     {
         if (isDead) return;
 
         isDead = true;
-        Debug.Log(gameObject.name + "�͔j�󂳂�܂����I");
+        Debug.Log(gameObject.name + "は破壊されました！");
 
-        // 1. Animator��Dead�p�����[�^��true�ɐݒ肵�ăA�j���[�V�������J�n
+        // 1. AnimatorのDeadパラメータをtrueに設定し、アニメーションを開始
         if (animator != null)
         {
             animator.SetBool("Dead", true);
         }
 
-        // 2. NavMeshAgent���~
+        // 2. NavMeshAgentを停止
         if (agent != null && agent.enabled)
         {
             agent.isStopped = true;
             agent.enabled = false;
         }
 
-        // 3. ���S�A�j���[�V�����̍Đ���ɔ����E�폜���s���R���[�`�����J�n
+        // 💡 NEW: 死亡時、HPバーの参照をクリア
+        ClearHealthBar();
+
+        // 3. 死亡アニメーションの再生後に爆発エフェクトを再生してオブジェクトを削除するコルーチンを開始
         StartCoroutine(DeathSequence(deathAnimationDuration));
     }
 
     /// <summary>
-    /// ���S�A�j���[�V�������I������̂�҂��A�����G�t�F�N�g���Đ����Ă���I�u�W�F�N�g���폜����R���[�`��
+    /// 死亡アニメーションが終了するのを待ち、爆発エフェクトを再生してオブジェクトを削除するコルーチン
     /// </summary>
     private IEnumerator DeathSequence(float duration)
     {
@@ -243,11 +289,11 @@ public class ScorpionEnemy : MonoBehaviour
     }
 
     // -------------------------------------------------------------------
-    //          ���̑����[�e�B���e�B (�ύX�Ȃ�)
+    //      その他のユーティリティ
     // -------------------------------------------------------------------
 
     /// <summary>
-    /// Player���G�l�~�[�̑O������p���ɂ��邩���`�F�b�N����
+    /// Playerがエネミーの前方視界角度内にいるかをチェックする
     /// </summary>
     private bool IsPlayerInFrontView()
     {
@@ -263,7 +309,7 @@ public class ScorpionEnemy : MonoBehaviour
     }
 
     /// <summary>
-    /// �h���[���{�̂̌�����Player�̕����֌�����i�X���[�Y�ȉ�]�j
+    /// エネミーの向きをPlayerの方向に関連して回転させる（スムーズな回転）
     /// </summary>
     private void LookAtPlayer()
     {
@@ -280,7 +326,7 @@ public class ScorpionEnemy : MonoBehaviour
     }
 
     /// <summary>
-    /// NavMeshAgent���g���Ď��͂������_���Ɉړ�����V�����ړI�n��ݒ肷��
+    /// NavMeshAgentを使ってランダムな場所へ移動する新しい移動目標を設定する
     /// </summary>
     private void Wander()
     {
@@ -297,13 +343,13 @@ public class ScorpionEnemy : MonoBehaviour
     }
 
     /// <summary>
-    /// �r�[���𔭎˂���
+    /// ビームを発射する
     /// </summary>
     private void AttackPlayer()
     {
         if (beamOrigin == null || beamPrefab == null)
         {
-            Debug.LogError("�r�[���̔��ˌ��܂���Prefab���ݒ肳��Ă��܂���B");
+            Debug.LogError("ビームの発射源またはPrefabが設定されていません。");
             return;
         }
 
@@ -319,13 +365,13 @@ public class ScorpionEnemy : MonoBehaviour
         }
         else
         {
-            Debug.LogWarning("�r�[��Prefab��Rigidbody������܂���B�ړ����W�b�N��ǉ����Ă��������B");
+            Debug.LogWarning("ビームPrefabにRigidbodyがありません。移動ロジックを追加してください。");
         }
 
         hardStopEndTime = Time.time + hardStopDuration;
     }
 
-    // �͈͂��������邽�߂�Gizmo (�G�f�B�^�ł̂ݕ\��)
+    // 範囲を確認できるようにするためのGizmo (エディタでのみ表示)
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.yellow;
@@ -333,7 +379,7 @@ public class ScorpionEnemy : MonoBehaviour
 
         if (Application.isEditor && transform != null)
         {
-            // 1. ����p�̉���
+            // 1. 視界角の可視化
             Quaternion leftRayRotation = Quaternion.AngleAxis(-attackAngle / 2, Vector3.up);
             Quaternion rightRayRotation = Quaternion.AngleAxis(attackAngle / 2, Vector3.up);
 
@@ -344,16 +390,16 @@ public class ScorpionEnemy : MonoBehaviour
             Gizmos.DrawRay(transform.position, leftRayDirection * detectionRange);
             Gizmos.DrawRay(transform.position, rightRayDirection * detectionRange);
 
-            // 2. Wandering Radius �̉���
+            // 2. Wandering Radius の可視化
             Gizmos.color = Color.cyan;
             Gizmos.DrawWireSphere(transform.position, wanderRadius);
 
-            // 3. ?? �V�K�ǉ�: �ړ����̕ǉ��Raycast�̉���
+            // 3. 衝突回避Raycastの可視化
             if (agent != null && agent.enabled && agent.velocity.sqrMagnitude > 0.01f)
             {
                 Vector3 movementDirection = agent.velocity.normalized;
 
-                // �ǌ��oRay���}�[���^�F�ŕ\��
+                // 衝突回避Rayをマゼンタで表示
                 Gizmos.color = Color.magenta;
                 Gizmos.DrawRay(transform.position, movementDirection * wallAvoidanceDistance);
             }
