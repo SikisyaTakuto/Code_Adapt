@@ -23317,9 +23317,8 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 512
   lockOnAngleLimit: 60
-  _changeDuration: 0.3
   lockOnDuration: 5
-  lockOnUIRect: {fileID: 1335929416}
+  _changeDuration: 0.3
   collisionLayers:
     serializedVersion: 2
     m_Bits: 1024
@@ -23329,6 +23328,8 @@ MonoBehaviour:
   collisionOffset: 0.2
   cameraRadius: 0.3
   ceilingYOffset: 1.2
+  lockOnUIRect: {fileID: 1335929416}
+  healthBarSlider: {fileID: 0}
 --- !u!114 &855107984
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -44593,8 +44594,8 @@ MonoBehaviour:
   isActivated: 0
   moveSpeed: 5
   target: {fileID: 1761972087}
-  beamRifleFireRate: 0.5
-  beamRifleBulletPrefab: {fileID: 216633344060643235, guid: d1d5ef304e401e347b0488116cb4cf5d, type: 3}
+  beamRifleFireRate: 3
+  beamRifleBulletPrefab: {fileID: 2856067640369259614, guid: 666521f39609eb948a38bf5ae15a2e72, type: 3}
   beamRifleMuzzle: {fileID: 888371376}
   gnHolsterBitPrefab: {fileID: 2123030810588685705, guid: d2b2e73bd43087244ad30d205e3d6e06, type: 3}
   holsterBitSpawnPoints:
@@ -47962,34 +47963,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4bd6521084f287f4ab8c9d04e06e91cd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  gameOverManager: {fileID: 858572228}
-  currentArmorIconImage: {fileID: 652625281}
-  armorSprites:
-  - {fileID: 1875917484, guid: d85e3939b710b044b98b1e16b54c531d, type: 3}
-  - {fileID: 1441084825, guid: db2c7a21c2e892c46ba3a526ecf740cb, type: 3}
-  - {fileID: -1346140634, guid: fd664a0a7b9e85f46988639ad48b12ee, type: 3}
-  armorModels:
-  - {fileID: 584233280}
-  - {fileID: 753343647}
-  - {fileID: 983673735}
-  meleeWeaponIcon: {fileID: 1839668173}
-  meleeWeaponText: {fileID: 200694452}
-  beamWeaponIcon: {fileID: 628690738}
-  beamWeaponText: {fileID: 676276272}
-  emphasizedColor: {r: 1, g: 1, b: 1, a: 1}
-  normalColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
-  baseMoveSpeed: 15
-  dashMultiplier: 2.5
-  verticalSpeed: 10
-  energyConsumptionRate: 15
-  energyRecoveryRate: 10
-  meleeAttackRange: 5
-  meleeDamage: 500
-  beamDamage: 100
-  beamAttackEnergyCost: 30
-  canFly: 1
-  gravity: -9.81
-  fastFallMultiplier: 3
   armorConfigurations:
   - name: Normal
     defenseMultiplier: 1
@@ -48003,12 +47976,36 @@ MonoBehaviour:
     defenseMultiplier: 1.2
     moveSpeedMultiplier: 1.5
     energyRecoveryMultiplier: 1.2
+  currentArmorIconImage: {fileID: 652625281}
+  armorSprites:
+  - {fileID: 1875917484, guid: d85e3939b710b044b98b1e16b54c531d, type: 3}
+  - {fileID: 1441084825, guid: db2c7a21c2e892c46ba3a526ecf740cb, type: 3}
+  - {fileID: -1346140634, guid: fd664a0a7b9e85f46988639ad48b12ee, type: 3}
+  armorModels:
+  - {fileID: 584233280}
+  - {fileID: 753343647}
+  - {fileID: 983673735}
+  baseMoveSpeed: 15
+  dashMultiplier: 2.5
+  accelerationSpeed: 0.1
+  decelerationSpeed: 0.15
+  airAccelerationSpeed: 0.3
+  verticalSpeed: 10
+  gravity: -9.81
+  fastFallMultiplier: 3
+  canFly: 1
   maxHP: 10000
   hPSlider: {fileID: 15092799}
   hPText: {fileID: 768329557}
   maxEnergy: 500
+  energyConsumptionRate: 15
+  energyRecoveryRate: 10
   recoveryDelay: 0.005
   energySlider: {fileID: 1126558545}
+  meleeAttackRange: 5
+  meleeDamage: 500
+  beamDamage: 100
+  beamAttackEnergyCost: 30
   attackFixedDuration: 0.8
   beamPrefab: {fileID: 7068210006117006437, guid: d929e84277a2fe84bb469fb55f1cf446, type: 3}
   beamFirePoint: {fileID: 662024687}
@@ -48018,6 +48015,13 @@ MonoBehaviour:
   enemyLayer:
     serializedVersion: 2
     m_Bits: 512
+  meleeWeaponIcon: {fileID: 1839668173}
+  meleeWeaponText: {fileID: 200694452}
+  beamWeaponIcon: {fileID: 628690738}
+  beamWeaponText: {fileID: 676276272}
+  emphasizedColor: {r: 1, g: 1, b: 1, a: 1}
+  normalColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+  gameOverManager: {fileID: 858572228}
 --- !u!143 &1761972089
 CharacterController:
   m_ObjectHideFlags: 0
