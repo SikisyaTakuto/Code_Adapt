@@ -1,8 +1,9 @@
+using System.Collections.Generic;
+using System.Linq;
+using System;
 using UnityEngine;
 using UnityEngine.UI;
-using System;
-using System.Collections.Generic;
-using System.Linq; // LINQは念のため残します
+using UnityEngine.InputSystem; // ★【重要】Input Systemを使うために追加
 
 [RequireComponent(typeof(CharacterController))]
 public class PlayerController : MonoBehaviour
@@ -82,6 +83,9 @@ public class PlayerController : MonoBehaviour
 
     private Vector3 _velocity; // 垂直方向の速度
     private float _moveSpeed; // 最終的な水平移動速度
+    
+    // 【追加】コントローラーのトリガー入力状態
+    private bool _isControllerAttackPressed = false; 
 
     // Public Getters (短縮)
     private float _currentHP;
@@ -130,6 +134,34 @@ public class PlayerController : MonoBehaviour
 
         _controller.Move((horizontalMove + verticalMove) * Time.deltaTime);
     }
+    
+    // ========================= Player Input Message Handlers (コントローラー操作) =========================
+
+    // ★【追加】RightTriggerが押されたときにPlayer Inputから呼ばれる関数
+    public void OnRightTrigger(InputValue value)
+    {
+        // RightTriggerは通常Valueですが、ボタンのように使いたいので、押された瞬間に攻撃を判定します。
+        // Valueが0より大きくなったら攻撃、0に戻ったら攻撃解除とします。
+        float triggerValue = value.Get<float>();
+        
+        // 攻撃のトリガー
+        if (triggerValue > 0.1f && !_isControllerAttackPressed)
+        {
+            _isControllerAttackPressed = true;
+            TryAttack();
+        }
+        // トリガーを離したとき
+        else if (triggerValue < 0.1f)
+        {
+            _isControllerAttackPressed = false;
+        }
+    }
+
+    // （以前の回答で追加した上昇/下降のハンドラは、今回は省略していますが、必要に応じて残してください）
+    /*
+    public void OnAButton(InputValue value) { // ... }
+    public void OnBButton(InputValue value) { // ... }
+    */
 
     // =============================== Input & Movement ===============================
 
@@ -142,9 +174,20 @@ public class PlayerController : MonoBehaviour
 
     private void HandleInput()
     {
-        HandleAttackInputs();
+        // ★【修正】マウス入力による攻撃をここに残す
+        if (Input.GetMouseButtonDown(0)) TryAttack();
+
         if (Input.GetKeyDown(KeyCode.E)) SwitchWeapon();
         HandleArmorSwitchInput();
+    }
+
+    // ★【追加】攻撃の実行ロジックを分離
+    private void TryAttack()
+    {
+        if (_isAttacking) return;
+
+        if (_currentWeaponMode == WeaponMode.Melee) HandleMeleeAttack();
+        else HandleBeamAttack();
     }
 
     private void HandleArmorSwitchInput()
@@ -162,7 +205,7 @@ public class PlayerController : MonoBehaviour
         Vector3 inputDirection = new Vector3(h, 0, v).normalized;
 
         Quaternion camRotation = (_tpsCamController != null)
-            ? Quaternion.Euler(0, _tpsCamController.transform.eulerAngles.y, 0) : transform.rotation;
+         ? Quaternion.Euler(0, _tpsCamController.transform.eulerAngles.y, 0) : transform.rotation;
         Vector3 targetMoveDirection = camRotation * inputDirection;
 
         float targetSpeed = _moveSpeed;
@@ -185,6 +228,9 @@ public class PlayerController : MonoBehaviour
 
         bool hasVerticalInput = false;
 
+        // 【注意】以前のコントローラー入力ロジック（AButton/BButton）は、今回の提供コードには含まれていないため、
+        // キーボード操作のみ残っています。コントローラーで上昇/下降も使いたい場合は、前回のOnAButton/OnBButtonを戻してください。
+        
         if (canFly && _currentEnergy > 0.01f)
         {
             if (Input.GetKey(KeyCode.Space)) { _velocity.y = verticalSpeed; hasVerticalInput = true; }
@@ -209,11 +255,12 @@ public class PlayerController : MonoBehaviour
 
     // ================================== Combat ==================================
 
+    // ★【修正】この関数はマウス入力のみを扱っていたため、TryAttack()に処理を移しました。
     private void HandleAttackInputs()
     {
-        if (_isAttacking || !Input.GetMouseButtonDown(0)) return;
-        if (_currentWeaponMode == WeaponMode.Melee) HandleMeleeAttack();
-        else HandleBeamAttack();
+        // この関数は、HandleInput()でTryAttack()を呼び出すか、
+        // 完全に削除してHandleInput()に統合しても良いです。
+        // 今回はHandleInput()内で直接マウス入力をチェックするようにしました。
     }
 
     private void HandleAttackState()
@@ -466,6 +513,7 @@ public class PlayerController : MonoBehaviour
             {
                 Gizmos.color = Color.cyan;
                 endPoint = origin + fireDirection * beamMaxDistance;
+                Gizmos.DrawLine(origin, endPoint);
             }
             Gizmos.DrawLine(origin, endPoint);
             Gizmos.color = Color.yellow;

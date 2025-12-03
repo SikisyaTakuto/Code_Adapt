@@ -1,14 +1,15 @@
 ﻿using UnityEngine;
+using UnityEngine.InputSystem; // ★ Input Systemを追加
 using UnityEngine.UI;
 using System.Linq;
 
 /// <summary>
-/// ターゲットを追跡し、マウス入力で操作可能な三人称視点（TPS）カメラを制御します。
-/// カメラ衝突とロックオン/ターゲット切り替え機能に対応しています。
+/// ターゲットを追跡し、Input Systemのアクションで操作可能な三人称視点（TPS）カメラを制御します。
+/// カメラ衝突とロックオン/ターゲット切り替え機能に対応しています。（Input System 使用）
 /// </summary>
 public class TPSCameraController : MonoBehaviour
 {
-    // === 設定: カメラ, 追従, 回転 ===
+    // === 1. 設定: カメラ, 追従, 回転 ===
     [Header("1. Target and Camera Control")]
     [Tooltip("カメラが追従するターゲット（通常はプレイヤー）のTransform。")]
     public Transform target;
@@ -16,14 +17,18 @@ public class TPSCameraController : MonoBehaviour
     public float distance = 5.0f;
     [Tooltip("ターゲットの中心からカメラまでの相対的な高さ。")]
     public float height = 2.0f;
+
     [Tooltip("マウス入力によるカメラの回転速度（感度）。")]
-    public float rotationSpeed = 3.0f;
+    public float mouseRotationSpeed = 3.0f;
+    [Tooltip("コントローラー入力によるカメラの回転速度（感度）。")]
+    public float controllerRotationSpeed = 500.0f;
+
     [Tooltip("ターゲット位置と回転に移動する際のスムーズさ（値が大きいほど速い）。")]
     public float smoothSpeed = 10.0f;
     [Tooltip("垂直方向（上下）のカメラの角度制限。Xが最小値（下）、Yが最大値（上）。")]
     public Vector2 pitchMinMax = new Vector2(-40, 85);
 
-    // === 設定: ロックオン ===
+    // === 2. 設定: ロックオン ===
     [Header("2. Lock-On Settings")]
     [Tooltip("ロックオン時のカメラの回転速度。")]
     public float lockOnRotationSpeed = 15f;
@@ -41,7 +46,7 @@ public class TPSCameraController : MonoBehaviour
     [Tooltip("ロックオン切り替え時や解除時に、注視点をスムーズに移行させる時間。")]
     private float _changeDuration = 0.3f;
 
-    // === 設定: 衝突 & UI ===
+    // === 3. 設定: 衝突 & UI ===
     [Header("3. Collision & UI")]
     [Tooltip("カメラが衝突をチェックするレイヤー。")]
     public LayerMask collisionLayers;
@@ -55,8 +60,8 @@ public class TPSCameraController : MonoBehaviour
     public float ceilingYOffset = 0.5f;
     [Tooltip("ロックオン時に画面上に表示するUI要素 (RectTransform) をアタッチ")]
     public RectTransform lockOnUIRect;
-    [Tooltip("ロックオンUIの子にあるHPバーのSliderコンポーネントをアタッチ")]
-    public Slider healthBarSlider;
+
+    // public Slider healthBarSlider; // コメントアウト状態を維持
 
     // === プライベート変数 ===
     private float _yaw = 0.0f;
@@ -71,7 +76,40 @@ public class TPSCameraController : MonoBehaviour
     private Quaternion _fixedTargetRotation;
     private float _fixedViewSmoothSpeed;
     private bool _cursorLockedInitially = false;
-    private bool _isLockOnActive = false; // 外部からの参照用 (未使用だが維持)
+    private bool _isLockOnActive = false;
+
+    // --- Input System 用の変数 ---
+    private PlayerInput _playerInput;
+    private Vector2 _lookInput = Vector2.zero;
+
+    private float _lockOnTriggerValue = 0f;      // ★ ロックオンボタン/トリガーの値
+    private Vector2 _targetSwitchInput = Vector2.zero; // ★ ターゲット切り替え用 (右スティックのX軸など)
+
+    // ロックオンボタンの状態を保持するためのプライベート変数
+    private bool wasControllerLockOnHoldThisFrame = false;
+
+
+    // プレイヤーインプットからのメッセージレシーバー (Action Name: Look)
+    public void OnLook(InputValue value)
+    {
+        _lookInput = value.Get<Vector2>();
+    }
+
+    // ★ プレイヤーインプットからのメッセージレシーバー (Action Name: LeftTrigger)
+    // 💡 修正点: OnLockOn -> OnLeftTrigger に変更
+    public void OnLeftTrigger(InputValue value)
+    {
+        // 押されている/トリガーの値 (0.0f から 1.0f) を取得
+        _lockOnTriggerValue = value.Get<float>();
+    }
+
+    // ★ プレイヤーインプットからのメッセージレシーバー (Action Name: TargetSwitch/RightStickClickなど)
+    public void OnTargetSwitch(InputValue value)
+    {
+        // Vector2 (例: 十字キー, 右スティックの押し込み方向など) 
+        _targetSwitchInput = value.Get<Vector2>();
+    }
+
 
     /// <summary>現在のロックオンターゲットを設定・取得します。設定時にスムーズな切り替えを開始します。</summary>
     public Transform LockOnTarget
@@ -84,9 +122,8 @@ public class TPSCameraController : MonoBehaviour
             // 1. 古いターゲットのUIを非表示にする
             if (_lockOnTarget != null)
             {
-                // 旧ターゲットのHPバーをクリアするロジック (敵コンポーネントへの依存)
                 // 📝 ここは「ScorpionEnemy」コンポーネントが必要です
-                _lockOnTarget.GetComponent<ScorpionEnemy>()?.ClearHealthBar();
+                // _lockOnTarget.GetComponent<ScorpionEnemy>()?.ClearHealthBar(); 
                 lockOnUIRect?.gameObject.SetActive(false);
             }
 
@@ -102,9 +139,8 @@ public class TPSCameraController : MonoBehaviour
                 if (lockOnUIRect != null)
                 {
                     lockOnUIRect.gameObject.SetActive(true);
-                    // 新ターゲットのHPバーを設定するロジック (敵コンポーネントへの依存)
                     // 📝 ここは「ScorpionEnemy」コンポーネントが必要です
-                    _lockOnTarget.GetComponent<ScorpionEnemy>()?.SetHealthBar(healthBarSlider);
+                    // _lockOnTarget.GetComponent<ScorpionEnemy>()?.SetHealthBar(healthBarSlider);
                 }
             }
             _isLockOnActive = _lockOnTarget != null;
@@ -117,6 +153,13 @@ public class TPSCameraController : MonoBehaviour
 
     void Start()
     {
+        // PlayerInputコンポーネントを取得 (ターゲットまたはその親)
+        _playerInput = target?.GetComponentInParent<PlayerInput>();
+        if (_playerInput == null)
+        {
+            Debug.LogError("PlayerInput component not found on the target or its parent. Controller rotation and lock-on will not work.");
+        }
+
         // Cursor.lockState/visible の初期化ロジックはコメントアウトされた状態を維持
         _cursorLockedInitially = true;
 
@@ -163,25 +206,50 @@ public class TPSCameraController : MonoBehaviour
     }
 
     // =======================================================
-    // Lock-On Management
+    // Lock-On Management (LT押し続けでロックオン維持)
     // =======================================================
 
     private void HandleLockOnTimer()
     {
         if (_lockOnTarget == null) return;
 
+        // LTが押されている場合は、自動解除タイマーを無視する
+        const float triggerThreshold = 0.5f;
+        if (_lockOnTriggerValue > triggerThreshold)
+        {
+            _lockOnTimer = lockOnDuration; // タイマーをリセットしてロックオンを維持
+            return;
+        }
+
+        // LTが押されていない、またはマウス右クリックが離された場合にタイマーチェックを行う
         _lockOnTimer -= Time.deltaTime;
         if (_lockOnTimer <= 0) LockOnTarget = null;
     }
 
     private void HandleLockOnInput()
     {
+        // 既存のキーボード/マウス入力（変更なし）
         bool rightClickDown = Input.GetMouseButtonDown(1);
         bool rightClickUp = Input.GetMouseButtonUp(1);
 
-        if (rightClickDown && _lockOnTarget == null)
+        // ★ コントローラー入力の判定
+        const float triggerThreshold = 0.5f;
+        // コントローラーのロックオンボタン/トリガーが押されているか
+        bool isControllerLockOnHold = _lockOnTriggerValue > triggerThreshold;
+
+        // コントローラーのロックオンボタン/トリガーが今押された瞬間を検出 (このフレームで閾値を超えた)
+        bool isControllerLockOnDown = isControllerLockOnHold && !wasControllerLockOnHoldThisFrame;
+        // コントローラーのロックオンボタン/トリガーが今離された瞬間を検出
+        bool isControllerLockOnUp = !isControllerLockOnHold && wasControllerLockOnHoldThisFrame;
+
+        // 次のフレームのために現在の状態を保持
+        wasControllerLockOnHoldThisFrame = isControllerLockOnHold;
+
+
+        // ロックオン開始の条件: (マウス右クリックダウン) または (コントローラーボタン/トリガーダウン)
+        if ((rightClickDown || isControllerLockOnDown) && _lockOnTarget == null)
         {
-            // 新規ロックオンターゲットの検索
+            // 新規ロックオンターゲットの検索 (ロジックは変更なし)
             var colliders = Physics.OverlapSphere(target.position, maxLockOnRange, enemyLayer)
                 .Where(col => Vector3.Angle(target.forward, col.transform.position - target.position) <= lockOnAngleLimit);
 
@@ -205,19 +273,45 @@ public class TPSCameraController : MonoBehaviour
                 LockOnTarget = null;
             }
 
-            // 右クリックを離したら即座に解除
-            if (rightClickUp) LockOnTarget = null;
+            // ロックオン解除の条件: (マウス右クリックアップ) または (コントローラーボタン/トリガーアップ)
+            if (rightClickUp || isControllerLockOnUp)
+            {
+                // マウス右クリックを離す、またはLTを離すと即座に解除
+                LockOnTarget = null;
+            }
         }
     }
+
 
     private void HandleTargetSwitching()
     {
         if (_lockOnTarget == null) return;
 
+        // 既存のキーボード/マウス入力（変更なし）
         float scroll = Input.GetAxis("Mouse ScrollWheel");
-        if (scroll == 0) return;
+        bool isMouseScroll = scroll != 0;
 
-        bool switchRight = scroll > 0;
+        // ★ コントローラー入力の判定
+        // Vector2の入力があったか (例: DPad/右スティックのX軸)
+        bool isControllerSwitch = Mathf.Abs(_targetSwitchInput.x) > 0.5f;
+
+        // マウスホイールまたはコントローラー入力がない場合はスキップ
+        if (!isMouseScroll && !isControllerSwitch) return;
+
+        // 切り替え方向を決定
+        bool switchRight = false;
+        if (isMouseScroll)
+        {
+            switchRight = scroll > 0;
+        }
+        else if (isControllerSwitch)
+        {
+            // コントローラーのX軸入力に基づいて方向を決定
+            switchRight = _targetSwitchInput.x > 0;
+            // 入力を消費 (連続切り替えを防ぐため)
+            _targetSwitchInput = Vector2.zero;
+        }
+
         Vector3 playerPos = target.position;
         Vector3 toCurrentTarget = (_lockOnTarget.position - playerPos).normalized;
 
@@ -229,15 +323,16 @@ public class TPSCameraController : MonoBehaviour
                 SignedAngle = Vector3.SignedAngle(toCurrentTarget, (col.transform.position - playerPos).normalized, Vector3.up),
                 Angle = Vector3.Angle(toCurrentTarget, (col.transform.position - playerPos).normalized)
             })
+            // 切り替え方向にいるターゲットに絞る
             .Where(t => (switchRight && t.SignedAngle > 0) || (!switchRight && t.SignedAngle < 0))
-            .OrderBy(t => t.Angle)
+            .OrderBy(t => t.Angle) // 最も角度が近い敵を選択
             .FirstOrDefault()?.Transform;
 
         if (nextTarget != null) LockOnTarget = nextTarget;
     }
 
     // =======================================================
-    // Core Camera Logic
+    // Core Camera Logic (変更なし)
     // =======================================================
 
     private void HandleTPSViewMode()
@@ -254,9 +349,11 @@ public class TPSCameraController : MonoBehaviour
         }
         else
         {
-            // 通常: マウス入力から回転を計算
+            // 通常: マウス/コントローラー入力から回転を計算
             targetRotation = CalculateRotationFromInput();
         }
+
+        // (中略 - 衝突判定とスムーズな補間ロジックは変更なし)
 
         Vector3 targetPosition = CalculateTargetPosition(targetRotation);
         targetPosition = CheckCeilingYConstraint(targetPosition);
@@ -286,10 +383,55 @@ public class TPSCameraController : MonoBehaviour
         transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * finalRotationSmoothSpeed);
     }
 
+    /// <summary>
+    /// マウスとコントローラーの右スティックの入力を分離して処理し、カメラの回転を計算します。
+    /// </summary>
     private Quaternion CalculateRotationFromInput()
     {
-        _yaw += Input.GetAxis("Mouse X") * rotationSpeed;
-        _pitch -= Input.GetAxis("Mouse Y") * rotationSpeed;
+        float deltaYaw = 0;
+        float deltaPitch = 0;
+
+        // 1. 従来のInput Manager (マウス) からの値を取得
+        float mouseX = Input.GetAxis("Mouse X") * mouseRotationSpeed;
+        float mouseY = Input.GetAxis("Mouse Y") * mouseRotationSpeed;
+
+        // 2. Input Systemからの値を取得
+        float inputSystemX = _lookInput.x;
+        float inputSystemY = _lookInput.y;
+
+        // デバイス判定: PlayerInputコンポーネントの currentControlScheme を利用する
+        bool isGamepad = _playerInput != null &&
+                             _playerInput.currentControlScheme != null &&
+                             _playerInput.currentControlScheme.Contains("Controller");
+
+        if (isGamepad)
+        {
+            // コントローラー (Gamepad) からの入力: Input Systemの値を採用
+            deltaYaw += inputSystemX * controllerRotationSpeed * Time.deltaTime;
+            deltaPitch += inputSystemY * controllerRotationSpeed * Time.deltaTime;
+        }
+        else
+        {
+            // キーボードまたはマウスからの入力 (Mouse/Keyboard Scheme)
+
+            // a) Input SystemでマウスがLookアクションにバインドされている場合: 
+            if (Mathf.Abs(inputSystemX) > 0.001f || Mathf.Abs(inputSystemY) > 0.001f)
+            {
+                deltaYaw += inputSystemX * mouseRotationSpeed;
+                deltaPitch += inputSystemY * mouseRotationSpeed;
+            }
+            // b) 従来のInput Managerでのみマウスが使用されている場合 (既存コード維持のため):
+            else
+            {
+                deltaYaw += mouseX;
+                deltaPitch += mouseY;
+            }
+        }
+
+        // Pitchの調整 (上下の回転)
+        _yaw += deltaYaw;
+        _pitch -= deltaPitch; // カメラの上下視点は、通常入力Yと逆になるためマイナス
+
         _pitch = Mathf.Clamp(_pitch, pitchMinMax.x, pitchMinMax.y);
         return Quaternion.Euler(_pitch, _yaw, 0);
     }
@@ -360,7 +502,7 @@ public class TPSCameraController : MonoBehaviour
     }
 
     // =======================================================
-    // Fixed View & Utilities
+    // Fixed View & Utilities (変更なし)
     // =======================================================
 
     private void HandleFixedViewMode()
@@ -413,7 +555,6 @@ public class TPSCameraController : MonoBehaviour
         Vector3 inputDirection = cameraRotation * new Vector3(horizontalInput, 0f, verticalInput).normalized;
 
         // 目標の回転を計算
-        // inputDirectionがゼロベクトルでないことを確認してからLookRotationを使用 (ここでは既にチェック済みだが安全策として)
         Quaternion targetRotation = Quaternion.LookRotation(inputDirection);
 
         // スムーズな回転

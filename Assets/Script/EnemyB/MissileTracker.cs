@@ -45,6 +45,6 @@ public class MissileTracker : MonoBehaviour
 
         // 3. 追尾速度で移動 (現在のRigidbodyの速度を上書き)
         // 追尾方向に速度を設定
-        rb.velocity = transform.forward * trackingSpeed;
+        rb.linearVelocity = transform.forward * trackingSpeed;
     }
 }
