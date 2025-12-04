@@ -166,11 +166,13 @@ public class TutorialPlayerController : MonoBehaviour
     // Unity Lifecycle Methods
     // =======================================================
 
+    [Obsolete]
     void Awake()
     {
         InitializeComponents();
     }
 
+    [Obsolete]
     void Start()
     {
         currentEnergy = maxEnergy;
@@ -239,7 +241,7 @@ public class TutorialPlayerController : MonoBehaviour
         _controller.Move(finalMove * Time.deltaTime);
     }
 
-
+    [Obsolete]
     private void InitializeComponents()
     {
         _controller = GetComponent<CharacterController>();

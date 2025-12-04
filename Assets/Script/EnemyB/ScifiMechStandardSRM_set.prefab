@@ -11,18 +11,16 @@ GameObject:
   - component: {fileID: 4021776247672186}
   - component: {fileID: 33298705227998512}
   - component: {fileID: 23314431538689378}
-  - component: {fileID: 6915931716244455391}
-  - component: {fileID: -2565527192473740672}
   - component: {fileID: -9178066790976965801}
   - component: {fileID: -1765252838957350343}
   - component: {fileID: 1765865533375595334}
   m_Layer: 0
-  m_Name: ScifiMechStandardSRM
+  m_Name: ScifiMechStandardSRM_set
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &4021776247672186
 Transform:
   m_ObjectHideFlags: 0
@@ -91,36 +89,6 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!114 &6915931716244455391
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1645326908666424}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a0175af6269414e4ea80271094f3149a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  damageAmount: 20
-  hitEffectPrefab: {fileID: 8443315704496310910, guid: 6ef35fa36e3a65043b2d800600204bdd, type: 3}
---- !u!114 &-2565527192473740672
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1645326908666424}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fcc53d8e97278cb4694a88b14b36b2b0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  trackingSpeed: 15
-  rotationSpeed: 1.75
-  lifetime: 2.5
-  explosionPrefab: {fileID: 8443315704496310910, guid: 6ef35fa36e3a65043b2d800600204bdd, type: 3}
 --- !u!54 &-9178066790976965801
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -144,9 +112,9 @@ Rigidbody:
   m_ImplicitCom: 1
   m_ImplicitTensor: 1
   m_UseGravity: 0
-  m_IsKinematic: 0
+  m_IsKinematic: 1
   m_Interpolate: 0
-  m_Constraints: 0
+  m_Constraints: 112
   m_CollisionDetection: 1
 --- !u!135 &-1765252838957350343
 SphereCollider:
@@ -163,7 +131,7 @@ SphereCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3

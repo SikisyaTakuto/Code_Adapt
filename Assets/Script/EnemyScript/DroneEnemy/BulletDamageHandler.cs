@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 /// <summary>
@@ -109,5 +110,17 @@ public class BulletDamageHandler : MonoBehaviour
         {
             Debug.LogWarning("Playerタグのオブジェクトに TakeDamage を持つ PlayerController または TutorialPlayerController が見つかりません。", target);
         }
+    }
+
+    public override bool Equals(object obj)
+    {
+        return obj is BulletDamageHandler handler &&
+               base.Equals(obj) &&
+               isDestroyed == handler.isDestroyed;
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(base.GetHashCode(), isDestroyed);
     }
 }

@@ -25,6 +25,7 @@ public class ComponentFinderWindow : EditorWindow
     }
 
     // エディタウィンドウのGUI描画処理
+    [System.Obsolete]
     void OnGUI()
     {
         // タイトルラベル
@@ -65,6 +66,7 @@ public class ComponentFinderWindow : EditorWindow
     /// 指定されたコンポーネント名を持つオブジェクトをシーン内から検索する
     /// </summary>
     /// <param name="typeName">検索するコンポーネントの型名（例："BoxCollider"）</param>
+    [System.Obsolete]
     void FindComponentsInScene(string typeName)
     {
         // 前回の検索結果をクリア

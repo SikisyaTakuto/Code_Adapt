@@ -396,4 +396,16 @@ public class DroneEnemy : MonoBehaviour
             Gizmos.DrawWireSphere(currentDriftTarget, wallHitResetRange);
         }
     }
+
+    public override bool Equals(object obj)
+    {
+        return obj is DroneEnemy enemy &&
+               base.Equals(obj) &&
+               nextAttackTime == enemy.nextAttackTime;
+    }
+
+    public override int GetHashCode()
+    {
+        return System.HashCode.Combine(base.GetHashCode(), nextAttackTime);
+    }
 }

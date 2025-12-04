@@ -53,6 +53,11 @@ public class ArmorSelectManager : MonoBehaviour
     private int currentDisplayIndex = 0;
     private bool isTutorialSelected = false;
 
+    public ArmorSelectManager(bool isTutorialSelected)
+    {
+        this.isTutorialSelected = isTutorialSelected;
+    }
+
     private readonly string[] armorNames = { "ノーマル", "バスター", "スピード", "ランダム" };
     private readonly string[] armorDescriptions =
     {
@@ -74,6 +79,7 @@ public class ArmorSelectManager : MonoBehaviour
     private readonly Quaternion initialRotation = Quaternion.Euler(0f, 180f, 0f);
 
     // 【修正】AwakeでAudioSourceを準備し、Mixerを設定
+    [System.Obsolete]
     void Awake()
     {
         // AudioSourceコンポーネントを取得または追加
