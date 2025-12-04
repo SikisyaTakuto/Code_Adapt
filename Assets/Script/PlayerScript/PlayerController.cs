@@ -3,16 +3,18 @@ using System.Linq;
 using System;
 using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.InputSystem; // ★【重要】Input Systemを使うために追加
+using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(CharacterController))]
 public class PlayerController : MonoBehaviour
 {
     // ============================= Enums & Consts ==============================
     public enum WeaponMode { Melee, Beam }
-    public enum ArmorMode { Normal = 0, Buster = 1, Speed = 2 }
+    public enum ArmorMode { Normal = 0, Buster = 1, Speed = 2 } // 0, 1, 2の順序が重要
     private const string SelectedArmorKey = "SelectedArmorIndex";
     private const float GroundSnapVelocity = -0.1f;
+    // Dpadの入力判定のしきい値。（この定数は使用されなくなりますが、互換性のために残します）
+    private const float DpadThreshold = 0.5f;
 
     [System.Serializable]
     public class ArmorStats
@@ -83,9 +85,15 @@ public class PlayerController : MonoBehaviour
 
     private Vector3 _velocity; // 垂直方向の速度
     private float _moveSpeed; // 最終的な水平移動速度
-    
-    // 【追加】コントローラーのトリガー入力状態
-    private bool _isControllerAttackPressed = false; 
+
+    // D-padの押された瞬間を検出するための前回の入力状態 -> 削除
+    // private Vector2 _lastDpadInput = Vector2.zero;
+
+    // コントローラーのトリガー入力状態
+    private bool _isControllerAttackPressed = false;
+
+    // RBボタンが押されているかを保持するフラグ (ダッシュ用) -> 削除
+    // private bool _isRbPressed = false; 
 
     // Public Getters (短縮)
     private float _currentHP;
@@ -95,8 +103,8 @@ public class PlayerController : MonoBehaviour
     public ArmorMode currentArmorMode => _currentArmorMode;
     public WeaponMode currentWeaponMode => _currentWeaponMode;
 
-    // =============================== Unity Lifecycle ===============================
 
+    // =============================== Unity Lifecycle ===============================
     void Awake()
     {
         _controller = GetComponent<CharacterController>();
@@ -134,34 +142,36 @@ public class PlayerController : MonoBehaviour
 
         _controller.Move((horizontalMove + verticalMove) * Time.deltaTime);
     }
-    
+
     // ========================= Player Input Message Handlers (コントローラー操作) =========================
 
-    // ★【追加】RightTriggerが押されたときにPlayer Inputから呼ばれる関数
+    // D-pad入力処理 (OnDpad) -> 削除
+
+    // RBボタン（Right Shoulder）の入力ハンドラ (OnRightShoulder) -> 削除
+
+    public void OnXButton(InputValue value)
+    {
+        if (value.isPressed)
+        {
+            SwitchWeapon();
+        }
+    }
+
     public void OnRightTrigger(InputValue value)
     {
-        // RightTriggerは通常Valueですが、ボタンのように使いたいので、押された瞬間に攻撃を判定します。
-        // Valueが0より大きくなったら攻撃、0に戻ったら攻撃解除とします。
+        // RightTriggerは攻撃（ビーム）に割り当てられています
         float triggerValue = value.Get<float>();
-        
-        // 攻撃のトリガー
+
         if (triggerValue > 0.1f && !_isControllerAttackPressed)
         {
             _isControllerAttackPressed = true;
             TryAttack();
         }
-        // トリガーを離したとき
         else if (triggerValue < 0.1f)
         {
             _isControllerAttackPressed = false;
         }
     }
-
-    // （以前の回答で追加した上昇/下降のハンドラは、今回は省略していますが、必要に応じて残してください）
-    /*
-    public void OnAButton(InputValue value) { // ... }
-    public void OnBButton(InputValue value) { // ... }
-    */
 
     // =============================== Input & Movement ===============================
 
@@ -174,14 +184,15 @@ public class PlayerController : MonoBehaviour
 
     private void HandleInput()
     {
-        // ★【修正】マウス入力による攻撃をここに残す
+        // マウス入力による攻撃
         if (Input.GetMouseButtonDown(0)) TryAttack();
 
+        // キーボード入力による武器切替 (既存)
         if (Input.GetKeyDown(KeyCode.E)) SwitchWeapon();
         HandleArmorSwitchInput();
     }
 
-    // ★【追加】攻撃の実行ロジックを分離
+    // 攻撃の実行ロジックを分離
     private void TryAttack()
     {
         if (_isAttacking) return;
@@ -192,6 +203,7 @@ public class PlayerController : MonoBehaviour
 
     private void HandleArmorSwitchInput()
     {
+        // アーマー切り替えはキーボード入力のみになります
         if (Input.GetKeyDown(KeyCode.Alpha1)) SwitchArmor(ArmorMode.Normal);
         else if (Input.GetKeyDown(KeyCode.Alpha2)) SwitchArmor(ArmorMode.Buster);
         else if (Input.GetKeyDown(KeyCode.Alpha3)) SwitchArmor(ArmorMode.Speed);
@@ -205,15 +217,21 @@ public class PlayerController : MonoBehaviour
         Vector3 inputDirection = new Vector3(h, 0, v).normalized;
 
         Quaternion camRotation = (_tpsCamController != null)
-         ? Quaternion.Euler(0, _tpsCamController.transform.eulerAngles.y, 0) : transform.rotation;
+          ? Quaternion.Euler(0, _tpsCamController.transform.eulerAngles.y, 0) : transform.rotation;
         Vector3 targetMoveDirection = camRotation * inputDirection;
 
         float targetSpeed = _moveSpeed;
+
+        // ダッシュ判定: キーボードのLeftShiftのみがダッシュトリガーになります
+        // bool isDashing = (Input.GetKey(KeyCode.LeftShift) || _isRbPressed) && _currentEnergy > 0.01f;
         bool isDashing = Input.GetKey(KeyCode.LeftShift) && _currentEnergy > 0.01f;
 
         if (isDashing)
         {
+            // 押している間だけダッシュ速度を適用
             targetSpeed *= dashMultiplier;
+
+            // 押している間だけエネルギーを消費する
             _currentEnergy -= energyConsumptionRate * Time.deltaTime;
             _lastEnergyConsumptionTime = Time.time;
         }
@@ -228,9 +246,6 @@ public class PlayerController : MonoBehaviour
 
         bool hasVerticalInput = false;
 
-        // 【注意】以前のコントローラー入力ロジック（AButton/BButton）は、今回の提供コードには含まれていないため、
-        // キーボード操作のみ残っています。コントローラーで上昇/下降も使いたい場合は、前回のOnAButton/OnBButtonを戻してください。
-        
         if (canFly && _currentEnergy > 0.01f)
         {
             if (Input.GetKey(KeyCode.Space)) { _velocity.y = verticalSpeed; hasVerticalInput = true; }
@@ -254,14 +269,6 @@ public class PlayerController : MonoBehaviour
     }
 
     // ================================== Combat ==================================
-
-    // ★【修正】この関数はマウス入力のみを扱っていたため、TryAttack()に処理を移しました。
-    private void HandleAttackInputs()
-    {
-        // この関数は、HandleInput()でTryAttack()を呼び出すか、
-        // 完全に削除してHandleInput()に統合しても良いです。
-        // 今回はHandleInput()内で直接マウス入力をチェックするようにしました。
-    }
 
     private void HandleAttackState()
     {
@@ -345,7 +352,6 @@ public class PlayerController : MonoBehaviour
         GameObject target = hitCollider.gameObject;
         bool isHit = false;
 
-        // IDamageableインターフェースがあれば、以下の冗長なチェックを排除できます。
         if (target.TryGetComponent<TutorialEnemyController>(out var c1)) { c1.TakeDamage(damageAmount); isHit = true; }
         else if (target.TryGetComponent<ScorpionEnemy>(out var c2)) { c2.TakeDamage(damageAmount); isHit = true; }
         else if (target.TryGetComponent<SuicideEnemy>(out var c3)) { c3.TakeDamage(damageAmount); isHit = true; }
@@ -434,7 +440,6 @@ public class PlayerController : MonoBehaviour
         UpdateHPUI();
         UpdateEnergyUI();
         UpdateWeaponUIEmphasis();
-        // UpdateArmorVisualsはSwitchArmorで実行済み
     }
 
     private void UpdateArmorVisuals(int index)
