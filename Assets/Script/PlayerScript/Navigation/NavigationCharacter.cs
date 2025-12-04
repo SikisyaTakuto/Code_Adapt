@@ -50,6 +50,8 @@ public class NavigationCharacter : MonoBehaviour
 
     private float startTime;
 
+    public bool IsMoving { get => isMoving; set => isMoving = value; }
+
     // =======================================================
     // èâä˙âª
     // =======================================================

@@ -2,7 +2,7 @@
 using UnityEngine;
 using UnityEngine.AI;
 
-public class ChaserAI : MonoBehaviour
+public class MachineGunChaserAI : MonoBehaviour
 {
     // --- 状態定義 ---
     public enum EnemyState { Idle, Chase, Attack, Reload }
@@ -14,10 +14,15 @@ public class ChaserAI : MonoBehaviour
     public float attackRange = 5f;
     public float rotationSpeed = 10f;
 
-    // --- 攻撃設定 ---
-    public int bulletsPerBurst = 3;
-    public float timeBetweenShots = 0.1f;
+    // --- 攻撃設定 (マシンガン連射仕様) ---
+    // 💡 修正点 1: 連射数と連射間隔をマシンガン向けに調整
+    public int bulletsPerBurst = 25;        // 1回のバーストで発射する弾数
+    public float timeBetweenShots = 0.05f;  // 連射間隔 (高速化)
     public float shootDuration = 0.5f;
+
+    // 💡 修正点 2: 弾速と拡散の設定を追加
+    public float bulletLaunchForce = 150f;  // 弾速 (高速化)
+    public float fireSpread = 0.08f;        // 弾の拡散量（マシンガンらしいブレ）
 
     // --- 弾薬とリロード設定 ---
     public int maxAmmo = 10;
@@ -31,7 +36,6 @@ public class ChaserAI : MonoBehaviour
     // --- コンポーネント ---
     private NavMeshAgent agent;
     private Animator animator;
-    // 💡 死亡チェック用に EnemyHealth への参照を追加
     private EnemyHealth health;
 
     // ----------------------------------------------------------------------
@@ -40,7 +44,7 @@ public class ChaserAI : MonoBehaviour
     {
         agent = GetComponent<NavMeshAgent>();
         animator = GetComponent<Animator>();
-        health = GetComponent<EnemyHealth>(); // 💡 EnemyHealthの参照を取得
+        health = GetComponent<EnemyHealth>();
 
         if (player == null)
         {
@@ -60,28 +64,20 @@ public class ChaserAI : MonoBehaviour
 
     void Update()
     {
-        // 🚨 死亡チェック: HPがゼロ以下なら即座に処理を終了 (最重要修正箇所)
+        // 🚨 死亡チェック: HPがゼロ以下なら即座に処理を終了
         if (health != null && health.currentHealth <= 0)
         {
-            // 死亡時に予約された全ての処理をキャンセル
-            CancelInvoke("ShootBullet");
-            CancelInvoke("TransitionToAttackComplete");
-            CancelInvoke("FinishReload");
-
-            // アニメーションを静止状態に移行
+            CancelInvoke(); // 全ての予約処理をキャンセル
             if (animator != null)
             {
                 animator.SetBool("IsAiming", false);
                 animator.SetBool("IsRunning", false);
             }
-
-            // NavMeshAgentを完全に停止（このスクリプトが無効化されるまでの安全措置）
             if (agent != null && agent.isActiveAndEnabled)
             {
                 agent.isStopped = true;
             }
-
-            return; // 以降のAIロジックは全てスキップ
+            return;
         }
 
 
@@ -102,26 +98,24 @@ public class ChaserAI : MonoBehaviour
                 AttackLogic(distanceToPlayer);
                 break;
             case EnemyState.Reload:
-                ReloadLogic();
+                // Reload中はロジックなし
                 break;
         }
 
         // 💡 アニメーション制御（移動速度連動）
         if (animator != null && agent.isActiveAndEnabled)
         {
-            // 💡 agentが有効な場合のみvelocityを使用
             bool isMoving = agent.velocity.magnitude > 0.1f;
             animator.SetBool("IsRunning", isMoving);
         }
         else if (animator != null)
         {
-            // agentが無効な場合は強制的に停止アニメーション
             animator.SetBool("IsRunning", false);
         }
     }
 
     // ----------------------------------------------------
-    // --- ロジック関数 ---
+    // --- ロジック関数 (変更なし) ---
     // ----------------------------------------------------
 
     void IdleLogic(float distance)
@@ -134,7 +128,6 @@ public class ChaserAI : MonoBehaviour
 
     void ChaseLogic(float distance)
     {
-        // 💡 修正: NavMeshAgentの安全な操作チェック
         if (agent.isActiveAndEnabled)
         {
             agent.SetDestination(player.position);
@@ -163,40 +156,36 @@ public class ChaserAI : MonoBehaviour
     }
 
     // ----------------------------------------------------
-    // --- 状態遷移関数 ---
+    // --- 状態遷移関数 (Attackのみ修正) ---
     // ----------------------------------------------------
 
     void TransitionToIdle()
     {
         currentState = EnemyState.Idle;
-        // 💡 修正: NavMeshAgentの安全な操作チェック
         if (agent != null && agent.isActiveAndEnabled)
         {
             agent.isStopped = true;
             agent.updateRotation = true;
         }
-        CancelInvoke("ShootBullet");
-        CancelInvoke("TransitionToAttackComplete"); // 💡 追加: 念のためInvokeもキャンセル
+        CancelInvoke();
         if (animator != null) animator.SetBool("IsAiming", false);
     }
 
     void TransitionToChase()
     {
         currentState = EnemyState.Chase;
-        // 💡 修正: NavMeshAgentの安全な操作チェック
         if (agent != null && agent.isActiveAndEnabled)
         {
             agent.isStopped = false;
             agent.updateRotation = true;
         }
         if (animator != null) animator.SetBool("IsAiming", false);
-        CancelInvoke("ShootBullet");
-        CancelInvoke("TransitionToAttackComplete");
+        CancelInvoke();
     }
 
     void TransitionToAttack()
     {
-        // 💡 弾切れの場合、AttackではなくReloadへ遷移
+        // 弾切れの場合、AttackではなくReloadへ遷移
         if (currentAmmo <= 0)
         {
             TransitionToReload();
@@ -205,7 +194,6 @@ public class ChaserAI : MonoBehaviour
 
         currentState = EnemyState.Attack;
 
-        // 💡 修正: NavMeshAgentの安全な操作チェック
         if (agent != null && agent.isActiveAndEnabled)
         {
             agent.isStopped = true;
@@ -221,6 +209,7 @@ public class ChaserAI : MonoBehaviour
 
         CancelInvoke("ShootBullet");
 
+        // 💡 修正: 高速・多弾数での発射を予約
         for (int i = 0; i < bulletsPerBurst; i++)
         {
             Invoke("ShootBullet", i * timeBetweenShots);
@@ -234,13 +223,9 @@ public class ChaserAI : MonoBehaviour
 
     void TransitionToAttackComplete()
     {
-        // 🚨 最重要チェック 1: 死亡チェック
         if (health != null && health.currentHealth <= 0) return;
+        if (player == null) return;
 
-        // 🚨 最重要チェック 2: プレイヤー参照の確認
-        if (player == null) return; // プレイヤーが破壊されている場合
-
-        // 距離計算はここから
         float distance = Vector3.Distance(transform.position, player.position);
 
         if (distance <= attackRange * 1.2f)
@@ -254,14 +239,12 @@ public class ChaserAI : MonoBehaviour
     }
 
     // ----------------------------------------------------
-    // --- 弾丸生成処理 ---
+    // --- 弾丸生成処理 (最重要修正箇所) ---
     // ----------------------------------------------------
 
     public void ShootBullet()
     {
-        // 死亡チェックをここにも追加
         if (health != null && health.currentHealth <= 0) return;
-
         if (currentAmmo <= 0) return;
 
         currentAmmo--;
@@ -271,15 +254,39 @@ public class ChaserAI : MonoBehaviour
             return;
         }
 
+        // 💡 修正点 3-1: 拡散用のランダムなオフセットを計算
+        Vector3 randomOffset = new Vector3(
+            Random.Range(-fireSpread, fireSpread),
+            Random.Range(-fireSpread, fireSpread),
+            Random.Range(-fireSpread, fireSpread)
+        );
+
         GameObject newBullet = Instantiate(bulletPrefab, muzzlePoint.position, muzzlePoint.rotation);
         newBullet.transform.parent = null;
 
-        Debug.Log("弾が発射されました！");
+        // 💡 修正点 3-2: Rigidbodyを取得し、推進力を与える
+        Rigidbody rb = newBullet.GetComponent<Rigidbody>();
+        if (rb != null)
+        {
+            // 前方ベクトルにランダムオフセットを加えて発射
+            Vector3 fireDirection = muzzlePoint.forward + randomOffset;
+            // 推進力を与える (弾速の適用)
+            rb.AddForce(fireDirection.normalized * bulletLaunchForce, ForceMode.Impulse);
+        }
+        else
+        {
+            Debug.LogWarning("弾丸PrefabにRigidbodyがありません。弾が飛びません。");
+        }
+
+        Debug.Log("弾が発射されました！ 残り弾薬: " + currentAmmo);
     }
+
+    // ----------------------------------------------------
+    // --- リロード処理 (変更なし) ---
+    // ----------------------------------------------------
 
     void ReloadLogic()
     {
-        // 死亡チェックをここにも追加
         if (health != null && health.currentHealth <= 0) return;
         // リロード中はアニメーションと時間待ちがメイン
     }
@@ -288,15 +295,12 @@ public class ChaserAI : MonoBehaviour
     {
         currentState = EnemyState.Reload;
 
-        // 💡 修正: targetPosition の削除と、移動の停止
         if (agent != null && agent.isActiveAndEnabled)
         {
-            // リロード中は移動を完全に停止する
             agent.isStopped = true;
-            agent.updateRotation = false; // プレイヤーの方を向く処理は残したいならtrueのままでも良い
+            agent.updateRotation = false;
         }
 
-        // 攻撃中のInvokeを全てキャンセル
         CancelInvoke("ShootBullet");
         CancelInvoke("TransitionToAttackComplete");
 
@@ -312,16 +316,14 @@ public class ChaserAI : MonoBehaviour
 
     void FinishReload()
     {
-        // 死亡チェックをここにも追加
         if (health != null && health.currentHealth <= 0) return;
 
         currentAmmo = maxAmmo;
         Debug.Log("リロード完了！");
 
-        // 🚨 最重要チェック 2: プレイヤー参照の確認
         if (player == null)
         {
-            TransitionToIdle(); // プレイヤーがいなければ待機に戻る
+            TransitionToIdle();
             return;
         }
 

@@ -120,11 +120,13 @@ public class PlayerController : MonoBehaviour
     // Unity Lifecycle Methods
     // =======================================================
 
+    [Obsolete]
     void Awake()
     {
         InitializeComponents();
     }
 
+    [Obsolete]
     void Start()
     {
         currentEnergy = maxEnergy;
@@ -175,7 +177,7 @@ public class PlayerController : MonoBehaviour
         _controller.Move(finalMove * Time.deltaTime);
     }
 
-
+    [Obsolete]
     private void InitializeComponents()
     {
         _controller = GetComponent<CharacterController>();
