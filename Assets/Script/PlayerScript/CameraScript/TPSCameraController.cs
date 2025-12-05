@@ -4,8 +4,7 @@ using UnityEngine.UI;
 using System.Linq;
 
 /// <summary>
-/// ターゲットを追跡し、Input Systemのアクションで操作可能な三人称視点（TPS）カメラを制御します。
-/// カメラ衝突とロックオン/ターゲット切り替え機能に対応しています。（Input System 使用）
+/// ターゲットを追跡し、Input Systemのアクションで操作可能な三人称視点（TPS）カメラを制御します。（Input System 使用）
 /// </summary>
 public class TPSCameraController : MonoBehaviour
 {
@@ -30,8 +29,9 @@ public class TPSCameraController : MonoBehaviour
 
     // === 2. 設定: ロックオン ===
     [Header("2. Lock-On Settings")]
-    [Tooltip("ロックオン時のカメラの回転速度。")]
-    public float lockOnRotationSpeed = 15f;
+    [Tooltip("ロックオン時のカメラの回転速度。値を増やすと追従が強くなる。")]
+    // ★ 修正点: 初期値を強化
+    public float lockOnRotationSpeed = 50f;
     [Tooltip("ロックオンの最大距離。プレイヤーからこの範囲内の敵を検出します。")]
     public float maxLockOnRange = 30f;
     [Tooltip("ロックオン維持のための最大距離（元の範囲より少し広めに設定）。")]
@@ -96,7 +96,6 @@ public class TPSCameraController : MonoBehaviour
     }
 
     // ★ プレイヤーインプットからのメッセージレシーバー (Action Name: LeftTrigger)
-    // 💡 修正点: OnLockOn -> OnLeftTrigger に変更
     public void OnLeftTrigger(InputValue value)
     {
         // 押されている/トリガーの値 (0.0f から 1.0f) を取得
@@ -332,25 +331,34 @@ public class TPSCameraController : MonoBehaviour
     }
 
     // =======================================================
-    // Core Camera Logic (変更なし)
+    // Core Camera Logic
     // =======================================================
 
     private void HandleTPSViewMode()
     {
         Quaternion targetRotation;
+        float currentRotationSmoothSpeed;
+
         if (_lockOnTarget != null)
         {
             // ロックオン: ターゲット方向を目標回転とする
             Vector3 directionToTarget = (_lookTargetPosition - transform.position).normalized;
             targetRotation = Quaternion.LookRotation(directionToTarget);
+
+            // ロックオン中は、_yaw/_pitchを直接更新してプレイヤーの回転に反映させる必要がある
             _yaw = targetRotation.eulerAngles.y;
             _pitch = targetRotation.eulerAngles.x;
             if (_pitch > 180) _pitch -= 360;
+
+            // ロックオン時のスムーズ速度
+            currentRotationSmoothSpeed = lockOnRotationSpeed;
         }
         else
         {
             // 通常: マウス/コントローラー入力から回転を計算
             targetRotation = CalculateRotationFromInput();
+            // 通常時のスムーズ速度
+            currentRotationSmoothSpeed = smoothSpeed;
         }
 
         // (中略 - 衝突判定とスムーズな補間ロジックは変更なし)
@@ -365,21 +373,22 @@ public class TPSCameraController : MonoBehaviour
         Vector3 finalPosition = ApplyCollisionCheck(targetPosition);
 
         // スムーズな補間
-        float currentSmoothSpeed = _lockOnTarget != null ? lockOnRotationSpeed : smoothSpeed;
-        float finalRotationSmoothSpeed = currentSmoothSpeed;
+        float finalRotationSmoothSpeed = currentRotationSmoothSpeed;
 
-        // ロックオン中の回転減衰
+        // ロックオン中の回転減衰 (既存ロジックを維持)
         if (_lockOnTarget != null)
         {
             const float dampingStartAngle = 75.0f;
             if (_pitch > dampingStartAngle)
             {
                 float rotationDampingFactor = Mathf.InverseLerp(pitchMinMax.y, dampingStartAngle, _pitch);
-                finalRotationSmoothSpeed = currentSmoothSpeed * (rotationDampingFactor * rotationDampingFactor);
+                finalRotationSmoothSpeed = currentRotationSmoothSpeed * (rotationDampingFactor * rotationDampingFactor);
             }
         }
 
-        transform.position = Vector3.Lerp(transform.position, finalPosition, Time.deltaTime * currentSmoothSpeed);
+        // カメラ位置と回転をスムーズに更新
+        transform.position = Vector3.Lerp(transform.position, finalPosition, Time.deltaTime * currentRotationSmoothSpeed);
+        // ★ 修正点: ロックオン解除時の回転のスムーズさを考慮し、スムーズ速度を統一
         transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * finalRotationSmoothSpeed);
     }
 
