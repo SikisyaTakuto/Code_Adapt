@@ -4,6 +4,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine.SceneManagement;
+using UnityEngine.InputSystem; // 1. 【追加】Input Systemのための名前空間
 
 /// <summary>
 /// プレイヤーの移動、エネルギー管理、攻撃、およびアーマー制御を制御します。
@@ -107,6 +108,11 @@ public class PlayerController : MonoBehaviour
     private bool _hasTriggeredEnergyDepletedEvent = false;
     private bool _isDead = false;
 
+    // === コントローラー入力のための追加変数 ===
+    private bool _isBoosting = false;
+    private float _verticalInput = 0f; // -1 (下降), 0 (なし), 1 (上昇)
+    // ====================================
+
     private Vector3 _velocity;
     private float _moveSpeed;
 
@@ -114,6 +120,9 @@ public class PlayerController : MonoBehaviour
     [HideInInspector] public float currentEnergy { get => _currentEnergy; private set => _currentEnergy = value; }
     public ArmorMode currentArmorMode => _currentArmorMode;
     public WeaponMode currentWeaponMode => _currentWeaponMode;
+
+    [Header("Input System Actions")] // 2. 【追加】Input Systemの参照
+    public PlayerInput playerInput; // PlayerInputコンポーネントへの参照
 
 
     // =======================================================
@@ -219,9 +228,9 @@ public class PlayerController : MonoBehaviour
 
     private void HandleInput()
     {
-        HandleAttackInputs();
-        HandleWeaponSwitchInput();
-        HandleArmorSwitchInput();
+        HandleAttackInputs(); // マウス入力用（Input SystemでOnAttackを使用する場合は削除または無効化を推奨）
+        HandleWeaponSwitchInput(); // キーボード入力用（Input SystemでOnWeaponSwitchを使用する場合は削除または無効化を推奨）
+        HandleArmorSwitchInput(); // キーボード入力用（DPadでアーマー切り替えを行う場合は削除または無効化を推奨）
     }
 
     private void HandleArmorSwitchInput()
@@ -243,6 +252,7 @@ public class PlayerController : MonoBehaviour
     {
         if (_isAttacking) return;
 
+        // マウス左クリックの処理
         if (Input.GetMouseButtonDown(0))
         {
             switch (_currentWeaponMode)
@@ -259,8 +269,8 @@ public class PlayerController : MonoBehaviour
 
     private Vector3 HandleHorizontalMovement()
     {
-        float h = Input.GetAxis("Horizontal");
-        float v = Input.GetAxis("Vertical");
+        float h = Input.GetAxis("Horizontal"); // 左スティックX
+        float v = Input.GetAxis("Vertical");   // 左スティックY
 
         if (h == 0f && v == 0f)
         {
@@ -286,8 +296,8 @@ public class PlayerController : MonoBehaviour
         float currentSpeed = _moveSpeed;
         bool isConsumingEnergy = false;
 
-        // ダッシュ処理
-        bool isDashing = Input.GetKey(KeyCode.LeftShift) && currentEnergy > 0.01f;
+        // ダッシュ処理 (キーボード LeftShift / Input System _isBoosting)
+        bool isDashing = (Input.GetKey(KeyCode.LeftShift) || _isBoosting) && currentEnergy > 0.01f;
 
         if (isDashing)
         {
@@ -308,15 +318,23 @@ public class PlayerController : MonoBehaviour
 
         bool hasVerticalInput = false;
 
+        // キーボード入力: Space (上昇), Alt (下降)
+        bool isFlyingUpKey = Input.GetKey(KeyCode.Space);
+        bool isFlyingDownKey = Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt);
+
+        // Input System入力: _verticalInput
+        bool isFlyingUpController = _verticalInput > 0.5f;
+        bool isFlyingDownController = _verticalInput < -0.5f;
+
+
         if (canFly && currentEnergy > 0.01f)
         {
-            if (Input.GetKey(KeyCode.Space)) // 上昇
+            if (isFlyingUpKey || isFlyingUpController) // 上昇 (Aボタン or Space)
             {
                 _velocity.y = verticalSpeed;
                 hasVerticalInput = true;
             }
-            // Altキーは降下
-            else if (Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt))
+            else if (isFlyingDownKey || isFlyingDownController) // 降下 (Bボタン or Alt)
             {
                 _velocity.y = -verticalSpeed;
                 hasVerticalInput = true;
@@ -426,9 +444,9 @@ public class PlayerController : MonoBehaviour
 
         // BeamControllerへの依存をそのままに
         BeamController beamInstance = Instantiate(
-            beamPrefab,
-            origin,
-            Quaternion.LookRotation(fireDirection)
+        beamPrefab,
+        origin,
+        Quaternion.LookRotation(fireDirection)
         );
         beamInstance.Fire(origin, endPoint, didHit);
     }
@@ -688,6 +706,127 @@ public class PlayerController : MonoBehaviour
         _currentWeaponMode = newMode;
         UpdateWeaponUIEmphasis();
         Debug.Log($"[Manager] 武器を強制切り替えしました: **{_currentWeaponMode}**");
+    }
+
+    // =======================================================
+    // Input System Event Handlers 【コントローラー入力の処理】
+    // =======================================================
+
+    // Aボタン (上昇) - Action名: FlyUp
+    public void OnFlyUp(InputAction.CallbackContext context)
+    {
+        if (context.performed) // 押されている間
+        {
+            _verticalInput = 1f;
+        }
+        else if (context.canceled) // 離された瞬間
+        {
+            _verticalInput = 0f;
+        }
+    }
+
+    // Bボタン (下降) - Action名: FlyDown
+    public void OnFlyDown(InputAction.CallbackContext context)
+    {
+        if (context.performed) // 押されている間
+        {
+            _verticalInput = -1f;
+        }
+        else if (context.canceled) // 離された瞬間
+        {
+            _verticalInput = 0f;
+        }
+    }
+
+    // Right Button/RB (加速/ブースト) - Action名: RightShoulder (推奨) または Boost
+    public void OnBoost(InputAction.CallbackContext context)
+    {
+        if (context.performed)
+        {
+            _isBoosting = true;
+        }
+        else if (context.canceled)
+        {
+            _isBoosting = false;
+        }
+    }
+
+    // Right Trigger/RT (攻撃) - Action名: RightTrigger または Attack
+    public void OnAttack(InputAction.CallbackContext context)
+    {
+        if (context.started) // 押された瞬間
+        {
+            if (!_isAttacking)
+            {
+                switch (_currentWeaponMode)
+                {
+                    case WeaponMode.Melee:
+                        HandleMeleeAttack();
+                        break;
+                    case WeaponMode.Beam:
+                        HandleBeamAttack();
+                        break;
+                }
+            }
+        }
+    }
+
+    // Yボタン (武装切替) - Action名: WeaponSwitch (推奨) または YButton
+    public void OnWeaponSwitch(InputAction.CallbackContext context)
+    {
+        if (context.started) // 押された瞬間
+        {
+            SwitchWeapon();
+        }
+    }
+
+    // Menuボタン (設定画面) - Action名: Menu (推奨) または StartButton
+    public void OnMenu(InputAction.CallbackContext context)
+    {
+        if (context.started) // 押された瞬間
+        {
+            Debug.Log("メニューボタンが押されました: 設定画面を開く");
+            // ここにポーズ/設定画面を開くロジックを追加
+        }
+    }
+
+    // 左スティック (移動) - Action名: Move
+    public void OnMove(InputAction.CallbackContext context)
+    {
+        // 既存のHandleHorizontalMovement()がInput.GetAxisに依存しているため、
+        // ここでは直接_velocityなどは操作しません。
+        // Input.GetAxisがLeft Stickにバインドされていることを前提とします。
+    }
+
+    // 右スティック (視点移動) - Action名: Look
+    public void OnLook(InputAction.CallbackContext context)
+    {
+        // 視点移動は通常TPSCameraControllerが担当するため、ここでは処理しません。
+    }
+
+    // DPad (Armor Switch - 例として DPad Right, Up, Left を使用)
+    public void OnDPad(InputAction.CallbackContext context)
+    {
+        if (context.started) // 押された瞬間
+        {
+            Vector2 input = context.ReadValue<Vector2>();
+
+            // DPadの右 (Buster Mode)
+            if (input.x > 0.5f)
+            {
+                SwitchArmor(ArmorMode.Buster);
+            }
+            // DPadの上 (Normal Mode)
+            else if (input.y > 0.5f)
+            {
+                SwitchArmor(ArmorMode.Normal);
+            }
+            // DPadの左 (Speed Mode)
+            else if (input.x < -0.5f)
+            {
+                SwitchArmor(ArmorMode.Speed);
+            }
+        }
     }
 
     private void OnDrawGizmosSelected()
