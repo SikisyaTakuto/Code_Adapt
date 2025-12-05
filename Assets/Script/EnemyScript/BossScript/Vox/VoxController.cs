@@ -4,6 +4,9 @@ using System.Linq; // isDestroyedの全要素チェックに使うなら必要�
 
 public class VoxController : MonoBehaviour
 {
+    // ボスの動きを制御するためのフラグ
+    public bool isActivated = false;
+
     // --- エディタから設定する変数 ---
     [Header("Arms")]
     [SerializeField] private GameObject Arms1;
@@ -70,21 +73,24 @@ public class VoxController : MonoBehaviour
 
     void Update()
     {
-        // 壊れていないアームだけ動かす
-        for (int i = 0; i < armsArray.Length; i++)
+        if (isActivated)
         {
-            if (!isDestroyed[i])
-            {
-                MoveArm(i);
-            }
-        }
-
-        // デバッグ用: Kキーで全アームにダメージを与える
-        if (Input.GetKeyDown(KeyCode.K))
-        {
+            // 壊れていないアームだけ動かす
             for (int i = 0; i < armsArray.Length; i++)
             {
-                DamageArm(i, 1);
+                if (!isDestroyed[i])
+                {
+                    MoveArm(i);
+                }
+            }
+
+            // デバッグ用: Kキーで全アームにダメージを与える
+            if (Input.GetKeyDown(KeyCode.K))
+            {
+                for (int i = 0; i < armsArray.Length; i++)
+                {
+                    DamageArm(i, 1);
+                }
             }
         }
     }

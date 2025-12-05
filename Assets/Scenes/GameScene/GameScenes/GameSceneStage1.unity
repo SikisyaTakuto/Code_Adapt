@@ -49698,6 +49698,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 93bf81a445e4e7b4db72c7a0d1d6dbf6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  isActivated: 0
   Arms1: {fileID: 1434721591}
   Arms2: {fileID: 367770637}
   Arms3: {fileID: 378464573}
@@ -49959,6 +49960,7 @@ Transform:
   - {fileID: 1694934061}
   - {fileID: 223972585}
   - {fileID: 634328689}
+  - {fileID: 1527998156}
   m_Father: {fileID: 209588842}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!64 &1133438068
@@ -71206,6 +71208,73 @@ Transform:
   - {fileID: 1253244651}
   m_Father: {fileID: 1013830021}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1527998155
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1527998156}
+  - component: {fileID: 1527998158}
+  - component: {fileID: 1527998157}
+  m_Layer: 0
+  m_Name: RoomTriggerObject
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1527998156
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1527998155}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0.7071068, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: 3.47, y: 0, z: 2.78}
+  m_LocalScale: {x: 0.5, y: 0.25, z: 0.25}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1133438067}
+  m_LocalEulerAnglesHint: {x: 0, y: 90, z: 0}
+--- !u!114 &1527998157
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1527998155}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4794c2c2b2c6a1b4f9f6252e201d5eed, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  boss: {fileID: 1130283686}
+--- !u!65 &1527998158
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1527998155}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 29.612013, y: 76.9394, z: 6.865111}
+  m_Center: {x: -0.08447928, y: -18.624859, z: -1.756668}
 --- !u!1 &1534556249
 GameObject:
   m_ObjectHideFlags: 0
@@ -84081,6 +84150,34 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4bd6521084f287f4ab8c9d04e06e91cd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  gameOverManager: {fileID: 1202798360}
+  currentArmorIconImage: {fileID: 1310664511}
+  armorSprites:
+  - {fileID: 1875917484, guid: d85e3939b710b044b98b1e16b54c531d, type: 3}
+  - {fileID: 1441084825, guid: db2c7a21c2e892c46ba3a526ecf740cb, type: 3}
+  - {fileID: -1346140634, guid: fd664a0a7b9e85f46988639ad48b12ee, type: 3}
+  armorModels:
+  - {fileID: 22813866}
+  - {fileID: 1028733412}
+  - {fileID: 8763531042978408077}
+  meleeWeaponIcon: {fileID: 950285444}
+  meleeWeaponText: {fileID: 1176668744}
+  beamWeaponIcon: {fileID: 462009731}
+  beamWeaponText: {fileID: 1786547614}
+  emphasizedColor: {r: 1, g: 1, b: 1, a: 1}
+  normalColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+  baseMoveSpeed: 15
+  dashMultiplier: 2.5
+  verticalSpeed: 10
+  energyConsumptionRate: 15
+  energyRecoveryRate: 10
+  meleeAttackRange: 5
+  meleeDamage: 500
+  beamDamage: 100
+  beamAttackEnergyCost: 30
+  canFly: 1
+  gravity: -9.81
+  fastFallMultiplier: 3
   armorConfigurations:
   - name: Normal
     defenseMultiplier: 1
@@ -84094,33 +84191,12 @@ MonoBehaviour:
     defenseMultiplier: 1.2
     moveSpeedMultiplier: 1.5
     energyRecoveryMultiplier: 1.2
-  currentArmorIconImage: {fileID: 1310664511}
-  armorSprites:
-  - {fileID: 1875917484, guid: d85e3939b710b044b98b1e16b54c531d, type: 3}
-  - {fileID: 1441084825, guid: db2c7a21c2e892c46ba3a526ecf740cb, type: 3}
-  - {fileID: -1346140634, guid: fd664a0a7b9e85f46988639ad48b12ee, type: 3}
-  armorModels:
-  - {fileID: 22813866}
-  - {fileID: 1028733412}
-  - {fileID: 8763531042978408077}
-  baseMoveSpeed: 15
-  dashMultiplier: 2.5
-  verticalSpeed: 10
-  gravity: -9.81
-  fastFallMultiplier: 3
-  canFly: 1
   maxHP: 1000
   hPSlider: {fileID: 1505316466}
   hPText: {fileID: 177101203}
   maxEnergy: 500
-  energyConsumptionRate: 15
-  energyRecoveryRate: 10
   recoveryDelay: 0.005
   energySlider: {fileID: 6269204}
-  meleeAttackRange: 5
-  meleeDamage: 500
-  beamDamage: 100
-  beamAttackEnergyCost: 30
   attackFixedDuration: 0.8
   beamPrefab: {fileID: 7068210006117006437, guid: d929e84277a2fe84bb469fb55f1cf446, type: 3}
   beamFirePoint: {fileID: 425662870}
@@ -84130,13 +84206,6 @@ MonoBehaviour:
   enemyLayer:
     serializedVersion: 2
     m_Bits: 512
-  meleeWeaponIcon: {fileID: 950285444}
-  meleeWeaponText: {fileID: 1176668744}
-  beamWeaponIcon: {fileID: 462009731}
-  beamWeaponText: {fileID: 1786547614}
-  emphasizedColor: {r: 1, g: 1, b: 1, a: 1}
-  normalColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
-  gameOverManager: {fileID: 1202798360}
 --- !u!143 &1787211484
 CharacterController:
   m_ObjectHideFlags: 0
