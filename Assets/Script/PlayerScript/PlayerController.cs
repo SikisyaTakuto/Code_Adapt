@@ -4,7 +4,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine.SceneManagement;
-using UnityEngine.InputSystem; // 1. 【追加】Input Systemのための名前空間
+using UnityEngine.InputSystem;
 
 /// <summary>
 /// プレイヤーの移動、エネルギー管理、攻撃、およびアーマー制御を制御します。
@@ -270,7 +270,7 @@ public class PlayerController : MonoBehaviour
     private Vector3 HandleHorizontalMovement()
     {
         float h = Input.GetAxis("Horizontal"); // 左スティックX
-        float v = Input.GetAxis("Vertical");   // 左スティックY
+        float v = Input.GetAxis("Vertical");   // 左スティックY
 
         if (h == 0f && v == 0f)
         {
@@ -366,7 +366,6 @@ public class PlayerController : MonoBehaviour
         return new Vector3(0, _velocity.y, 0);
     }
 
-
     private void HandleMeleeAttack()
     {
         _isAttacking = true;
@@ -383,10 +382,12 @@ public class PlayerController : MonoBehaviour
 
         // ダメージ判定
         Collider[] hitColliders = Physics.OverlapSphere(transform.position, meleeAttackRange, enemyLayer);
+
         foreach (var hitCollider in hitColliders)
         {
             if (hitCollider.transform == this.transform) continue;
 
+            // ApplyDamageToEnemyにSoldierEnemyのロジックを統合したため、そちらを使用
             ApplyDamageToEnemy(hitCollider, meleeDamage);
         }
     }
@@ -444,10 +445,10 @@ public class PlayerController : MonoBehaviour
 
         // BeamControllerへの依存をそのままに
         BeamController beamInstance = Instantiate(
-        beamPrefab,
-        origin,
-        Quaternion.LookRotation(fireDirection)
-        );
+    beamPrefab,
+    origin,
+    Quaternion.LookRotation(fireDirection)
+    );
         beamInstance.Fire(origin, endPoint, didHit);
     }
 
@@ -556,16 +557,29 @@ public class PlayerController : MonoBehaviour
         Debug.Log($"武器を切り替えました: **{_currentWeaponMode}**");
     }
 
-    /// <summary>
-    /// 衝突したColliderから、該当する敵コンポーネントを探してダメージを与える。
-    /// </summary>
+    // =======================================================
+    // 衝突したColliderから、該当する敵コンポーネントを探してダメージを与える。
+    // SoldierEnemy のロジックを追加済み
+    // =======================================================
     private void ApplyDamageToEnemy(Collider hitCollider, float damageAmount)
     {
         GameObject target = hitCollider.gameObject;
         bool isHit = false;
 
-        // 💡 敵コンポーネントへの依存（IDamageableインターフェース導入が望ましい）
-        if (target.TryGetComponent<TutorialEnemyController>(out var tutorialEnemy))
+        // SoldierMoveEnemy がターゲットか確認
+        if (target.TryGetComponent<SoldierMoveEnemy>(out var soldierMoveEnemy))
+        {
+            soldierMoveEnemy.TakeDamage(damageAmount);
+            isHit = true;
+        }
+        // 💡 SoldierEnemy コンポーネントを探してダメージを与える (追加)
+        if (target.TryGetComponent<SoldierEnemy>(out var soldierEnemy))
+        {
+            soldierEnemy.TakeDamage(damageAmount);
+            isHit = true;
+        }
+        // 💡 既存の敵コンポーネントへの依存（IDamageableインターフェース導入が望ましい）
+        else if (target.TryGetComponent<TutorialEnemyController>(out var tutorialEnemy))
         {
             tutorialEnemy.TakeDamage(damageAmount);
             isHit = true;

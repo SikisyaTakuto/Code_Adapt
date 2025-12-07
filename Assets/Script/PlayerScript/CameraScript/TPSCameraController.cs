@@ -202,6 +202,11 @@ public class TPSCameraController : MonoBehaviour
         }
 
         UpdateLockOnUIPosition();
+
+        if (_lockOnTarget != null)
+        {
+            RotatePlayerToLockOnTarget();
+        }
     }
 
     // =======================================================
@@ -248,14 +253,21 @@ public class TPSCameraController : MonoBehaviour
         // ロックオン開始の条件: (マウス右クリックダウン) または (コントローラーボタン/トリガーダウン)
         if ((rightClickDown || isControllerLockOnDown) && _lockOnTarget == null)
         {
-            // 新規ロックオンターゲットの検索 (ロジックは変更なし)
+            // 💡 修正点: target.forward を transform.forward (カメラの正面方向) に変更
+            // カメラの水平方向の向きを取得 (Y軸のみ)
+            Vector3 cameraForwardFlat = transform.forward;
+            cameraForwardFlat.y = 0;
+            cameraForwardFlat.Normalize();
+
             var colliders = Physics.OverlapSphere(target.position, maxLockOnRange, enemyLayer)
-                .Where(col => Vector3.Angle(target.forward, col.transform.position - target.position) <= lockOnAngleLimit);
+                // 💡 修正: プレイヤー正面ではなく、カメラの正面方向 (cameraForwardFlat) を基準に角度チェック
+                .Where(col => Vector3.Angle(cameraForwardFlat, col.transform.position - target.position) <= lockOnAngleLimit);
 
             if (colliders.Any())
             {
+                // 💡 修正: 角度の並べ替え基準もカメラの正面方向 (cameraForwardFlat) に変更
                 Transform nearestTarget = colliders
-                    .OrderBy(col => Vector3.Angle(target.forward, col.transform.position - target.position))
+                    .OrderBy(col => Vector3.Angle(cameraForwardFlat, col.transform.position - target.position))
                     .ThenBy(col => Vector3.Distance(target.position, col.transform.position))
                     .FirstOrDefault()?.transform;
 
@@ -620,5 +632,29 @@ public class TPSCameraController : MonoBehaviour
 
         // RectTransformの位置をスクリーン座標に設定
         lockOnUIRect.position = screenPos;
+    }
+
+    /// <summary>
+    /// ロックオンターゲットの方向へ、プレイヤーのモデルをスムーズに回転させます。
+    /// </summary>
+    public void RotatePlayerToLockOnTarget()
+    {
+        if (target == null || _lockOnTarget == null) return;
+
+        // ターゲットへの方向ベクトルを計算 (Y軸の高さの差を無視し、水平方向のみを考慮)
+        Vector3 targetDirection = _lockOnTarget.position - target.position;
+        targetDirection.y = 0; // 高さは無視
+
+        // 方向がゼロベクトルでないことを確認
+        if (targetDirection.magnitude < 0.001f) return;
+
+        // 目標の回転を計算
+        Quaternion targetRotation = Quaternion.LookRotation(targetDirection.normalized);
+
+        // スムーズな回転
+        // ここでは、PlayerControllerと回転速度を共有するため smoothSpeed を使用
+        float currentRotationSpeed = smoothSpeed * 1.5f; // 必要に応じて調整
+
+        target.rotation = Quaternion.Slerp(target.rotation, targetRotation, Time.deltaTime * currentRotationSpeed);
     }
 }
