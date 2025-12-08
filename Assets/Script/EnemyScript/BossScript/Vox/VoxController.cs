@@ -1,14 +1,21 @@
 ﻿using UnityEngine;
 using System.Collections;
-using System.Linq; // isDestroyedの全要素チェックに使うなら必要ですが、このコードでは未使用
+using UnityEngine.UI;
+using UnityEngine.UIElements;
 
 public class VoxController : MonoBehaviour
 {
     // ボスの動きを制御するためのフラグ
     public bool isActivated = false;
 
-    // --- エディタから設定する変数 ---
-    [Header("Arms")]
+    // --- Boss本体のHP ---
+    [Header("Boss HP")]
+    [SerializeField] private int bossMaxHP = 100;
+    private int bossCurrentHP;
+    public UnityEngine.UI.Slider bossHpBar;
+
+    // --- エディタから設定する変数 ---
+    [Header("Arms")]
     [SerializeField] private GameObject Arms1;
     [SerializeField] private GameObject Arms2;
     [SerializeField] private GameObject Arms3;
@@ -39,14 +46,15 @@ public class VoxController : MonoBehaviour
     private bool[] isDestroyed;                             // HP0で動作停止したか
 
     // 特殊Z座標の定義
-    //private const float SPECIAL_Z_FAR = -310f;
-    //private const float SPECIAL_Z_NEAR = -50f;
-
     private const float SPECIAL_Z_FAR = -310f;
     private const float SPECIAL_Z_NEAR = -50f;
 
     void Start()
     {
+        bossHpBar.gameObject.SetActive(false);
+        bossCurrentHP = bossMaxHP;
+        bossHpBar.value = 1;
+
         // アームの配列を初期化
         armsArray = new GameObject[] { Arms1, Arms2, Arms3, Arms4, Arms5, Arms6, Arms7, Arms8 };
         // 状態配列をアームの数に合わせて初期化
@@ -73,6 +81,12 @@ public class VoxController : MonoBehaviour
 
     void Update()
     {
+        // アクティブ化されたらHPバーを表示
+        if (isActivated && !bossHpBar.gameObject.activeSelf)
+        {
+            bossHpBar.gameObject.SetActive(true);
+        }
+
         if (isActivated)
         {
             // 壊れていないアームだけ動かす
@@ -91,6 +105,7 @@ public class VoxController : MonoBehaviour
                 {
                     DamageArm(i, 1);
                 }
+                DamageBoss(10);
             }
         }
     }
@@ -110,6 +125,22 @@ public class VoxController : MonoBehaviour
             StartCoroutine(DestroyArm(index));
         }
     }
+
+    public void DamageBoss(int damage)
+    {
+        bossCurrentHP -= damage;
+        bossCurrentHP = Mathf.Max(bossCurrentHP, 0);
+
+        Debug.Log($"Boss が {damage} ダメージを受けた！残りHP: {bossCurrentHP}");
+
+        bossHpBar.value = (float)bossCurrentHP / (float)bossMaxHP;
+
+        if (bossCurrentHP <= 0)
+        {
+            BossDefeated();
+        }
+    }
+
 
     // 爆発＆停止処理
     IEnumerator DestroyArm(int index)
@@ -241,6 +272,12 @@ public class VoxController : MonoBehaviour
         rb.useGravity = true;
 
         Debug.Log($"{arm.name} が {typeName} を投下しました！");
+    }
+
+    private void BossDefeated()
+    {
+        Debug.Log("Boss 撃破！");
+        // エフェクト・停止処理など自由に追加
     }
 
     // 目標に到達後、少し待機してから次の移動目標を設定

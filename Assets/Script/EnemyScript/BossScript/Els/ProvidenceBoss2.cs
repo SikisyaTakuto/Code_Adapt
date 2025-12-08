@@ -50,9 +50,13 @@ public class ProvidenceBoss2 : MonoBehaviour
     public float maxHP = 1000f;
     private float currentHP;
 
+    public UnityEngine.UI.Slider bossHpBar;
+
     void Start()
     {
+        bossHpBar.gameObject.SetActive(false);
         currentHP = maxHP;
+        bossHpBar.value = 1;
 
         // ★★★ 【新規】元のホルスタービットの値を保存 ★★★
         originalHolsterBitCooldown = holsterBitCooldown;
@@ -71,6 +75,12 @@ public class ProvidenceBoss2 : MonoBehaviour
 
     void Update()
     {
+        // アクティブ化されたらHPバーを表示
+        if (isActivated && !bossHpBar.gameObject.activeSelf)
+        {
+            bossHpBar.gameObject.SetActive(true);
+        }
+
         if (isActivated)
         {
             if (target == null) return;
@@ -109,7 +119,7 @@ public class ProvidenceBoss2 : MonoBehaviour
                 else
                 {
                     // J のみで100ダメージを与える
-                    float debugDamage = 800f;
+                    float debugDamage = 100f;
                     TakeDamage(debugDamage);
                     // ダメージを受けたことでシールド発動ロジックが動くかテスト
                     Debug.Log($"[DEBUG] Jキーが押されました。ボスに {debugDamage} ダメージを与えました。残りHP: {currentHP}");
@@ -250,6 +260,8 @@ public class ProvidenceBoss2 : MonoBehaviour
 
         // HPを計算
         float finalDamage = damage;
+
+        bossHpBar.value = (float)currentHP / (float)maxHP;
         if (isShieldActive)
         {
             // シールド展開中はダメージを軽減
