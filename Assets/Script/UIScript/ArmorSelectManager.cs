@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine.EventSystems;
 using System.Collections;
-using UnityEngine.Audio; // AudioMixerGroup と AudioMixer のために追加
+using UnityEngine.Audio;
 
 /// <summary>
 /// アーマー選択シーンの全体管理、UIの更新、モデル表示、シーン遷移を制御します。
@@ -18,28 +18,28 @@ public class ArmorSelectManager : MonoBehaviour
     public Button decisionButton; // 決定ボタン
 
     [Header("Armor Buttons")]
-    public Button[] armorButtons = new Button[4]; // 選択肢となるボタン (1, 2, 3, 4)
+    // アーマーの種類に合わせてサイズを3に設定
+    public Button[] armorButtons = new Button[3];
 
     [Tooltip("各アーマーボタンに対応するハイライト/枠線用のImageを設定")]
-    public Image[] armorHighlightImages = new Image[4];
+    public Image[] armorHighlightImages = new Image[3];
 
     [Header("3D Model Display")]
-    [Tooltip("Normal(0), Buster(1), Speed(2), Random(3) の順で設定")]
-    public GameObject[] armorModels = new GameObject[4]; // 表示する3Dモデルの配列
+    [Tooltip("Normal(0), Buster(1), Speed(2) の順で設定")]
+    // アーマーの種類に合わせてサイズを3に設定
+    public GameObject[] armorModels = new GameObject[3];
     public float modelRotationSpeed = 30f; // 3Dモデルの回転速度 (Y軸)
 
-    // ★【修正・追加】オーディオ設定
+    // ★オーディオ設定
     [Header("Audio Settings")]
     [Tooltip("アーマーを選択/解除したときに鳴らす効果音")]
     public AudioClip selectClickSound;
     [Tooltip("決定ボタンを押したときに鳴らす効果音")]
     public AudioClip decisionSound;
 
-    // ★追加: AudioMixerGroup をインスペクターから設定するためのフィールド
     [Tooltip("AudioSourceをルーティングするAudioMixerGroup")]
     public AudioMixerGroup mixerGroup;
 
-    // ★追加: 音量がゼロかどうかを確認するためのAudioMixerParameter名
     [Header("ボリューム設定 (Optional)")]
     [Tooltip("音量をチェックしたいAudioMixerのExposed Parameter名 (例: SFXVolume)")]
     public string volumeParameterName = "SFXVolume";
@@ -48,26 +48,32 @@ public class ArmorSelectManager : MonoBehaviour
     private AudioMixer audioMixer; // パラメーターチェックのために使用
     // --- データと状態 ---
     private List<int> selectedArmorList = new List<int>();
-    private const int MaxSelectionCount = 3;
+
+    // 最大選択数を 2 に設定
+    private const int MaxSelectionCount = 2;
+
     private List<int> hoveredArmorList = new List<int>();
     private int currentDisplayIndex = 0;
     private bool isTutorialSelected = false;
 
-    public ArmorSelectManager(bool isTutorialSelected)
-    {
-        this.isTutorialSelected = isTutorialSelected;
-    }
+    // NOTE: MonoBehaviourのコンストラクターは通常使用しません。
+    // Unityエディターでインスタンス化されるため、Awake() や Start() で初期化します。
+    // public ArmorSelectManager(bool isTutorialSelected)
+    // {
+    //     this.isTutorialSelected = isTutorialSelected;
+    // }
 
-    private readonly string[] armorNames = { "ノーマル", "バスター", "スピード", "ランダム" };
+    // アーマーの種類を3つに統一 (Normal, Buster, Speed)
+    private readonly string[] armorNames = { "ノーマル", "バスター", "スピード" };
     private readonly string[] armorDescriptions =
     {
         "【ノーマル】\nバランスの取れた標準的なアーマーです。",
         "【バスター】\n防御力に特化し、攻撃力が向上します。",
-        "【スピード】\n機動性に優れ、エネルギー回復速度が向上します。",
-        "【ランダム】\n開始時にランダムなアーマーが選択されます。"
+        "【スピード】\n機動性に優れ、エネルギー回復速度が向上します。"
     };
 
-    private const string InitialDescription = "クリックしてアーマーを3つ選びましょう。\n選択されたアーマーは黄色く強調表示されます。\n\n**マウスカーソルを合わせる**と詳細な説明が見られます。";
+    // 初期説明文 (最大選択数2に修正済み)
+    private const string InitialDescription = "クリックしてアーマーを2つまで選びましょう。\n選択されたアーマーは黄色く強調表示されます。\n\n**マウスカーソルを合わせる**と詳細な説明が見られます。";
 
     // 決定ボタンを押した後のシーン名
     private const string GameSceneName = "TutorialScene";
@@ -78,7 +84,7 @@ public class ArmorSelectManager : MonoBehaviour
     // Y軸180度の初期回転値をQuaternionで定義
     private readonly Quaternion initialRotation = Quaternion.Euler(0f, 180f, 0f);
 
-    // 【修正】AwakeでAudioSourceを準備し、Mixerを設定
+
     [System.Obsolete]
     void Awake()
     {
@@ -88,10 +94,9 @@ public class ArmorSelectManager : MonoBehaviour
         {
             audioSource = gameObject.AddComponent<AudioSource>();
             audioSource.playOnAwake = false; // 自動再生はしない
-            // NOTE: audioSource.volume = 0.5f; はMixer使用時はMixer側で制御すべきなのでコメントアウト
         }
 
-        // ★追加: AudioMixerGroupが設定されていればAudioSourceに割り当てる
+        // AudioMixerGroupが設定されていればAudioSourceに割り当てる
         if (mixerGroup != null)
         {
             audioSource.outputAudioMixerGroup = mixerGroup;
@@ -241,6 +246,14 @@ public class ArmorSelectManager : MonoBehaviour
         // 3Dモデルの回転処理
         for (int i = 0; i < armorModels.Length; i++)
         {
+            // 【Null参照対策の強化】モデル自体と、そのTransformコンポーネントの両方が有効か確認
+            // 前回の NullReferenceException 対策として最も重要な部分です。
+            if (armorModels[i] == null || armorModels[i].transform == null)
+            {
+                // null または transform が存在しない場合は処理をスキップ
+                continue;
+            }
+
             // 回転させるのは、マウスオーバーされている **かつ** 選択されていないモデルのみ
             bool isHovered = hoveredArmorList.Contains(i);
             bool isSelected = selectedArmorList.Contains(i);
@@ -248,9 +261,9 @@ public class ArmorSelectManager : MonoBehaviour
             // 選択されていない（黄色ではない）モデルが、マウスオーバーされている場合のみ回転
             bool shouldRotate = isHovered && !isSelected;
 
-            if (shouldRotate && armorModels[i] != null)
+            if (shouldRotate)
             {
-                // 回転させる
+                // 回転させる 
                 armorModels[i].transform.Rotate(Vector3.up, modelRotationSpeed * Time.deltaTime, Space.World);
             }
         }
@@ -259,9 +272,16 @@ public class ArmorSelectManager : MonoBehaviour
     /// <summary>
     /// アーマー選択ボタンがクリックされたときに呼ばれます。
     /// </summary>
-    /// <param name="index">クリックされたアーマーのインデックス (0～3)</param>
+    /// <param name="index">クリックされたアーマーのインデックス (0～2)</param>
     public void OnArmorButtonClicked(int index)
     {
+        // インデックスが有効範囲内であることを確認
+        if (index < 0 || index >= armorButtons.Length)
+        {
+            Debug.LogError($"無効なアーマーインデックスがクリックされました: {index}");
+            return;
+        }
+
         bool wasPreviouslySelected = selectedArmorList.Contains(index);
 
         if (wasPreviouslySelected)
@@ -298,7 +318,7 @@ public class ArmorSelectManager : MonoBehaviour
             Debug.Log($"アーマー {armorNames[index]} を追加しました。現在: {string.Join(", ", selectedArmorList.Select(i => armorNames[i]))}");
         }
 
-        // ★修正: クリック音の再生（PlaySoundに音量チェックを追加）
+        // クリック音の再生
         PlaySound(selectClickSound);
 
         // 常に最新の選択/解除されたアーマーを説明文に表示する
@@ -339,7 +359,8 @@ public class ArmorSelectManager : MonoBehaviour
     /// </summary>
     private void UpdateDescriptionText(int index)
     {
-        if (descriptionText != null)
+        // 配列の範囲内であることを確認
+        if (descriptionText != null && index >= 0 && index < armorDescriptions.Length)
         {
             descriptionText.text = armorDescriptions[index];
         }
@@ -398,7 +419,7 @@ public class ArmorSelectManager : MonoBehaviour
     /// </summary>
     private IEnumerator LoadSceneAfterDecisionSound(string sceneName)
     {
-        bool isSoundMuted = IsVolumeMuted(); // ★追加: 音量チェック
+        bool isSoundMuted = IsVolumeMuted(); // 音量チェック
 
         // 決定音の再生
         if (audioSource != null && decisionSound != null && !isSoundMuted)
@@ -428,7 +449,6 @@ public class ArmorSelectManager : MonoBehaviour
     /// <param name="clip">再生するオーディオクリップ</param>
     private void PlaySound(AudioClip clip)
     {
-        // ★修正: 音量チェックを追加
         if (audioSource != null && clip != null && !IsVolumeMuted())
         {
             audioSource.PlayOneShot(clip);
@@ -442,15 +462,12 @@ public class ArmorSelectManager : MonoBehaviour
     {
         if (audioMixer == null || string.IsNullOrEmpty(volumeParameterName))
         {
-            // Mixerが設定されていない、またはパラメーター名がない場合はチェックをスキップ
-            // ただし、Awakeでvolumeが0.5fに設定されるため、意図的にミュートにされていなければfalseを返す
             return false;
         }
 
         float volumeValue;
         if (audioMixer.GetFloat(volumeParameterName, out volumeValue))
         {
-            // Unityのミキサーでは0%が-80dBに対応することが多い
             // 非常に小さな値（例: -79dB以下）であればミュートと見なす
             return volumeValue < -79f;
         }
