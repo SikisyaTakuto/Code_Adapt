@@ -1,119 +1,133 @@
 using UnityEngine;
-using System.Collections; // �R���[�`�����g�p���邽�߂ɕK�v
+using System.Collections;
 
 public class DroneEnemy : MonoBehaviour
 {
-    // --- HP�ݒ� ---
-    [Header("�w���X�ݒ�")]
-    public float maxHealth = 100f; // �ő�HP
-    private float currentHealth;    // ���݂�HP
-    private bool isDead = false;    // ���S�t���O
+    // --- HP設定 ---
+    [Header("耐久力設定")]
+    public float maxHealth = 100f; // 最大HP
+    private float currentHealth;    // 現在のHP
+    private bool isDead = false;    // 死亡フラグ
 
-    // ?? �V�K�ǉ�: �����G�t�F�N�g��Prefab
-    [Header("�G�t�F�N�g�ݒ�")]
+    // 爆発エフェクトのPrefab
+    [Header("エフェクト設定")]
     public GameObject explosionPrefab;
 
-    // --- ���J�p�����[�^ ---
-    [Header("�^�[�Q�b�g�ݒ�")]
-    public Transform playerTarget;              // Player��Transform�������ɐݒ�
-    public float detectionRange = 15f;          // Player�����o����͈�
-    public Transform beamOrigin;                // �e�̔��ˌ��ƂȂ�Transform
+    // --- 索敵用パラメータ ---
+    [Header("ターゲット設定")]
+    // private に変更し、AwakeでTag検索により設定
+    private Transform playerTarget;
+
+    public float detectionRange = 15f;     // Playerを見つける範囲
+    public Transform beamOrigin;           // 弾の発射地点となるTransform
 
     [Range(0, 180)]
-    public float attackAngle = 30f;             // �U���\�Ȑ��ʎ���p�i�S�p�j
+    public float attackAngle = 30f;        // 攻撃可能な視界角度（全角）
 
-    [Header("�U���ݒ�")]
-    public float attackRate = 5f;               // �e�ƒe�̊Ԃ̊Ԋu�v�Z�Ɏg�p (��: 1/5 = 0.2�b�Ԋu)
-    public GameObject beamPrefab;               // ���˂���e��Prefab
-    public float beamSpeed = 40f;               // �e�̑��x
+    [Header("攻撃設定")]
+    public float attackRate = 5f;          // 一発ごとの間隔計算に使用 (例: 1/5 = 0.2秒間隔)
+    public GameObject beamPrefab;          // 発射する弾のPrefab
+    public float beamSpeed = 40f;          // 弾の速さ
 
-    [Header("�o�[�X�g�U���ݒ�")]
+    [Header("バースト攻撃設定")]
     public int bulletsPerBurst = 5;
     public float burstCooldownTime = 2f;
 
-    [Header("�d���ݒ�")]
+    [Header("硬直設定")]
     public float hardStopDuration = 0.5f;
 
-    [Header("���V�ړ��ݒ�")]
-    public float rotationSpeed = 5f;             // Player�ǐՎ��̉�]���x�i�h���[���{�̗p�j
-    public float gunRotationSpeed = 20f;
+    [Header("移動・旋回設定")]
+    public float rotationSpeed = 5f;       // ドローン本体のY軸回転速度
+    public float gunRotationSpeed = 20f;   // 銃の全方位回転速度
     public float hoverAltitude = 5f;
     public float driftSpeed = 1f;
     public float driftRange = 5f;
     public float altitudeCorrectionSpeed = 2f;
 
-    // ?? �V�K�ǉ�: ��Q������̂��߂̐ݒ�
-    [Header("��Q�����ݒ�")]
-    public LayerMask obstacleLayer;              // ��Q���ƂȂ郌�C���[
-    public float avoidanceCheckDistance = 3f;    // �O���`�F�b�N����
-    public float wallHitResetRange = 1f;         // �ǂɐڐG�����ƌ��Ȃ����� (�Փ˂�h�����߂ɑ傫�߂�)
+    // 障害物回避のための設定
+    [Header("障害物回避設定")]
+    public LayerMask obstacleLayer;        // 障害物となるレイヤー
+    public float avoidanceCheckDistance = 3f; // 障害物チェック距離
+    public float wallHitResetRange = 1f;   // 壁に接触したと見なす範囲
 
-    // --- �����ϐ� ---
+    // --- 内部変数 ---
     private float nextAttackTime = 0f;
     private float hardStopEndTime = 0f;
     private Vector3 currentDriftTarget;
-
     private bool isAttacking = false;
 
     private void Awake()
     {
         currentHealth = maxHealth;
 
+        // 🎯 修正点: TagでPlayerオブジェクトを検索し、そのTransformを設定
+        GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
+        if (playerObject != null)
+        {
+            playerTarget = playerObject.transform;
+        }
+        else
+        {
+            // Player Tagを設定し忘れた場合の警告
+            Debug.LogError("Player Tagを持つオブジェクトが見つかりません。PlayerオブジェクトにTagを設定してください。", gameObject);
+        }
+
         SetNewDriftTarget();
     }
 
     private void Update()
     {
-        // �f�o�b�O�p�R�[�h: O�L�[��HP��0�ɂ���
+        // デバッグ用コード: OキーでHPを0にする
         if (Input.GetKeyDown(KeyCode.O))
         {
             TakeDamage(maxHealth);
             return;
         }
 
-        // ���S���A�d�����A�܂��̓^�[�Q�b�g���Ȃ��ꍇ�͏������X�L�b�v
+        // 死亡中、硬直中、またはターゲットがなければ処理をスキップ
         if (isDead || playerTarget == null || Time.time < hardStopEndTime)
         {
             return;
         }
 
-        // ?? �V�K�ǉ�: �ړ��O�ɑO���`�F�b�N�ƖڕW�n�_�̃��Z�b�g
+        // 移動前に障害物チェックと目標地点のリセット
         CheckForObstaclesAndResetTarget();
 
-        // ?? �e�������Player�Ɍ�����
+        // 弾をPlayerに向け旋回
         RotateGunToPlayer();
 
         float distanceToPlayer = Vector3.Distance(transform.position, playerTarget.position);
 
-        // 2. Player���U���͈͓��ɂ��邩�H
+        // Playerが攻撃範囲内にいるか？
         if (distanceToPlayer <= detectionRange)
         {
-            // �h���[���{�̂�Player�Ɍ�����
+            // ドローン本体をPlayerに向け旋回
             LookAtPlayer();
 
-            // �U�����łȂ���΁A�o�[�X�g�U�����J�n
+            // 攻撃中でなければ、視界内にいればバースト攻撃を開始
             if (!isAttacking && IsPlayerInFrontView())
             {
                 StartCoroutine(BurstAttackSequence());
             }
         }
 
-        // ��ɋ󒆂ŕ��V�ړ�
+        // 常時ランダムな移動
         DriftHover();
     }
 
     // -------------------------------------------------------------------
-    //                       �h���[���{�̂̉�] (Y���̂�)
+    //                       ドローン本体の旋回 (Y軸のみ)
     // -------------------------------------------------------------------
 
     /// <summary>
-    /// �h���[���{�̂̌�����Player�̕����֌�����i�X���[�Y�ȉ�]�j
+    /// ドローン本体の向きをPlayerの方向へ滑らかに旋回させる（Y軸回転のみ）
     /// </summary>
     private void LookAtPlayer()
     {
-        // ... (���̃R�[�h�ƕύX�Ȃ��B�h���[���{�̂�Y����]) ...
         Vector3 targetDirection = playerTarget.position - transform.position;
-        targetDirection.y = 0; // �󒆓G�Ȃ̂ŁA������]�̂�
+        targetDirection.y = 0; // 水平方向のみの回転
+
+        if (targetDirection == Vector3.zero) return;
 
         Quaternion targetRotation = Quaternion.LookRotation(targetDirection);
 
@@ -125,23 +139,23 @@ public class DroneEnemy : MonoBehaviour
     }
 
     // -------------------------------------------------------------------
-    //                       �e���̉�]���� (�V�K�ǉ�)
+    //                       銃の旋回機能
     // -------------------------------------------------------------------
 
     /// <summary>
-    /// �e�� (beamOrigin) ��Player��Transform�֌����ĉ�]������i�S����]�j
+    /// 銃 (beamOrigin) をPlayerのTransform方向に全方位旋回させる
     /// </summary>
     private void RotateGunToPlayer()
     {
         if (beamOrigin == null || playerTarget == null) return;
 
-        // Player�̈ʒu����e���̈ʒu�������āA�����x�N�g�����擾
+        // Playerの位置から銃の位置を引いて、方向ベクトルを取得
         Vector3 targetDirection = playerTarget.position - beamOrigin.position;
 
-        // �ڕW�Ƃ����] (Player�̕�������)
+        // 目標とする回転 (Playerの方向を向く)
         Quaternion targetRotation = Quaternion.LookRotation(targetDirection);
 
-        // �X���[�Y�ɉ�]������
+        // スムーズに旋回させる
         beamOrigin.rotation = Quaternion.Slerp(
             beamOrigin.rotation,
             targetRotation,
@@ -150,16 +164,16 @@ public class DroneEnemy : MonoBehaviour
     }
 
     // -------------------------------------------------------------------
-    //                       �U������ (�o�[�X�g�V�X�e��)
+    //                       攻撃処理 (バーストシステム)
     // -------------------------------------------------------------------
 
     private IEnumerator BurstAttackSequence()
     {
         isAttacking = true;
 
-        float shotDelay = 0.5f / attackRate;
+        float shotDelay = 1f / attackRate; // 間隔を計算
 
-        // 1. �o�[�X�g�U��
+        // 1. バースト攻撃
         for (int i = 0; i < bulletsPerBurst; i++)
         {
             AttackSingleBullet();
@@ -167,7 +181,7 @@ public class DroneEnemy : MonoBehaviour
             yield return new WaitForSeconds(shotDelay);
         }
 
-        // 2. �o�[�X�g��̃N�[���^�C��
+        // 2. バースト後のクールタイム
         yield return new WaitForSeconds(burstCooldownTime);
 
         isAttacking = false;
@@ -177,11 +191,11 @@ public class DroneEnemy : MonoBehaviour
     {
         if (beamOrigin == null || beamPrefab == null)
         {
-            Debug.LogError("���ˌ��܂���Prefab���ݒ肳��Ă��܂���B");
+            Debug.LogError("発射地点またはPrefabが設定されていません。");
             return;
         }
 
-        // ?? �e��������Player�̕����������Ă��邽�߁AbeamOrigin.forward�𒼐ڎg�p
+        // 銃がすでにPlayerの方向を向いているため、beamOrigin.rotationを使用
         Quaternion bulletRotation = beamOrigin.rotation;
 
         GameObject bullet = Instantiate(beamPrefab, beamOrigin.position, bulletRotation);
@@ -189,48 +203,46 @@ public class DroneEnemy : MonoBehaviour
         Rigidbody rb = bullet.GetComponent<Rigidbody>();
         if (rb != null)
         {
+            // 弾を発射方向に加速
             rb.linearVelocity = bullet.transform.forward * beamSpeed;
         }
         else
         {
-            Debug.LogWarning("�ePrefab��Rigidbody������܂���B");
+            Debug.LogWarning("弾PrefabにRigidbodyがありません。");
         }
     }
 
     // -------------------------------------------------------------------
-    //                       �󒆈ړ����� (�C���E�ǉ�)
+    //                       ランダム移動処理 (回避機能付き)
     // -------------------------------------------------------------------
 
     /// <summary>
-    /// �h���[���̈ړ��ڕW����Q�����ɂȂ������`�F�b�N���A�Փ˂������Ȃ�ڕW�����Z�b�g
+    /// ドローンの移動目標が障害物に近すぎないかチェックし、近ければ目標をリセット
     /// </summary>
     private void CheckForObstaclesAndResetTarget()
     {
-        // currentDriftTarget�ւ̃x�N�g��
         Vector3 directionToTarget = (currentDriftTarget - transform.position);
 
-        // 1. Raycast�ŖڕW�n�_�̕����ɏ�Q�������邩�`�F�b�N
+        // 1. Raycastで目標地点への途中に障害物があるかチェック
         if (Physics.Raycast(transform.position, directionToTarget.normalized, out RaycastHit hit, avoidanceCheckDistance, obstacleLayer))
         {
-            // �^�[�Q�b�g�̕������ǁI�V�����^�[�Q�b�g��ݒ�
-            Debug.Log("?? �ڕW���� (" + hit.collider.name + ") �ɕǂ����o�B�ڕW�����Z�b�g���܂��B", gameObject);
+            Debug.Log("🎯 ターゲット方向 (" + hit.collider.name + ") に壁を見つけたため、ターゲットをリセットします。", gameObject);
             SetNewDriftTarget();
             return;
         }
 
-        // 2. �ڕW�n�_���̂��ǂ̒���ǂ̉��ɂȂ��Ă��Ȃ������`�F�b�N (OverlapSphere)
+        // 2. 目標地点自体が壁の内部や極端に近くないかチェック (OverlapSphere)
         if (Physics.CheckSphere(currentDriftTarget, wallHitResetRange, obstacleLayer))
         {
-            Debug.Log("?? ���݂̖ڕW�n�_���ǂ̒��ɐݒ肳��Ă��邽�߁A�ڕW�����Z�b�g���܂��B", gameObject);
+            Debug.Log("🎯 現在のターゲット地点が壁の近くに設定されているため、ターゲットをリセットします。", gameObject);
             SetNewDriftTarget();
             return;
         }
 
-        // 3. (�ی�): �h���[�����g�̑O�����ǂɐڐG���Ă��邩�`�F�b�N
-        // �h���[�����i�s�����ɕǂ������Ă���Ƒz�肵�ă`�F�b�N
+        // 3. (保険): ドローン自体のすぐ前方に壁がぶつかっていないかチェック
         if (Physics.Raycast(transform.position, transform.forward, avoidanceCheckDistance * 0.5f, obstacleLayer))
         {
-            Debug.Log("?? �h���[�����O�̐i�s�������ǂɂԂ����Ă��܂��B�ڕW�����Z�b�g���܂��B", gameObject);
+            Debug.Log("🎯 ドローン本体前方に壁にぶつかっています。ターゲットをリセットします。", gameObject);
             SetNewDriftTarget();
         }
     }
@@ -239,11 +251,11 @@ public class DroneEnemy : MonoBehaviour
     {
         Vector3 currentPos = transform.position;
 
-        // 1. ���x�␳ (Y���̈ړ�)
+        // 1. 高度補正 (Y軸の移動)
         float targetY = hoverAltitude;
         float newY = Mathf.Lerp(currentPos.y, targetY, Time.deltaTime * altitudeCorrectionSpeed);
 
-        // 2. ���������̈ړ� (X/Z���̕��V)
+        // 2. 水平方向の移動 (X/Z軸のドリフト)
         Vector3 horizontalTarget = new Vector3(currentDriftTarget.x, newY, currentDriftTarget.z);
 
         transform.position = Vector3.MoveTowards(
@@ -252,7 +264,7 @@ public class DroneEnemy : MonoBehaviour
             Time.deltaTime * driftSpeed
         );
 
-        // 3. �ڕW�n�_�ɓ��B������V�����ڕW��ݒ�
+        // 3. 目標地点に近づいたら新しい目標を設定
         if (Vector3.Distance(new Vector3(currentPos.x, 0, currentPos.z), new Vector3(currentDriftTarget.x, 0, currentDriftTarget.z)) < 0.5f)
         {
             SetNewDriftTarget();
@@ -263,9 +275,9 @@ public class DroneEnemy : MonoBehaviour
     {
         Vector3 newTarget;
         int attempts = 0;
-        const int maxAttempts = 10; // ���[�v�̖�������h��
+        const int maxAttempts = 10;
 
-        // �Փ˂��Ȃ��ڕW�n�_��������܂ŌJ��Ԃ�
+        // 障害物がない目標地点が見つかるまで繰り返す
         do
         {
             Vector2 randomCircle = Random.insideUnitCircle * driftRange;
@@ -278,29 +290,30 @@ public class DroneEnemy : MonoBehaviour
 
             attempts++;
 
-            // ?? �C��: �V�����ڕW�n�_����Q�����ɂȂ����`�F�b�N
-            // CheckSphere�ŖڕW�n�_���ӂɏ�Q�����Ȃ����m�F����
+            // CheckSphereで新しいターゲット地点が壁に近すぎないか確認
         } while (Physics.CheckSphere(newTarget, wallHitResetRange, obstacleLayer) && attempts < maxAttempts);
 
 
         if (attempts >= maxAttempts)
         {
-            Debug.LogWarning("�ڕW�n�_��������̂Ɏ��s���܂����B���ݒn���ӂ��ێ����܂��B", gameObject);
-            // ������Ȃ������ꍇ�́A���݂̈ʒu��ڕW�Ƃ��āA�ړ����~������
+            Debug.LogWarning("ターゲット地点を見つけるのに失敗しました。現在地を保持します。", gameObject);
             currentDriftTarget = transform.position;
         }
         else
         {
             currentDriftTarget = newTarget;
-            // Y���W�𖳎����Č��݂̈ʒu����̃x�N�g�����v�Z
             Vector3 horizontalDirection = new Vector3(currentDriftTarget.x, transform.position.y, currentDriftTarget.z) - transform.position;
-            // �������ڕW�n�_�֌������ăh���[���̌�����␳����
-            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(horizontalDirection), Time.deltaTime * rotationSpeed);
+
+            // 見つかったターゲット方向へドローンの向きを補正する
+            if (horizontalDirection != Vector3.zero)
+            {
+                transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(horizontalDirection), Time.deltaTime * rotationSpeed);
+            }
         }
     }
 
     // -------------------------------------------------------------------
-    //                       �w���X�ƃ_���[�W����
+    //                       ヘルスとダメージ処理
     // -------------------------------------------------------------------
 
     public void TakeDamage(float damageAmount)
@@ -313,43 +326,47 @@ public class DroneEnemy : MonoBehaviour
         {
             Die();
         }
+        else
+        {
+            // ダメージを受けた際の硬直処理
+            hardStopEndTime = Time.time + hardStopDuration;
+        }
     }
 
     /// <summary>
-    /// ���S����
+    /// 死亡処理
     /// </summary>
     private void Die()
     {
         if (isDead) return;
 
         isDead = true;
-        Debug.Log(gameObject.name + "�͔j�󂳂�܂����I");
+        Debug.Log(gameObject.name + "は破壊されました！");
 
-        // ?? �����G�t�F�N�g�̃C���X�^���X���ƍĐ�
+        // 爆発エフェクトのインスタンス化と再生
         if (explosionPrefab != null)
         {
-            // �h���[���̈ʒu�ɐ���
             Instantiate(explosionPrefab, transform.position, Quaternion.identity);
         }
 
-        // �R���[�`�����~���āA�e���A�˂����̂�h��
+        // コルーチンを全て停止
         StopAllCoroutines();
 
-        // ���S��A�����Ƀh���[���{�̂̃����_���[��R���C�_�[�𖳌���
-        // (�����ł͊ȒP��Destroy���g�p)
-        Destroy(gameObject, 0.1f); // �G�t�F�N�g���������ꂽ�炷���Ƀh���[���{�̂��폜
+        // 0.1秒後にドローン本体のGameObjectを削除
+        Destroy(gameObject, 0.1f);
     }
 
     // -------------------------------------------------------------------
-    //                       ���̑����[�e�B���e�B
+    //                       その他のユーティリティ
     // -------------------------------------------------------------------
 
     /// <summary>
-    /// Player���G�l�~�[�̑O������p���ɂ��邩���`�F�b�N����
+    /// Playerがエネミーの前方視界角度内にいるかチェックする
     /// </summary>
     private bool IsPlayerInFrontView()
     {
-        // ... (�ύX�Ȃ�) ...
+        if (playerTarget == null) return false;
+
         Vector3 directionToTarget = playerTarget.position - transform.position;
         directionToTarget.y = 0;
 
@@ -367,10 +384,9 @@ public class DroneEnemy : MonoBehaviour
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, detectionRange);
 
-        // ?? �V�K�ǉ�: ����`�F�b�N�����ƃ^�[�Q�b�g�̕�����Ray��\��
         if (Application.isEditor && transform != null)
         {
-            // ���o�͈͂̉~���\�� (�U������p)
+            // 視界の表示
             Quaternion leftRayRotation = Quaternion.AngleAxis(-attackAngle / 2, Vector3.up);
             Quaternion rightRayRotation = Quaternion.AngleAxis(attackAngle / 2, Vector3.up);
 
@@ -381,17 +397,17 @@ public class DroneEnemy : MonoBehaviour
             Gizmos.DrawRay(transform.position, leftRayDirection * detectionRange);
             Gizmos.DrawRay(transform.position, rightRayDirection * detectionRange);
 
-            // ���V�͈͂ƖڕW�n�_�̕\��
+            // 移動範囲とターゲット地点の表示
             Gizmos.color = Color.cyan;
             Gizmos.DrawWireSphere(transform.position, driftRange);
             Gizmos.DrawSphere(currentDriftTarget, 0.5f);
 
-            // ?? �V�K�ǉ�: ����`�F�b�N��Raycast�\��
+            // 回避チェック用のRaycast表示
             Vector3 directionToTarget = (currentDriftTarget - transform.position).normalized;
             Gizmos.color = Color.magenta;
             Gizmos.DrawRay(transform.position, directionToTarget * avoidanceCheckDistance);
 
-            // ?? �V�K�ǉ�: �ڕW�n�_�̏�Q���`�F�b�N�͈͕\��
+            // ターゲット地点の障害物チェック範囲表示
             Gizmos.color = Color.green;
             Gizmos.DrawWireSphere(currentDriftTarget, wallHitResetRange);
         }

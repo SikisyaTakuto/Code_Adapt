@@ -898,7 +898,7 @@ Rigidbody:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1038785016903548173}
   serializedVersion: 4
-  m_Mass: 1
+  m_Mass: 30
   m_Drag: 0
   m_AngularDrag: 0.05
   m_CenterOfMass: {x: 0, y: 0, z: 0}
@@ -931,7 +931,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   maxHealth: 100
   explosionPrefab: {fileID: 785919167369076647, guid: d146151354c74be4ba83785a3704370e, type: 3}
-  playerTarget: {fileID: 0}
   detectionRange: 15
   beamOrigin: {fileID: 2988819619564562175}
   attackAngle: 30

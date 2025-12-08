@@ -1,27 +1,32 @@
 using UnityEngine;
-using UnityEngine.AI;
+using System.Collections;
 
 public class SoldierMoveEnemy : MonoBehaviour
 {
     // ====================================================================
-    // --- 1. ヘルスと死亡設定 (旧 EnemyHealth) ---
+    // --- 1. ヘルスと死亡設定 ---
     // ====================================================================
     public float maxHealth = 100f;
     public float currentHealth;
     public GameObject deathExplosionPrefab;
-    private bool isDead = false; // ?? 死亡状態を追跡するフラグ
+    private bool isDead = false;
 
     // ====================================================================
-    // --- 2. AI 状態定義と設定 (旧 ChaserAI) ---
+    // --- 2. AI 状態定義と設定 ---
     // ====================================================================
     public enum EnemyState { Idle, Chase, Attack, Reload }
     public EnemyState currentState = EnemyState.Idle;
 
     // --- AI 設定 ---
-    public Transform player;
+    // プレイヤー参照は "Player" タグで取得されます
+    [SerializeField] private Transform player; // private + [SerializeField]
     public float sightRange = 15f;
     public float attackRange = 5f;
     public float rotationSpeed = 10f;
+
+    // Rigidbody/Transform移動用の速度パラメータ
+    // ?? プレイヤーへの接近速度をデフォルトで速くしました。
+    public float moveSpeed = 6.0f;
 
     // --- 攻撃設定 ---
     public int bulletsPerBurst = 3;
@@ -40,13 +45,12 @@ public class SoldierMoveEnemy : MonoBehaviour
     // ====================================================================
     // --- 3. コンポーネントと初期化 ---
     // ====================================================================
-    private NavMeshAgent agent;
     private Animator animator;
     private Rigidbody rb;
     private Collider enemyCollider;
     private AudioSource audioSource;
 
-    // ?? 死亡時に無効化する外部AIスクリプトの参照（EnemyHealthから移植）
+    // 死亡時に無効化する外部AIスクリプトの参照
     private EnemyAI aiA;
     private ChaserAI aiB;
     private JuggernautStaticAI aiOld;
@@ -58,44 +62,57 @@ public class SoldierMoveEnemy : MonoBehaviour
         currentHealth = maxHealth;
 
         // --- コンポーネント取得 ---
-        agent = GetComponent<NavMeshAgent>();
         animator = GetComponent<Animator>();
         rb = GetComponent<Rigidbody>();
         enemyCollider = GetComponent<Collider>();
         audioSource = GetComponent<AudioSource>();
+
+        // Rigidbody設定確認: 
+        if (rb != null)
+        {
+            rb.isKinematic = false;
+            rb.freezeRotation = true; // 追跡AIが倒れないように回転を固定
+        }
 
         // --- 外部AI参照取得 (Die()用) ---
         aiA = GetComponent<EnemyAI>();
         aiB = GetComponent<ChaserAI>();
         aiOld = GetComponent<JuggernautStaticAI>();
 
-        // --- プレイヤー参照取得 ---
+        // プレイヤー参照取得 (Tagを使用)
+        FindPlayerWithTag();
+
+        // --- AI初期設定 ---
+        currentAmmo = maxAmmo;
+        TransitionToIdle();
+    }
+
+    /// <summary>
+    /// Tag "Player" を持つオブジェクトを検索し、参照を設定します。
+    /// </summary>
+    void FindPlayerWithTag()
+    {
         if (player == null)
         {
             GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
             if (playerObject != null) player = playerObject.transform;
-            else Debug.LogError("Playerタグのオブジェクトが見つかりません。");
+            else Debug.LogError("Playerタグのオブジェクトが見つかりません。AIは動作しません。");
         }
-
-        // --- AI初期設定 ---
-        currentAmmo = maxAmmo;
-        if (agent != null && agent.isActiveAndEnabled)
-        {
-            agent.isStopped = true;
-        }
-        TransitionToIdle();
     }
+
 
     // ====================================================================
     // --- 4. メインループ (AIロジック) ---
     // ====================================================================
 
-    void Update()
+    // 物理演算による移動のため、FixedUpdate()を使用
+    void FixedUpdate()
     {
-        // ?? 死亡チェック: 死亡状態なら即座に処理を終了
+        // 死亡チェック: 死亡状態なら即座に処理を終了
         if (isDead) return;
 
-        if (player == null || agent == null) return;
+        // Rigidbodyがないかプレイヤーがない場合はロジックをスキップ
+        if (player == null || rb == null) return;
 
         float distanceToPlayer = Vector3.Distance(transform.position, player.position);
 
@@ -116,21 +133,18 @@ public class SoldierMoveEnemy : MonoBehaviour
                 break;
         }
 
-        // ?? アニメーション制御（移動速度連動）
-        if (animator != null && agent.isActiveAndEnabled)
+        // アニメーション制御（移動速度連動）
+        if (animator != null && rb != null)
         {
-            bool isMoving = agent.velocity.magnitude > 0.1f;
+            // Rigidbodyの速度で移動を判定
+            bool isMoving = rb.velocity.magnitude > 0.1f;
             animator.SetBool("IsRunning", isMoving);
-        }
-        else if (animator != null)
-        {
-            // agentが無効な場合は強制的に停止アニメーション
-            animator.SetBool("IsRunning", false);
         }
     }
 
+
     // ----------------------------------------------------
-    // --- ヘルスとダメージ処理 (旧 EnemyHealth.TakeDamage) ---
+    // --- ヘルスとダメージ処理 ---
     // ----------------------------------------------------
 
     public void TakeDamage(float damage)
@@ -140,15 +154,17 @@ public class SoldierMoveEnemy : MonoBehaviour
         currentHealth -= damage;
         Debug.Log(gameObject.name + "がダメージを受けました。残り体力: " + currentHealth);
 
+        if (player == null) FindPlayerWithTag();
+
         if (currentHealth <= 0)
         {
             Die();
         }
+        else if (currentState == EnemyState.Idle)
+        {
+            TransitionToChase();
+        }
     }
-
-    // ----------------------------------------------------
-    // --- 死亡処理 (旧 EnemyHealth.Die) ---
-    // ----------------------------------------------------
 
     void Die()
     {
@@ -158,13 +174,13 @@ public class SoldierMoveEnemy : MonoBehaviour
 
         Debug.Log(gameObject.name + "が倒れ、完全に停止します。");
 
-        // 1. ?? 爆発エフェクトの生成
+        // 1. 爆発エフェクトの生成
         if (deathExplosionPrefab != null)
         {
             Instantiate(deathExplosionPrefab, transform.position, Quaternion.identity);
         }
 
-        // 2. ?? アニメーションのトリガー
+        // 2. アニメーションのトリガー
         if (animator != null)
         {
             animator.SetBool("IsAiming", false);
@@ -172,35 +188,22 @@ public class SoldierMoveEnemy : MonoBehaviour
             animator.SetTrigger("Die");
         }
 
-        // 3. ?? 全てのAI、ナビゲーション、発砲ロジックを強制停止
+        // 3. 全てのAI、ナビゲーション、発砲ロジックを強制停止
 
-        // ?? Invokeとコルーチンを全て停止
+        // Invokeとコルーチンを全て停止
         CancelInvoke();
         StopAllCoroutines();
 
-        // ?? NavMeshAgentの完全停止
-        if (agent != null && agent.enabled)
-        {
-            if (agent.isActiveAndEnabled)
-            {
-                agent.isStopped = true;
-            }
-            agent.enabled = false;
-        }
-
-        // ?? AI制御スクリプトを無効化 (ChaserAI自体と他の可能性のあるAIスクリプト)
+        // AI制御スクリプトを無効化
         if (aiA != null) aiA.enabled = false;
-        // ?? 統合対象のChaserAIスクリプト自身を無効化
         if (aiB != null) aiB.enabled = false;
         if (aiOld != null) aiOld.enabled = false;
-        this.enabled = false; // ?? ChaserEnemyスクリプト自体を無効化
+        this.enabled = false;
 
-        // 4. ?? オーディオの停止 (オプション)
-        // if (audioSource != null && audioSource.isPlaying) audioSource.Stop(); 
-
-        // 5. ??? 物理的な固定と衝突判定の無効化
+        // 5. 物理的な固定と衝突判定の無効化
         if (rb != null)
         {
+            rb.velocity = Vector3.zero;
             rb.isKinematic = true;
         }
 
@@ -211,11 +214,12 @@ public class SoldierMoveEnemy : MonoBehaviour
     }
 
     // ----------------------------------------------------
-    // --- ロジック関数 (旧 ChaserAI) ---
+    // --- ロジック関数 ---
     // ----------------------------------------------------
 
     void IdleLogic(float distance)
     {
+        if (rb != null) rb.velocity = Vector3.zero; // アイドル中は移動停止
         if (distance <= sightRange)
         {
             TransitionToChase();
@@ -224,17 +228,30 @@ public class SoldierMoveEnemy : MonoBehaviour
 
     void ChaseLogic(float distance)
     {
-        if (agent.isActiveAndEnabled)
-        {
-            agent.isStopped = false;
-            agent.SetDestination(player.position);
-        }
+        // プレイヤーへの方向を計算
+        Vector3 direction = (player.position - transform.position);
 
-        if (distance <= attackRange)
+        // プレイヤーのY座標を無視して水平に回転
+        Quaternion lookRotation = Quaternion.LookRotation(new Vector3(direction.x, 0, direction.z));
+        transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.fixedDeltaTime * rotationSpeed);
+
+        if (distance > attackRange)
         {
+            // プレイヤーに向かって移動 (Rigidbody制御)
+            if (rb != null)
+            {
+                // ここでrb.velocityのY成分は物理エンジンによって制御され続ける
+                rb.velocity = transform.forward * moveSpeed;
+            }
+        }
+        else
+        {
+            // 攻撃範囲内に入ったら停止
+            if (rb != null) rb.velocity = Vector3.zero;
             TransitionToAttack();
         }
-        else if (distance > sightRange)
+
+        if (distance > sightRange)
         {
             TransitionToIdle();
         }
@@ -242,24 +259,26 @@ public class SoldierMoveEnemy : MonoBehaviour
 
     void AttackLogic(float distance)
     {
+        if (rb != null) rb.velocity = Vector3.zero; // 攻撃中は停止
+
+        // プレイヤーのY座標を無視して水平に回転
         Vector3 direction = (player.position - transform.position).normalized;
         Quaternion lookRotation = Quaternion.LookRotation(new Vector3(direction.x, 0, direction.z));
-        transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.deltaTime * rotationSpeed);
+        transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.fixedDeltaTime * rotationSpeed);
 
         if (distance > attackRange * 1.2f)
         {
             TransitionToChase();
         }
-        // Attack中は TransitionToAttackComplete でループするため、ここでは攻撃命令を出さない
     }
 
     void ReloadLogic()
     {
-        // リロード中はアニメーションと時間待ちがメイン
+        if (rb != null) rb.velocity = Vector3.zero; // リロード中は停止
     }
 
     // ----------------------------------------------------
-    // --- 状態遷移関数 (旧 ChaserAI) ---
+    // --- 状態遷移関数 ---
     // ----------------------------------------------------
 
     void TransitionToIdle()
@@ -267,12 +286,9 @@ public class SoldierMoveEnemy : MonoBehaviour
         if (isDead) return;
         currentState = EnemyState.Idle;
 
-        if (agent != null && agent.isActiveAndEnabled)
-        {
-            agent.isStopped = true;
-            agent.updateRotation = true;
-        }
-        CancelInvoke(); // 全てのInvokeをキャンセル
+        if (rb != null) rb.velocity = Vector3.zero;
+
+        CancelInvoke();
         if (animator != null) animator.SetBool("IsAiming", false);
     }
 
@@ -281,11 +297,6 @@ public class SoldierMoveEnemy : MonoBehaviour
         if (isDead) return;
         currentState = EnemyState.Chase;
 
-        if (agent != null && agent.isActiveAndEnabled)
-        {
-            agent.isStopped = false;
-            agent.updateRotation = true;
-        }
         CancelInvoke("ShootBullet");
         CancelInvoke("TransitionToAttackComplete");
         if (animator != null) animator.SetBool("IsAiming", false);
@@ -303,11 +314,7 @@ public class SoldierMoveEnemy : MonoBehaviour
 
         currentState = EnemyState.Attack;
 
-        if (agent != null && agent.isActiveAndEnabled)
-        {
-            agent.isStopped = true;
-            agent.updateRotation = false; // 攻撃中はAIではなくスクリプトが回転を制御
-        }
+        if (rb != null) rb.velocity = Vector3.zero;
 
         if (animator != null)
         {
@@ -335,7 +342,11 @@ public class SoldierMoveEnemy : MonoBehaviour
 
         float distance = Vector3.Distance(transform.position, player.position);
 
-        if (distance <= attackRange * 1.2f)
+        if (currentAmmo <= 0)
+        {
+            TransitionToReload();
+        }
+        else if (distance <= attackRange * 1.2f)
         {
             TransitionToAttack();
         }
@@ -350,11 +361,7 @@ public class SoldierMoveEnemy : MonoBehaviour
         if (isDead) return;
         currentState = EnemyState.Reload;
 
-        if (agent != null && agent.isActiveAndEnabled)
-        {
-            agent.isStopped = true;
-            agent.updateRotation = false;
-        }
+        if (rb != null) rb.velocity = Vector3.zero;
 
         CancelInvoke("ShootBullet");
         CancelInvoke("TransitionToAttackComplete");
@@ -404,7 +411,7 @@ public class SoldierMoveEnemy : MonoBehaviour
     }
 
     // ----------------------------------------------------
-    // --- 弾丸生成処理 (旧 ChaserAI) ---
+    // --- 弾丸生成処理 ---
     // ----------------------------------------------------
 
     public void ShootBullet()

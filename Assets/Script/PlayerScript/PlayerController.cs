@@ -129,13 +129,13 @@ public class PlayerController : MonoBehaviour
     // Unity Lifecycle Methods
     // =======================================================
 
-    [Obsolete]
+    // [Obsolete] 属性を削除
     void Awake()
     {
         InitializeComponents();
     }
 
-    [Obsolete]
+    // [Obsolete] 属性を削除
     void Start()
     {
         currentEnergy = maxEnergy;
@@ -186,7 +186,7 @@ public class PlayerController : MonoBehaviour
         _controller.Move(finalMove * Time.deltaTime);
     }
 
-    [Obsolete]
+    // [Obsolete] 属性を削除
     private void InitializeComponents()
     {
         _controller = GetComponent<CharacterController>();
@@ -270,7 +270,7 @@ public class PlayerController : MonoBehaviour
     private Vector3 HandleHorizontalMovement()
     {
         float h = Input.GetAxis("Horizontal"); // 左スティックX
-        float v = Input.GetAxis("Vertical");   // 左スティックY
+        float v = Input.GetAxis("Vertical");   // 左スティックY
 
         if (h == 0f && v == 0f)
         {
@@ -559,7 +559,6 @@ public class PlayerController : MonoBehaviour
 
     // =======================================================
     // 衝突したColliderから、該当する敵コンポーネントを探してダメージを与える。
-    // SoldierEnemy のロジックを追加済み
     // =======================================================
     private void ApplyDamageToEnemy(Collider hitCollider, float damageAmount)
     {
@@ -572,13 +571,13 @@ public class PlayerController : MonoBehaviour
             soldierMoveEnemy.TakeDamage(damageAmount);
             isHit = true;
         }
-        // 💡 SoldierEnemy コンポーネントを探してダメージを与える (追加)
+        // SoldierEnemy コンポーネントを探してダメージを与える
         if (target.TryGetComponent<SoldierEnemy>(out var soldierEnemy))
         {
             soldierEnemy.TakeDamage(damageAmount);
             isHit = true;
         }
-        // 💡 既存の敵コンポーネントへの依存（IDamageableインターフェース導入が望ましい）
+        // 既存の敵コンポーネントへの依存
         else if (target.TryGetComponent<TutorialEnemyController>(out var tutorialEnemy))
         {
             tutorialEnemy.TakeDamage(damageAmount);
@@ -615,7 +614,7 @@ public class PlayerController : MonoBehaviour
 
         if (_currentArmorStats != null)
         {
-            // 防御補正を適用 (TutorialControllerでは乗数がダメージ軽減率だったため、そのまま使用)
+            // 防御補正を適用
             finalDamage *= _currentArmorStats.defenseMultiplier;
         }
 
@@ -809,7 +808,6 @@ public class PlayerController : MonoBehaviour
     {
         // 既存のHandleHorizontalMovement()がInput.GetAxisに依存しているため、
         // ここでは直接_velocityなどは操作しません。
-        // Input.GetAxisがLeft Stickにバインドされていることを前提とします。
     }
 
     // 右スティック (視点移動) - Action名: Look
