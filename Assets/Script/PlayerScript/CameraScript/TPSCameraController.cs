@@ -1,5 +1,5 @@
 ﻿using UnityEngine;
-using UnityEngine.InputSystem; // ★ Input Systemを追加
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using System.Linq;
 
@@ -17,10 +17,15 @@ public class TPSCameraController : MonoBehaviour
     [Tooltip("ターゲットの中心からカメラまでの相対的な高さ。")]
     public float height = 2.0f;
 
-    [Tooltip("マウス入力によるカメラの回転速度（感度）。")]
-    public float mouseRotationSpeed = 3.0f;
-    [Tooltip("コントローラー入力によるカメラの回転速度（感度）。")]
-    public float controllerRotationSpeed = 500.0f;
+    // ★ 修正 1: インスペクターから初期値を設定するための変数にリネーム
+    [Tooltip("マウス入力によるカメラの回転速度（感度）の初期値。")]
+    public float initialMouseRotationSpeed = 3.0f;
+    [Tooltip("コントローラー入力によるカメラの回転速度（感度）の初期値。")]
+    public float initialControllerRotationSpeed = 500.0f;
+
+    // ★ 修正 2: 外部 (UI) からアクセス・変更するための静的プロパティ
+    public static float MouseRotationSpeed { get; private set; }
+    public static float ControllerRotationSpeed { get; private set; }
 
     [Tooltip("ターゲット位置と回転に移動する際のスムーズさ（値が大きいほど速い）。")]
     public float smoothSpeed = 10.0f;
@@ -30,7 +35,6 @@ public class TPSCameraController : MonoBehaviour
     // === 2. 設定: ロックオン ===
     [Header("2. Lock-On Settings")]
     [Tooltip("ロックオン時のカメラの回転速度。値を増やすと追従が強くなる。")]
-    // ★ 修正点: 初期値を強化
     public float lockOnRotationSpeed = 50f;
     [Tooltip("ロックオンの最大距離。プレイヤーからこの範囲内の敵を検出します。")]
     public float maxLockOnRange = 30f;
@@ -82,7 +86,7 @@ public class TPSCameraController : MonoBehaviour
     private PlayerInput _playerInput;
     private Vector2 _lookInput = Vector2.zero;
 
-    private float _lockOnTriggerValue = 0f;      // ★ ロックオンボタン/トリガーの値
+    private float _lockOnTriggerValue = 0f;       // ★ ロックオンボタン/トリガーの値
     private Vector2 _targetSwitchInput = Vector2.zero; // ★ ターゲット切り替え用 (右スティックのX軸など)
 
     // ロックオンボタンの状態を保持するためのプライベート変数
@@ -146,6 +150,18 @@ public class TPSCameraController : MonoBehaviour
         }
     }
 
+
+    // ★ 修正 3: 外部（UIスクリプト）から感度を設定するための静的メソッド
+    public static void SetMouseSensitivity(float value)
+    {
+        MouseRotationSpeed = value;
+    }
+
+    public static void SetControllerSensitivity(float value)
+    {
+        ControllerRotationSpeed = value;
+    }
+
     // =======================================================
     // Unity Lifecycle
     // =======================================================
@@ -157,6 +173,14 @@ public class TPSCameraController : MonoBehaviour
         if (_playerInput == null)
         {
             Debug.LogError("PlayerInput component not found on the target or its parent. Controller rotation and lock-on will not work.");
+        }
+
+        // ★ 修正 4: Start時に静的プロパティをインスペクターで設定した初期値で初期化
+        // 注意: 他のシーンから来た場合、静的変数は既に値を持っている可能性があります。
+        if (MouseRotationSpeed == 0f || MouseRotationSpeed == initialMouseRotationSpeed)
+        {
+            MouseRotationSpeed = initialMouseRotationSpeed;
+            ControllerRotationSpeed = initialControllerRotationSpeed;
         }
 
         // Cursor.lockState/visible の初期化ロジックはコメントアウトされた状態を維持
@@ -253,19 +277,17 @@ public class TPSCameraController : MonoBehaviour
         // ロックオン開始の条件: (マウス右クリックダウン) または (コントローラーボタン/トリガーダウン)
         if ((rightClickDown || isControllerLockOnDown) && _lockOnTarget == null)
         {
-            // 💡 修正点: target.forward を transform.forward (カメラの正面方向) に変更
             // カメラの水平方向の向きを取得 (Y軸のみ)
             Vector3 cameraForwardFlat = transform.forward;
             cameraForwardFlat.y = 0;
             cameraForwardFlat.Normalize();
 
             var colliders = Physics.OverlapSphere(target.position, maxLockOnRange, enemyLayer)
-                // 💡 修正: プレイヤー正面ではなく、カメラの正面方向 (cameraForwardFlat) を基準に角度チェック
                 .Where(col => Vector3.Angle(cameraForwardFlat, col.transform.position - target.position) <= lockOnAngleLimit);
 
             if (colliders.Any())
             {
-                // 💡 修正: 角度の並べ替え基準もカメラの正面方向 (cameraForwardFlat) に変更
+                // 角度の並べ替え基準もカメラの正面方向 (cameraForwardFlat) に変更
                 Transform nearestTarget = colliders
                     .OrderBy(col => Vector3.Angle(cameraForwardFlat, col.transform.position - target.position))
                     .ThenBy(col => Vector3.Distance(target.position, col.transform.position))
@@ -413,8 +435,9 @@ public class TPSCameraController : MonoBehaviour
         float deltaPitch = 0;
 
         // 1. 従来のInput Manager (マウス) からの値を取得
-        float mouseX = Input.GetAxis("Mouse X") * mouseRotationSpeed;
-        float mouseY = Input.GetAxis("Mouse Y") * mouseRotationSpeed;
+        // ★ 修正 5: 静的プロパティ MouseRotationSpeed を使用
+        float mouseX = Input.GetAxis("Mouse X") * MouseRotationSpeed;
+        float mouseY = Input.GetAxis("Mouse Y") * MouseRotationSpeed;
 
         // 2. Input Systemからの値を取得
         float inputSystemX = _lookInput.x;
@@ -428,8 +451,9 @@ public class TPSCameraController : MonoBehaviour
         if (isGamepad)
         {
             // コントローラー (Gamepad) からの入力: Input Systemの値を採用
-            deltaYaw += inputSystemX * controllerRotationSpeed * Time.deltaTime;
-            deltaPitch += inputSystemY * controllerRotationSpeed * Time.deltaTime;
+            // ★ 修正 6: 静的プロパティ ControllerRotationSpeed を使用
+            deltaYaw += inputSystemX * ControllerRotationSpeed * Time.deltaTime;
+            deltaPitch += inputSystemY * ControllerRotationSpeed * Time.deltaTime;
         }
         else
         {
@@ -438,12 +462,14 @@ public class TPSCameraController : MonoBehaviour
             // a) Input SystemでマウスがLookアクションにバインドされている場合: 
             if (Mathf.Abs(inputSystemX) > 0.001f || Mathf.Abs(inputSystemY) > 0.001f)
             {
-                deltaYaw += inputSystemX * mouseRotationSpeed;
-                deltaPitch += inputSystemY * mouseRotationSpeed;
+                // ★ 修正 7: 静的プロパティ MouseRotationSpeed を使用
+                deltaYaw += inputSystemX * MouseRotationSpeed;
+                deltaPitch += inputSystemY * MouseRotationSpeed;
             }
             // b) 従来のInput Managerでのみマウスが使用されている場合 (既存コード維持のため):
             else
             {
+                // ★ 修正 8: 静的プロパティ MouseRotationSpeed を使用
                 deltaYaw += mouseX;
                 deltaPitch += mouseY;
             }
