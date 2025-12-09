@@ -1,25 +1,36 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 
 public class BombController : MonoBehaviour
 {
     [Header("Ground detection")]
-    [Tooltip("’n–ÊƒIƒuƒWƒFƒNƒg‚Ìƒ^ƒO")]
+    [Tooltip("åœ°é¢ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã®ã‚¿ã‚°")]
     public string groundTag = "Ground";
 
     [Header("Explosion")]
-    [Tooltip("’n–Ê‚ÉG‚ê‚Ä‚©‚ç‰½•b‚Å”š”­‚·‚é‚©")]
+    [Tooltip("åœ°é¢ã«è§¦ã‚Œã¦ã‹ã‚‰ä½•ç§’ã§çˆ†ç™ºã™ã‚‹ã‹")]
     public float explodeDelay = 2f;
 
-    [Tooltip("”š”­ƒGƒtƒFƒNƒgBHierarchy‚Éo‚·‚½‚ßInstantiate‚³‚ê‚Ü‚·j")]
+    [Tooltip("çˆ†ç™ºã‚¨ãƒ•ã‚§ã‚¯ãƒˆã€‚Hierarchyã«å‡ºã™ãŸã‚Instantiateã•ã‚Œã¾ã™ï¼‰")]
     public GameObject explosionEffectPrefab;
 
-    [Tooltip("”š”­‚É‚±‚ÌƒIƒuƒWƒFƒNƒg‚ğ”ñ•\¦E–³Œø‰»‚·‚é")]
+    [Tooltip("çˆ†ç™ºæ™‚ã«ã“ã®ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã‚’éè¡¨ç¤ºãƒ»ç„¡åŠ¹åŒ–ã™ã‚‹")]
     public bool disableOnExplode = true;
 
-    // “à•”ó‘Ô
+    public Transform circleA;     // å‹•ã‹ã™å††
+    public Transform circleB;     // å›ºå®šã®å††ï¼‰
+    public Vector3 startScaleA;   // circleA ã®é–‹å§‹ã‚¹ã‚±ãƒ¼ãƒ«
+
+    // å†…éƒ¨çŠ¶æ…‹
     private bool touchingGround = false;
     private float touchTimer = 0f;
     private bool hasExploded = false;
+
+    void Start()
+    {
+        // æœ€åˆã¯éè¡¨ç¤ºã«ã—ã¦ãŠã
+        if (circleA != null) circleA.gameObject.SetActive(false);
+        if (circleB != null) circleB.gameObject.SetActive(false);
+    }
 
     void Update()
     {
@@ -28,6 +39,16 @@ public class BombController : MonoBehaviour
         if (touchingGround)
         {
             touchTimer += Time.deltaTime;
+
+            // çˆ†ç™ºã¾ã§ã®é€²è¡Œç‡ 0ã€œ1
+            float t = Mathf.Clamp01(touchTimer / explodeDelay);
+
+            // circleA ã‚’ã€é–‹å§‹ã‚µã‚¤ã‚º â†’ circleB ã®ã‚¹ã‚±ãƒ¼ãƒ«ã¸è¿‘ã¥ã‘ã‚‹
+            if (circleA != null && circleB != null)
+            {
+                circleA.localScale = Vector3.Lerp(startScaleA, circleB.localScale, t);
+            }
+
             if (touchTimer >= explodeDelay)
             {
                 Explode();
@@ -35,12 +56,16 @@ public class BombController : MonoBehaviour
         }
         else
         {
-            // ’n–Ê‚©‚ç—£‚ê‚Ä‚¢‚éê‡‚Íƒ^ƒCƒ}[‚ğƒŠƒZƒbƒg
             touchTimer = 0f;
+
+            // åœ°é¢ã‹ã‚‰é›¢ã‚ŒãŸã‚‰å…ƒã«æˆ»ã™ï¼ˆä»»æ„ï¼‰
+            if (circleA != null)
+                circleA.localScale = startScaleA;
         }
     }
 
-    // ’n–Ê‚ÉG‚ê‚½‚çŠJn
+
+    // åœ°é¢ã«è§¦ã‚ŒãŸã‚‰é–‹å§‹
     void OnCollisionEnter(Collision collision)
     {
         if (hasExploded) return;
@@ -48,11 +73,14 @@ public class BombController : MonoBehaviour
         if (collision.gameObject.CompareTag(groundTag))
         {
             touchingGround = true;
-            // •K—v‚È‚çÅ‰‚ÌÚG‚É‰½‚©‚·‚é
+            // å¿…è¦ãªã‚‰æœ€åˆã®æ¥è§¦æ™‚ã«ä½•ã‹ã™ã‚‹
+
+            // Circle ã‚’å‡ºç¾ã•ã›ã‚‹
+            ShowCircles();
         }
     }
 
-    // ’n–Ê‚©‚ç—£‚ê‚½‚ç’â~
+    // åœ°é¢ã‹ã‚‰é›¢ã‚ŒãŸã‚‰åœæ­¢
     void OnCollisionExit(Collision collision)
     {
         if (hasExploded) return;
@@ -63,7 +91,7 @@ public class BombController : MonoBehaviour
         }
     }
 
-    // ‚à‚µ’n–Ê‚ªTrigger‚Åİ’è‚³‚ê‚Ä‚¢‚éê‡‚ÌƒTƒ|[ƒg
+    // ã‚‚ã—åœ°é¢ãŒTriggerã§è¨­å®šã•ã‚Œã¦ã„ã‚‹å ´åˆã®ã‚µãƒãƒ¼ãƒˆ
     void OnTriggerEnter(Collider other)
     {
         if (hasExploded) return;
@@ -71,6 +99,9 @@ public class BombController : MonoBehaviour
         if (other.gameObject.CompareTag(groundTag))
         {
             touchingGround = true;
+
+            // Circle ã‚’å‡ºç¾ã•ã›ã‚‹
+            ShowCircles();
         }
     }
 
@@ -84,16 +115,40 @@ public class BombController : MonoBehaviour
         }
     }
 
+    // å®Ÿéš›ã«Circleã‚’è¡¨ç¤ºã•ã›ã‚‹é–¢æ•°
+    void ShowCircles()
+    {
+        if (circleA != null)
+        {
+            circleA.gameObject.SetActive(true);
+            circleA.localScale = startScaleA; // åˆæœŸã‚µã‚¤ã‚º
+        }
+
+        if (circleB != null)
+        {
+            circleB.gameObject.SetActive(true);
+            // circleBã¯å›ºå®šã‚µã‚¤ã‚ºãªã®ã§ãã®ã¾ã¾
+        }
+    }
+
     private void Explode()
     {
         hasExploded = true;
 
-        // ƒGƒtƒFƒNƒg‚ğÄ¶
+        // çˆ†ç™ºç›´å‰ã«2ã¤ã®Circleã®Scaleã‚’æƒãˆã‚‹
+        if (circleA != null && circleB != null)
+        {
+            // ã©ã¡ã‚‰ã‹åŸºæº–ã«ã™ã‚‹ã€‚ã“ã“ã§ã¯ circleA ã® scale ã‚’åŸºæº–ã«ã€‚
+            Vector3 targetScale = circleA.localScale;
+            circleB.localScale = targetScale;
+        }
+
+        // ã‚¨ãƒ•ã‚§ã‚¯ãƒˆã‚’å†ç”Ÿ
         if (explosionEffectPrefab != null)
         {
             GameObject fx = Instantiate(explosionEffectPrefab, transform.position, Quaternion.identity, null);
 
-            // Ä¶ŠÔ•ª‚¾‚¯c‚µ‚ÄÁ‚·
+            // å†ç”Ÿæ™‚é–“åˆ†ã ã‘æ®‹ã—ã¦æ¶ˆã™
             ParticleSystem ps = fx.GetComponent<ParticleSystem>();
             if (ps != null)
             {
@@ -103,19 +158,19 @@ public class BombController : MonoBehaviour
             }
             else
             {
-                // ParticleSystem‚ª‚È‚¢ê‡‚Íˆê—¥‚Å 5 •bŒã‚Éíœ
+                // ParticleSystemãŒãªã„å ´åˆã¯ä¸€å¾‹ã§ 5 ç§’å¾Œã«å‰Šé™¤
                 Destroy(fx, 5f);
             }
         }
 
-        // ”š’e–{‘Ì‚ğ–³Œø‰»
+        // çˆ†å¼¾æœ¬ä½“ã‚’ç„¡åŠ¹åŒ–
         if (disableOnExplode)
         {
-            // •\¦‚ğÁ‚·
+            // è¡¨ç¤ºã‚’æ¶ˆã™
             foreach (var rend in GetComponentsInChildren<Renderer>())
                 rend.enabled = false;
 
-            // Õ“Ë‚ğ~‚ß‚é
+            // è¡çªã‚’æ­¢ã‚ã‚‹
             Collider col = GetComponent<Collider>();
             if (col != null) col.enabled = false;
 
@@ -123,7 +178,7 @@ public class BombController : MonoBehaviour
             if (rb != null) rb.isKinematic = true;
         }
 
-        // –{‘Ì‚ğ­‚µ‚µ‚Ä‚©‚ç”jŠü
+        // æœ¬ä½“ã‚’å°‘ã—ã—ã¦ã‹ã‚‰ç ´æ£„
         Destroy(gameObject, 0.1f);
     }
 }
