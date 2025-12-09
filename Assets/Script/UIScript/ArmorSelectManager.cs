@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.SceneManagement;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine.EventSystems;
@@ -8,14 +7,14 @@ using System.Collections;
 using UnityEngine.Audio;
 
 /// <summary>
-/// アーマー選択シーンの全体管理、UIの更新、モデル表示、シーン遷移を制御します。
+/// アーマー選択シーンの全体管理、UIの更新、モデル表示を制御します。
 /// </summary>
 public class ArmorSelectManager : MonoBehaviour
 {
     // --- UI/表示設定 ---
     [Header("UI References")]
     public Text descriptionText;// ナビゲーターの吹き出し内の説明文
-    public Button decisionButton; // 決定ボタン
+    public Button decisionButton; // 決定ボタン (機能は残す)
 
     [Header("Armor Buttons")]
     // アーマーの種類に合わせてサイズを3に設定
@@ -56,13 +55,6 @@ public class ArmorSelectManager : MonoBehaviour
     private int currentDisplayIndex = 0;
     private bool isTutorialSelected = false;
 
-    // NOTE: MonoBehaviourのコンストラクターは通常使用しません。
-    // Unityエディターでインスタンス化されるため、Awake() や Start() で初期化します。
-    // public ArmorSelectManager(bool isTutorialSelected)
-    // {
-    //     this.isTutorialSelected = isTutorialSelected;
-    // }
-
     // アーマーの種類を3つに統一 (Normal, Buster, Speed)
     private readonly string[] armorNames = { "ノーマル", "バスター", "スピード" };
     private readonly string[] armorDescriptions =
@@ -75,15 +67,13 @@ public class ArmorSelectManager : MonoBehaviour
     // 初期説明文 (最大選択数2に修正済み)
     private const string InitialDescription = "クリックしてアーマーを2つまで選びましょう。\n選択されたアーマーは黄色く強調表示されます。\n\n**マウスカーソルを合わせる**と詳細な説明が見られます。";
 
-    // 決定ボタンを押した後のシーン名
-    private const string GameSceneName = "TutorialScene";
-
-    // 選択されたアーマーのデータを保持・引き継ぐためのキー 
-    private const string SelectedArmorKey = "SelectedArmorIndex";
+    // シーン関連の定数を削除
 
     // Y軸180度の初期回転値をQuaternionで定義
     private readonly Quaternion initialRotation = Quaternion.Euler(0f, 180f, 0f);
 
+    // 選択されていないときのハイライト色 (グレーまたは薄い色など)
+    private readonly Color unselectedHighlightColor = new Color(0.5f, 0.5f, 0.5f, 1f); // 半透明のグレーを仮設定 (不透明度1)
 
     [System.Obsolete]
     void Awake()
@@ -107,7 +97,8 @@ public class ArmorSelectManager : MonoBehaviour
 
     void Start()
     {
-        EnableAllArmorModels();
+        // 【修正点】全てのアーマーモデルを非アクティブにする
+        DisableAllArmorModels();
         SetArmorButtonsTransparent();
         UpdateDescriptionTextInitial();
         UpdateDecisionButtonState();
@@ -128,10 +119,12 @@ public class ArmorSelectManager : MonoBehaviour
         if (decisionButton != null)
         {
             decisionButton.onClick.RemoveAllListeners();
+            // 決定ボタンは機能だけ残し、シーン遷移ロジックは削除
             decisionButton.onClick.AddListener(OnDecisionButtonClicked);
         }
 
-        UpdateUIEmphasis(); // ボタンの強調表示を初期化
+        // 【修正点】ボタンの強調表示を初期化（非選択時の色で表示）
+        InitializeUIEmphasis();
     }
 
     /// <summary>
@@ -171,6 +164,12 @@ public class ArmorSelectManager : MonoBehaviour
 
         // マウスオーバーしたアーマーの説明を表示
         UpdateDescriptionText(index);
+
+        // マウスオーバーしたモデルを有効化
+        if (index < armorModels.Length && armorModels[index] != null)
+        {
+            armorModels[index].SetActive(true);
+        }
     }
 
     /// <summary>
@@ -199,8 +198,11 @@ public class ArmorSelectManager : MonoBehaviour
             if (index < armorModels.Length && armorModels[index] != null)
             {
                 armorModels[index].transform.localRotation = initialRotation;
+                // マウスオーバーが解除されたとき、そのモデルが選択されていない場合のみ非表示にする
+                armorModels[index].SetActive(false);
             }
         }
+        // モデルが選択されている場合はそのまま表示・回転維持
     }
 
 
@@ -227,15 +229,15 @@ public class ArmorSelectManager : MonoBehaviour
     }
 
     /// <summary>
-    /// シーン開始時に全てのアーマーモデルを有効化し、初期回転を設定します。
+    /// シーン開始時に全てのアーマーモデルを無効化します。（非表示にする）
     /// </summary>
-    private void EnableAllArmorModels()
+    private void DisableAllArmorModels()
     {
         for (int i = 0; i < armorModels.Length; i++)
         {
             if (armorModels[i] != null)
             {
-                armorModels[i].SetActive(true);
+                armorModels[i].SetActive(false); // モデルを非アクティブにする
                 armorModels[i].transform.localRotation = initialRotation;
             }
         }
@@ -247,7 +249,6 @@ public class ArmorSelectManager : MonoBehaviour
         for (int i = 0; i < armorModels.Length; i++)
         {
             // 【Null参照対策の強化】モデル自体と、そのTransformコンポーネントの両方が有効か確認
-            // 前回の NullReferenceException 対策として最も重要な部分です。
             if (armorModels[i] == null || armorModels[i].transform == null)
             {
                 // null または transform が存在しない場合は処理をスキップ
@@ -266,6 +267,7 @@ public class ArmorSelectManager : MonoBehaviour
                 // 回転させる 
                 armorModels[i].transform.Rotate(Vector3.up, modelRotationSpeed * Time.deltaTime, Space.World);
             }
+            // 選択されているモデルは回転を停止/初期回転を維持
         }
     }
 
@@ -286,13 +288,16 @@ public class ArmorSelectManager : MonoBehaviour
 
         if (wasPreviouslySelected)
         {
-            // 選択解除 (黄色 -> 透明)
+            // 選択解除 (黄色 -> 非選択色/透明)
             selectedArmorList.Remove(index);
 
             // モデルの回転を初期値に戻す (解除されたモデルのみ)
             if (index < armorModels.Length && armorModels[index] != null)
             {
                 armorModels[index].transform.localRotation = initialRotation;
+
+                // 選択解除されたモデルは非表示にする
+                armorModels[index].SetActive(false);
             }
             Debug.Log($"アーマー {armorNames[index]} を解除しました。残り: {string.Join(", ", selectedArmorList.Select(i => armorNames[i]))}");
         }
@@ -305,7 +310,7 @@ public class ArmorSelectManager : MonoBehaviour
                 return;
             }
 
-            // 選択 (透明 -> 黄色)
+            // 選択 (非選択色/透明 -> 黄色)
             selectedArmorList.Add(index);
 
             // 選択されたとき（黄色になったとき）にモデルを正面に向かせる
@@ -313,6 +318,8 @@ public class ArmorSelectManager : MonoBehaviour
             {
                 // 選択された時点で回転を停止し、正面を向かせる
                 armorModels[index].transform.localRotation = initialRotation;
+                // 選択されたモデルは表示させる
+                armorModels[index].SetActive(true);
             }
 
             Debug.Log($"アーマー {armorNames[index]} を追加しました。現在: {string.Join(", ", selectedArmorList.Select(i => armorNames[i]))}");
@@ -333,6 +340,23 @@ public class ArmorSelectManager : MonoBehaviour
     }
 
     /// <summary>
+    /// シーン開始時に選択されていない状態のハイライト色を設定します。
+    /// </summary>
+    private void InitializeUIEmphasis()
+    {
+        for (int i = 0; i < armorHighlightImages.Length; i++)
+        {
+            if (armorHighlightImages[i] != null)
+            {
+                // 選択されていない状態のデフォルトの色 (例: グレー) を設定
+                armorHighlightImages[i].gameObject.SetActive(true);
+                armorHighlightImages[i].color = unselectedHighlightColor;
+            }
+        }
+    }
+
+
+    /// <summary>
     /// 選択リストに基づいて、強調表示用のImageを制御します。
     /// </summary>
     private void UpdateUIEmphasis()
@@ -344,7 +368,8 @@ public class ArmorSelectManager : MonoBehaviour
                 bool isSelected = selectedArmorList.Contains(i);
 
                 // Imageの色を変更して、光っているように見せます
-                Color targetColor = isSelected ? Color.yellow : Color.clear; // 選択中は黄色、解除中は透明
+                // 選択中は黄色、解除中は初期設定の非選択色に戻す
+                Color targetColor = isSelected ? Color.yellow : unselectedHighlightColor;
 
                 // Imageを有効化し、色を適用
                 armorHighlightImages[i].gameObject.SetActive(true);
@@ -400,7 +425,7 @@ public class ArmorSelectManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 決定ボタンがクリックされたときに呼ばれます。
+    /// 決定ボタンがクリックされたときに呼ばれます。（シーン遷移ロジック削除済み）
     /// </summary>
     public void OnDecisionButtonClicked()
     {
@@ -410,14 +435,14 @@ public class ArmorSelectManager : MonoBehaviour
             return;
         }
 
-        // 決定音を鳴らし、音が鳴り終わるのを待ってからシーン遷移するコルーチンを開始
-        StartCoroutine(LoadSceneAfterDecisionSound(GameSceneName));
+        // 決定音を鳴らし、音が鳴り終わるのを待つ処理（コルーチン）を開始
+        StartCoroutine(WaitForDecisionSound());
     }
 
     /// <summary>
-    /// コルーチン: 決定音を鳴らしてからシーンをロード
+    /// コルーチン: 決定音を鳴らし、音が鳴り終わるのを待つ
     /// </summary>
-    private IEnumerator LoadSceneAfterDecisionSound(string sceneName)
+    private IEnumerator WaitForDecisionSound()
     {
         bool isSoundMuted = IsVolumeMuted(); // 音量チェック
 
@@ -434,12 +459,8 @@ public class ArmorSelectManager : MonoBehaviour
             Debug.Log("決定音はミュートされています。");
         }
 
-        // シーン遷移の実行
-        // 複数選択されていても、PlayerPrefsで引き継ぐのは最初の1つ
-        PlayerPrefs.SetInt(SelectedArmorKey, selectedArmorList.First());
-        PlayerPrefs.Save();
-        Debug.Log($"シーンを遷移します: {sceneName}");
-        SceneManager.LoadScene(sceneName);
+        // ここに次の処理（シーン遷移以外の）を記述
+        Debug.Log("決定処理が完了しました。");
     }
 
 
@@ -477,10 +498,5 @@ public class ArmorSelectManager : MonoBehaviour
     }
 
 
-    // 他のシーンから選択されたアーマーを取得するための静的メソッド
-    public static int GetSelectedArmorIndex()
-    {
-        // デフォルト値として Normal (0) を返す
-        return PlayerPrefs.GetInt(SelectedArmorKey, 0);
-    }
+    // シーン遷移とデータ引き継ぎに関連する静的メソッドを削除
 }
