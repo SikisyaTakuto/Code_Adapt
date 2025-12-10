@@ -1,10 +1,11 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 using System.Collections;
+using System;
 
 public class SoldierMoveEnemy : MonoBehaviour
 {
     // ====================================================================
-    // --- 1. ƒwƒ‹ƒX‚Æ€–Sİ’è ---
+    // --- 1. ãƒ˜ãƒ«ã‚¹ã¨æ­»äº¡è¨­å®š ---
     // ====================================================================
     public float maxHealth = 100f;
     public float currentHealth;
@@ -12,45 +13,47 @@ public class SoldierMoveEnemy : MonoBehaviour
     private bool isDead = false;
 
     // ====================================================================
-    // --- 2. AI ó‘Ô’è‹`‚Æİ’è ---
+    // --- 2. AI çŠ¶æ…‹å®šç¾©ã¨è¨­å®š ---
     // ====================================================================
-    public enum EnemyState { Idle, Chase, Attack, Reload }
-    public EnemyState currentState = EnemyState.Idle;
+    public enum EnemyState { Landing, Idle, Chase, Attack, Reload }
+    public EnemyState currentState = EnemyState.Landing;
 
-    // --- AI İ’è ---
-    // ƒvƒŒƒCƒ„[QÆ‚Í "Player" ƒ^ƒO‚Åæ“¾‚³‚ê‚Ü‚·
-    [SerializeField] private Transform player; // private + [SerializeField]
+    // --- AI è¨­å®š ---
+    [SerializeField] private Transform player;
     public float sightRange = 15f;
     public float attackRange = 5f;
     public float rotationSpeed = 10f;
-
-    // Rigidbody/TransformˆÚ“®—p‚Ì‘¬“xƒpƒ‰ƒ[ƒ^
-    // ?? ƒvƒŒƒCƒ„[‚Ö‚ÌÚ‹ß‘¬“x‚ğƒfƒtƒHƒ‹ƒg‚Å‘¬‚­‚µ‚Ü‚µ‚½B
     public float moveSpeed = 6.0f;
 
-    // --- UŒ‚İ’è ---
+    // ğŸ’¡ è¿½åŠ : ç€åœ°è¨­å®š
+    [Header("ç€åœ°è¨­å®š")]
+    public float initialWaitTime = 1.0f;  // æµ®éŠã—ã¦ã‹ã‚‰è½ä¸‹ã‚’é–‹å§‹ã™ã‚‹ã¾ã§ã®å¾…æ©Ÿæ™‚é–“
+    public float landingSpeed = 2.0f;    // ã‚†ã£ãã‚Šè½ä¸‹ã™ã‚‹é€Ÿåº¦
+    public string groundTag = "Ground"; // åœ°é¢ã¨åˆ¤å®šã™ã‚‹ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã®ã‚¿ã‚°
+
+    // --- æ”»æ’ƒè¨­å®š ---
     public int bulletsPerBurst = 3;
     public float timeBetweenShots = 0.1f;
     public float shootDuration = 0.5f;
 
-    // --- ’e–ò‚ÆƒŠƒ[ƒhİ’è ---
+    // --- å¼¾è–¬ã¨ãƒªãƒ­ãƒ¼ãƒ‰è¨­å®š ---
     public int maxAmmo = 10;
     private int currentAmmo;
     public float reloadTime = 3.0f;
 
-    // ššš e’e‚Ì”­Ë‚É•K—v‚ÈQÆ ššš
+    // â˜…â˜…â˜… éŠƒå¼¾ã®ç™ºå°„ã«å¿…è¦ãªå‚ç…§ â˜…â˜…â˜…
     [SerializeField] private GameObject bulletPrefab;
     public Transform muzzlePoint;
 
     // ====================================================================
-    // --- 3. ƒRƒ“ƒ|[ƒlƒ“ƒg‚Æ‰Šú‰» ---
+    // --- 3. ã‚³ãƒ³ãƒãƒ¼ãƒãƒ³ãƒˆã¨åˆæœŸåŒ– ---
     // ====================================================================
     private Animator animator;
     private Rigidbody rb;
     private Collider enemyCollider;
     private AudioSource audioSource;
 
-    // €–S‚É–³Œø‰»‚·‚éŠO•”AIƒXƒNƒŠƒvƒg‚ÌQÆ
+    // æ­»äº¡æ™‚ã«ç„¡åŠ¹åŒ–ã™ã‚‹å¤–éƒ¨AIã‚¹ã‚¯ãƒªãƒ—ãƒˆã®å‚ç…§
     private EnemyAI aiA;
     private ChaserAI aiB;
     private JuggernautStaticAI aiOld;
@@ -58,37 +61,36 @@ public class SoldierMoveEnemy : MonoBehaviour
 
     void Start()
     {
-        // --- ƒwƒ‹ƒX‰Šú‰» ---
         currentHealth = maxHealth;
 
-        // --- ƒRƒ“ƒ|[ƒlƒ“ƒgæ“¾ ---
+        // --- ã‚³ãƒ³ãƒãƒ¼ãƒãƒ³ãƒˆå–å¾— ---
         animator = GetComponent<Animator>();
         rb = GetComponent<Rigidbody>();
         enemyCollider = GetComponent<Collider>();
         audioSource = GetComponent<AudioSource>();
 
-        // Rigidbodyİ’èŠm”F: 
+        // ğŸ’¡ å¤‰æ›´ç‚¹: æœ€åˆã¯ç©ºä¸­å¾…æ©Ÿã®ãŸã‚ã€ç‰©ç†æ¼”ç®—ã‚’ç„¡åŠ¹ã«ã™ã‚‹
         if (rb != null)
         {
-            rb.isKinematic = false;
-            rb.freezeRotation = true; // ’ÇÕAI‚ª“|‚ê‚È‚¢‚æ‚¤‚É‰ñ“]‚ğŒÅ’è
+            rb.isKinematic = true;
+            rb.useGravity = false;
+            rb.freezeRotation = true;
         }
 
-        // --- ŠO•”AIQÆæ“¾ (Die()—p) ---
+        // --- å¤–éƒ¨AIå‚ç…§å–å¾— (Die()ç”¨) ---
         aiA = GetComponent<EnemyAI>();
         aiB = GetComponent<ChaserAI>();
         aiOld = GetComponent<JuggernautStaticAI>();
 
-        // ƒvƒŒƒCƒ„[QÆæ“¾ (Tag‚ğg—p)
         FindPlayerWithTag();
 
-        // --- AI‰Šúİ’è ---
+        // --- AIåˆæœŸè¨­å®š ---
         currentAmmo = maxAmmo;
-        TransitionToIdle();
+        TransitionToLanding();
     }
 
     /// <summary>
-    /// Tag "Player" ‚ğ‚ÂƒIƒuƒWƒFƒNƒg‚ğŒŸõ‚µAQÆ‚ğİ’è‚µ‚Ü‚·B
+    /// Tag "Player" ã‚’æŒã¤ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã‚’æ¤œç´¢ã—ã€å‚ç…§ã‚’è¨­å®šã—ã¾ã™ã€‚
     /// </summary>
     void FindPlayerWithTag()
     {
@@ -96,27 +98,32 @@ public class SoldierMoveEnemy : MonoBehaviour
         {
             GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
             if (playerObject != null) player = playerObject.transform;
-            else Debug.LogError("Playerƒ^ƒO‚ÌƒIƒuƒWƒFƒNƒg‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñBAI‚Í“®ì‚µ‚Ü‚¹‚ñB");
+            else Debug.LogError("Playerã‚¿ã‚°ã®ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚AIã¯å‹•ä½œã—ã¾ã›ã‚“ã€‚");
         }
     }
 
 
     // ====================================================================
-    // --- 4. ƒƒCƒ“ƒ‹[ƒv (AIƒƒWƒbƒN) ---
+    // --- 4. ãƒ¡ã‚¤ãƒ³ãƒ«ãƒ¼ãƒ— (AIãƒ­ã‚¸ãƒƒã‚¯) ---
     // ====================================================================
 
-    // •¨—‰‰Z‚É‚æ‚éˆÚ“®‚Ì‚½‚ßAFixedUpdate()‚ğg—p
     void FixedUpdate()
     {
-        // €–Sƒ`ƒFƒbƒN: €–Só‘Ô‚È‚ç‘¦À‚Éˆ—‚ğI—¹
         if (isDead) return;
-
-        // Rigidbody‚ª‚È‚¢‚©ƒvƒŒƒCƒ„[‚ª‚È‚¢ê‡‚ÍƒƒWƒbƒN‚ğƒXƒLƒbƒv
         if (player == null || rb == null) return;
 
         float distanceToPlayer = Vector3.Distance(transform.position, player.position);
 
-        // --- ó‘Ô‘JˆÚ”»’è ---
+        // ğŸ’¡ ä¿®æ­£: LandingçŠ¶æ…‹ã§ã¯ã€AIé·ç§»ã‚„ç§»å‹•é€Ÿåº¦ãƒã‚§ãƒƒã‚¯ã‚’ã‚¹ã‚­ãƒƒãƒ—ã™ã‚‹ (LandingLogicã®ã¿å®Ÿè¡Œ)
+        if (currentState == EnemyState.Landing)
+        {
+            LandingLogic();
+            // LandingçŠ¶æ…‹ã§ã¯ã€ä»¥ä¸‹ã®Idle/Chase/Attackåˆ¤å®šã‚’ã™ã¹ã¦ã‚¹ã‚­ãƒƒãƒ—ã™ã‚‹ã€‚
+            // çŠ¶æ…‹é·ç§»ã¯ FinishLandingCoroutine ã®ä¸­ã§æ’ä»–çš„ã«è¡Œã‚ã‚Œã‚‹ã¹ãã€‚
+            return;
+        }
+
+        // --- çŠ¶æ…‹é·ç§»åˆ¤å®š ---
         switch (currentState)
         {
             case EnemyState.Idle:
@@ -133,10 +140,9 @@ public class SoldierMoveEnemy : MonoBehaviour
                 break;
         }
 
-        // ƒAƒjƒ[ƒVƒ‡ƒ“§ŒäiˆÚ“®‘¬“x˜A“®j
+        // ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³åˆ¶å¾¡ï¼ˆç§»å‹•é€Ÿåº¦é€£å‹•ï¼‰
         if (animator != null && rb != null)
         {
-            // Rigidbody‚Ì‘¬“x‚ÅˆÚ“®‚ğ”»’è
             bool isMoving = rb.velocity.magnitude > 0.1f;
             animator.SetBool("IsRunning", isMoving);
         }
@@ -144,7 +150,7 @@ public class SoldierMoveEnemy : MonoBehaviour
 
 
     // ----------------------------------------------------
-    // --- ƒwƒ‹ƒX‚Æƒ_ƒ[ƒWˆ— ---
+    // --- ãƒ˜ãƒ«ã‚¹ã¨ãƒ€ãƒ¡ãƒ¼ã‚¸å‡¦ç† ---
     // ----------------------------------------------------
 
     public void TakeDamage(float damage)
@@ -152,7 +158,7 @@ public class SoldierMoveEnemy : MonoBehaviour
         if (isDead) return;
 
         currentHealth -= damage;
-        Debug.Log(gameObject.name + "‚ªƒ_ƒ[ƒW‚ğó‚¯‚Ü‚µ‚½Bc‚è‘Ì—Í: " + currentHealth);
+        Debug.Log(gameObject.name + "ãŒãƒ€ãƒ¡ãƒ¼ã‚¸ã‚’å—ã‘ã¾ã—ãŸã€‚æ®‹ã‚Šä½“åŠ›: " + currentHealth);
 
         if (player == null) FindPlayerWithTag();
 
@@ -160,6 +166,7 @@ public class SoldierMoveEnemy : MonoBehaviour
         {
             Die();
         }
+        // ğŸ’¡ ä¿®æ­£: Landingä¸­ã¯ãƒ€ãƒ¡ãƒ¼ã‚¸ã‚’å—ã‘ã¦ã‚‚çŠ¶æ…‹é·ç§»ã•ã›ãªã„
         else if (currentState == EnemyState.Idle)
         {
             TransitionToChase();
@@ -172,35 +179,35 @@ public class SoldierMoveEnemy : MonoBehaviour
         isDead = true;
         currentHealth = 0;
 
-        Debug.Log(gameObject.name + "‚ª“|‚êAŠ®‘S‚É’â~‚µ‚Ü‚·B");
+        Debug.Log(gameObject.name + "ãŒå€’ã‚Œã€å®Œå…¨ã«åœæ­¢ã—ã¾ã™ã€‚");
 
-        // 1. ”š”­ƒGƒtƒFƒNƒg‚Ì¶¬
+        // 1. çˆ†ç™ºã‚¨ãƒ•ã‚§ã‚¯ãƒˆã®ç”Ÿæˆ
         if (deathExplosionPrefab != null)
         {
             Instantiate(deathExplosionPrefab, transform.position, Quaternion.identity);
         }
 
-        // 2. ƒAƒjƒ[ƒVƒ‡ƒ“‚ÌƒgƒŠƒK[
+        // 2. ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ã®ãƒˆãƒªã‚¬ãƒ¼
         if (animator != null)
         {
             animator.SetBool("IsAiming", false);
             animator.SetBool("IsRunning", false);
+            // ğŸ’¡ ä¿®æ­£: Floatingã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ã‚‚ã‚ªãƒ•ã«ã™ã‚‹
+            animator.SetBool("IsFloating", false);
             animator.SetTrigger("Die");
         }
 
-        // 3. ‘S‚Ä‚ÌAIAƒiƒrƒQ[ƒVƒ‡ƒ“A”­–CƒƒWƒbƒN‚ğ‹­§’â~
-
-        // Invoke‚ÆƒRƒ‹[ƒ`ƒ“‚ğ‘S‚Ä’â~
+        // 3. å…¨ã¦ã®AIã€ãƒŠãƒ“ã‚²ãƒ¼ã‚·ãƒ§ãƒ³ã€ç™ºç ²ãƒ­ã‚¸ãƒƒã‚¯ã‚’å¼·åˆ¶åœæ­¢
         CancelInvoke();
         StopAllCoroutines();
 
-        // AI§ŒäƒXƒNƒŠƒvƒg‚ğ–³Œø‰»
+        // AIåˆ¶å¾¡ã‚¹ã‚¯ãƒªãƒ—ãƒˆã‚’ç„¡åŠ¹åŒ–
         if (aiA != null) aiA.enabled = false;
         if (aiB != null) aiB.enabled = false;
         if (aiOld != null) aiOld.enabled = false;
         this.enabled = false;
 
-        // 5. •¨—“I‚ÈŒÅ’è‚ÆÕ“Ë”»’è‚Ì–³Œø‰»
+        // 5. ç‰©ç†çš„ãªå›ºå®šã¨è¡çªåˆ¤å®šã®ç„¡åŠ¹åŒ–
         if (rb != null)
         {
             rb.velocity = Vector3.zero;
@@ -214,12 +221,12 @@ public class SoldierMoveEnemy : MonoBehaviour
     }
 
     // ----------------------------------------------------
-    // --- ƒƒWƒbƒNŠÖ” ---
+    // --- ãƒ­ã‚¸ãƒƒã‚¯é–¢æ•° ---
     // ----------------------------------------------------
 
     void IdleLogic(float distance)
     {
-        if (rb != null) rb.velocity = Vector3.zero; // ƒAƒCƒhƒ‹’†‚ÍˆÚ“®’â~
+        if (rb != null) rb.velocity = Vector3.zero;
         if (distance <= sightRange)
         {
             TransitionToChase();
@@ -228,25 +235,19 @@ public class SoldierMoveEnemy : MonoBehaviour
 
     void ChaseLogic(float distance)
     {
-        // ƒvƒŒƒCƒ„[‚Ö‚Ì•ûŒü‚ğŒvZ
         Vector3 direction = (player.position - transform.position);
-
-        // ƒvƒŒƒCƒ„[‚ÌYÀ•W‚ğ–³‹‚µ‚Ä…•½‚É‰ñ“]
         Quaternion lookRotation = Quaternion.LookRotation(new Vector3(direction.x, 0, direction.z));
         transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.fixedDeltaTime * rotationSpeed);
 
         if (distance > attackRange)
         {
-            // ƒvƒŒƒCƒ„[‚ÉŒü‚©‚Á‚ÄˆÚ“® (Rigidbody§Œä)
             if (rb != null)
             {
-                // ‚±‚±‚Årb.velocity‚ÌY¬•ª‚Í•¨—ƒGƒ“ƒWƒ“‚É‚æ‚Á‚Ä§Œä‚³‚ê‘±‚¯‚é
                 rb.velocity = transform.forward * moveSpeed;
             }
         }
         else
         {
-            // UŒ‚”ÍˆÍ“à‚É“ü‚Á‚½‚ç’â~
             if (rb != null) rb.velocity = Vector3.zero;
             TransitionToAttack();
         }
@@ -259,9 +260,8 @@ public class SoldierMoveEnemy : MonoBehaviour
 
     void AttackLogic(float distance)
     {
-        if (rb != null) rb.velocity = Vector3.zero; // UŒ‚’†‚Í’â~
+        if (rb != null) rb.velocity = Vector3.zero;
 
-        // ƒvƒŒƒCƒ„[‚ÌYÀ•W‚ğ–³‹‚µ‚Ä…•½‚É‰ñ“]
         Vector3 direction = (player.position - transform.position).normalized;
         Quaternion lookRotation = Quaternion.LookRotation(new Vector3(direction.x, 0, direction.z));
         transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.fixedDeltaTime * rotationSpeed);
@@ -274,12 +274,90 @@ public class SoldierMoveEnemy : MonoBehaviour
 
     void ReloadLogic()
     {
-        if (rb != null) rb.velocity = Vector3.zero; // ƒŠƒ[ƒh’†‚Í’â~
+        if (rb != null) rb.velocity = Vector3.zero;
+    }
+
+    void LandingLogic()
+    {
+        if (rb == null) return;
+        // è½ä¸‹é€Ÿåº¦ã‚’åˆ¶å¾¡ (ã‚†ã£ãã‚Š)
+        rb.velocity = Vector3.down * landingSpeed;
     }
 
     // ----------------------------------------------------
-    // --- ó‘Ô‘JˆÚŠÖ” ---
+    // --- çŠ¶æ…‹é·ç§»é–¢æ•° ---
     // ----------------------------------------------------
+
+    void TransitionToLanding()
+    {
+        if (isDead) return;
+        currentState = EnemyState.Landing;
+
+        CancelInvoke();
+        StopAllCoroutines();
+
+        Invoke("StartFalling", initialWaitTime);
+
+        if (animator != null)
+        {
+            animator.SetBool("IsAiming", false);
+            animator.SetBool("IsRunning", false);
+            animator.SetBool("IsFloating", true);
+        }
+    }
+
+    void StartFalling()
+    {
+        if (isDead) return;
+
+        if (rb != null)
+        {
+            rb.isKinematic = false;
+            rb.useGravity = false;
+        }
+    }
+
+    // ğŸ’¡ ä¿®æ­£: ç‰©ç†æŒ™å‹•å®‰å®šåŒ–ã®ãŸã‚ã®ã‚³ãƒ«ãƒ¼ãƒãƒ³ã€‚ã‚³ãƒ©ã‚¤ãƒ€ãƒ¼ã®ç„¡åŠ¹åŒ–/æœ‰åŠ¹åŒ–ã‚’è¿½åŠ ã€‚
+    IEnumerator FinishLandingCoroutine()
+    {
+        if (isDead) yield break;
+
+        // ğŸ’¡ ç‰©ç†ã‚¨ãƒ³ã‚¸ãƒ³ãŒã‚³ãƒ©ã‚¤ãƒ€ãƒ¼ç„¡åŠ¹çŠ¶æ…‹ã§ä½ç½®èª¿æ•´ã‚’åæ˜ ã™ã‚‹ã®ã‚’å¾…ã¤
+        yield return new WaitForFixedUpdate();
+        yield return new WaitForFixedUpdate();
+
+        // ç‰©ç†æ¼”ç®—è¨­å®šã‚’é€šå¸¸AIå‹•ä½œã«æˆ»ã™
+        if (rb != null)
+        {
+            rb.velocity = Vector3.zero;
+            rb.isKinematic = false;
+            rb.useGravity = true;
+        }
+
+        // ğŸ’¡ ä¿®æ­£: ã‚³ãƒ©ã‚¤ãƒ€ãƒ¼ã‚’æœ‰åŠ¹åŒ–ã—ã¦ã€AIé€šå¸¸å‹•ä½œã«æˆ»ã™
+        if (enemyCollider != null)
+        {
+            enemyCollider.enabled = true;
+        }
+
+        if (animator != null)
+        {
+            animator.SetBool("IsFloating", false);
+        }
+
+        // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ãŒè¿‘ãã«ã„ã‚Œã°Chaseã€ã„ãªã‘ã‚Œã°Idleã¸
+        if (player != null)
+        {
+            float distance = Vector3.Distance(transform.position, player.position);
+            if (distance <= sightRange)
+            {
+                TransitionToChase();
+                yield break;
+            }
+        }
+
+        TransitionToIdle();
+    }
 
     void TransitionToIdle()
     {
@@ -289,7 +367,10 @@ public class SoldierMoveEnemy : MonoBehaviour
         if (rb != null) rb.velocity = Vector3.zero;
 
         CancelInvoke();
-        if (animator != null) animator.SetBool("IsAiming", false);
+        if (animator != null)
+        {
+            animator.SetBool("IsAiming", false);
+        }
     }
 
     void TransitionToChase()
@@ -372,7 +453,7 @@ public class SoldierMoveEnemy : MonoBehaviour
             animator.SetTrigger("Reload");
         }
 
-        Debug.Log("ƒŠƒ[ƒhŠJn... (" + reloadTime + "•b)");
+        Debug.Log("ãƒªãƒ­ãƒ¼ãƒ‰é–‹å§‹... (" + reloadTime + "ç§’)");
         Invoke("FinishReload", reloadTime);
     }
 
@@ -381,7 +462,7 @@ public class SoldierMoveEnemy : MonoBehaviour
         if (isDead) return;
 
         currentAmmo = maxAmmo;
-        Debug.Log("ƒŠƒ[ƒhŠ®—¹I");
+        Debug.Log("ãƒªãƒ­ãƒ¼ãƒ‰å®Œäº†ï¼");
 
         if (player == null)
         {
@@ -411,7 +492,40 @@ public class SoldierMoveEnemy : MonoBehaviour
     }
 
     // ----------------------------------------------------
-    // --- ’eŠÛ¶¬ˆ— ---
+    // --- ç¢ºå®Ÿãªç€åœ°åˆ¤å®š (è¡çªåˆ¤å®š) ---
+    // ----------------------------------------------------
+
+    private void OnCollisionEnter(Collision collision)
+    {
+        if (currentState == EnemyState.Landing && collision.gameObject.CompareTag(groundTag))
+        {
+            // ğŸ’¡ è¡çªã—ãŸã‚‰æ—¢å­˜ã®è½ä¸‹å‡¦ç†ã‚’åœæ­¢
+            StopCoroutine("FinishLandingCoroutine");
+            CancelInvoke("StartFalling");
+
+            // è½ä¸‹é€Ÿåº¦ã‚’ãƒªã‚»ãƒƒãƒˆã—ã€åœ°é¢ã«ã‚ã‚Šè¾¼ã¾ãªã„ã‚ˆã†ã«ä½ç½®èª¿æ•´
+            if (rb != null)
+            {
+                rb.velocity = Vector3.zero;
+
+                float contactY = collision.contacts[0].point.y;
+
+                if (enemyCollider != null)
+                {
+                    // ğŸ’¡ ä¿®æ­£: è¡çªåˆ¤å®šã‚’ç„¡åŠ¹åŒ–ã—ã¦ã€ä½ç½®èª¿æ•´ä¸­ã®ç‰©ç†å¹²æ¸‰ã‚’é˜²ã
+                    enemyCollider.enabled = false;
+                    // è¡çªã—ãŸåœ°é¢ã®Yåº§æ¨™ + è‡ªåˆ†ã®ã‚³ãƒ©ã‚¤ãƒ€ãƒ¼åŠåˆ†ã®é«˜ã•
+                    transform.position = new Vector3(transform.position.x, contactY + enemyCollider.bounds.extents.y, transform.position.z);
+                }
+            }
+
+            // ç€åœ°å®Œäº†å‡¦ç†ã‚’ã‚³ãƒ«ãƒ¼ãƒãƒ³ã§å‘¼ã³å‡ºã™
+            StartCoroutine(FinishLandingCoroutine());
+        }
+    }
+
+    // ----------------------------------------------------
+    // --- å¼¾ä¸¸ç”Ÿæˆå‡¦ç† ---
     // ----------------------------------------------------
 
     public void ShootBullet()
@@ -426,6 +540,9 @@ public class SoldierMoveEnemy : MonoBehaviour
         }
 
         Instantiate(bulletPrefab, muzzlePoint.position, muzzlePoint.rotation).transform.parent = null;
-        Debug.Log("’e‚ª”­Ë‚³‚ê‚Ü‚µ‚½I");
+        Debug.Log("å¼¾ãŒç™ºå°„ã•ã‚Œã¾ã—ãŸï¼");
     }
+    
+    
 }
+    
