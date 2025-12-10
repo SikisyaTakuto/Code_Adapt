@@ -568,7 +568,7 @@ public class PlayerController : MonoBehaviour
         // SoldierMoveEnemy がターゲットか確認
         if (target.TryGetComponent<SoldierMoveEnemy>(out var soldierMoveEnemy))
         {
-            soldierMoveEnemy.TakeDamage(damageAmount);
+           soldierMoveEnemy.TakeDamage(damageAmount);
             isHit = true;
         }
         // SoldierEnemy コンポーネントを探してダメージを与える
@@ -879,5 +879,13 @@ public class PlayerController : MonoBehaviour
             Gizmos.color = Color.yellow;
             Gizmos.DrawWireSphere(origin + fireDirection * beamMaxDistance, 0.05f);
         }
+    }
+}
+
+internal class SoldierEnemy
+{
+    internal void TakeDamage(float damageAmount)
+    {
+        throw new NotImplementedException();
     }
 }
