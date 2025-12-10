@@ -7227,7 +7227,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   target: {fileID: 770751391}
-  offset: {x: 0, y: 2, z: -10}
+  offset: {x: 0, y: 2, z: -7}
   smoothSpeed: 5
   smoothRotation: 5
 --- !u!114 &497250581
@@ -11530,7 +11530,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 98447587942585959, guid: 194c58c88316e52439ca21aeb4acc2d5, type: 3}
       propertyPath: jumpForce
-      value: 5
+      value: 8
       objectReference: {fileID: 0}
     - target: {fileID: 98447587942585959, guid: 194c58c88316e52439ca21aeb4acc2d5, type: 3}
       propertyPath: moveSpeed
@@ -16359,7 +16359,7 @@ Rigidbody:
     m_Bits: 0
   m_ImplicitCom: 1
   m_ImplicitTensor: 1
-  m_UseGravity: 0
+  m_UseGravity: 1
   m_IsKinematic: 1
   m_Interpolate: 0
   m_Constraints: 112
@@ -16458,6 +16458,7 @@ GameObject:
   - component: {fileID: 678488603159627840}
   - component: {fileID: 9062277694318446256}
   - component: {fileID: 9062277694318446257}
+  - component: {fileID: 9062277694318446258}
   m_Layer: 9
   m_Name: SoldierMoveEnemy
   m_TagString: Enemy
@@ -18806,7 +18807,7 @@ Transform:
   m_GameObject: {fileID: 944727971356844610}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 1, z: 0, w: 0}
-  m_LocalPosition: {x: 25, y: 10, z: 50}
+  m_LocalPosition: {x: 25, y: 15, z: 50}
   m_LocalScale: {x: 2, y: 2, z: 2}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -19106,7 +19107,7 @@ Transform:
   m_GameObject: {fileID: 7390345599375336819}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 1, z: 0, w: 0}
-  m_LocalPosition: {x: 10, y: 10, z: 50}
+  m_LocalPosition: {x: 10, y: 15, z: 50}
   m_LocalScale: {x: 2, y: 2, z: 2}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -19321,6 +19322,10 @@ PrefabInstance:
     - target: {fileID: 2849172739826964573, guid: fcb50aebdc5f92f4ca69f9e10f93b429, type: 3}
       propertyPath: m_Name
       value: EnemyMapPin
+      objectReference: {fileID: 0}
+    - target: {fileID: 2849172739826964573, guid: fcb50aebdc5f92f4ca69f9e10f93b429, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
       objectReference: {fileID: 0}
     - target: {fileID: 6478093414801024802, guid: fcb50aebdc5f92f4ca69f9e10f93b429, type: 3}
       propertyPath: m_LocalScale.x
@@ -20794,6 +20799,7 @@ GameObject:
   - component: {fileID: 727277936728328685}
   - component: {fileID: 6984899754792864312}
   - component: {fileID: 7390345599375336820}
+  - component: {fileID: 7390345599375336821}
   m_Layer: 9
   m_Name: SoldierEnemy
   m_TagString: Enemy
@@ -20815,7 +20821,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   maxHealth: 100
   currentHealth: 0
-  deathExplosionPrefab: {fileID: 785919167369076647, guid: d146151354c74be4ba83785a3704370e, type: 3}
+  deathExplosionPrefab: {fileID: 8443315704496310910, guid: 8288d0ea03717834b9aaba91f37818a6, type: 3}
   currentState: 0
   maxAmmo: 10
   reloadTime: 3
@@ -20826,10 +20832,25 @@ MonoBehaviour:
   bulletsPerBurst: 1
   timeBetweenShots: 0.1
   initialWaitTime: 0.5
-  landingSpeed: 2
+  landingSpeed: 7
   groundTag: Ground
   bulletPrefab: {fileID: 1877806789679844970, guid: 4b58e66d44c5e66408f91609aab1bad4, type: 3}
-  muzzlePoint: {fileID: 2497336941410469559}
+  muzzlePoint: {fileID: 7374286017068825694}
+--- !u!114 &7390345599375336821
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7390345599375336819}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bd4d70b99b2be30488381d05b152fafc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  maxHealth: 100
+  currentHealth: 0
+  deathExplosionPrefab: {fileID: 8443315704496310910, guid: 8288d0ea03717834b9aaba91f37818a6, type: 3}
 --- !u!1 &7412200330029448200
 GameObject:
   m_ObjectHideFlags: 0
@@ -21744,23 +21765,38 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   maxHealth: 100
   currentHealth: 0
-  deathExplosionPrefab: {fileID: 785919167369076647, guid: d146151354c74be4ba83785a3704370e, type: 3}
+  deathExplosionPrefab: {fileID: 8443315704496310910, guid: 8288d0ea03717834b9aaba91f37818a6, type: 3}
   currentState: 0
   player: {fileID: 770751391}
   sightRange: 15
-  attackRange: 5
+  attackRange: 10
   rotationSpeed: 10
-  moveSpeed: 6
+  moveSpeed: 3
   initialWaitTime: 0.5
-  landingSpeed: 2
+  landingSpeed: 7
   groundTag: Ground
   bulletsPerBurst: 3
   timeBetweenShots: 0.1
   shootDuration: 0.5
-  maxAmmo: 10
+  maxAmmo: 12
   reloadTime: 3
   bulletPrefab: {fileID: 1877806789679844970, guid: 4b58e66d44c5e66408f91609aab1bad4, type: 3}
   muzzlePoint: {fileID: 2497336941410469559}
+--- !u!114 &9062277694318446258
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 944727971356844610}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bd4d70b99b2be30488381d05b152fafc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  maxHealth: 100
+  currentHealth: 0
+  deathExplosionPrefab: {fileID: 8443315704496310910, guid: 8288d0ea03717834b9aaba91f37818a6, type: 3}
 --- !u!1 &9069684067978215395
 GameObject:
   m_ObjectHideFlags: 0
