@@ -11,9 +11,8 @@ public class SoliderEnemy : MonoBehaviour
     public GameObject deathExplosionPrefab;
     private bool isDead = false;
 
-    // 💡 変更点: Landing状態を追加
     public enum EnemyState { Landing, Idle, Aiming, Attack, Reload }
-    public EnemyState currentState = EnemyState.Landing; // 💡 初期状態をLandingに変更
+    public EnemyState currentState = EnemyState.Landing;
 
     public int maxAmmo = 10;
     private int currentAmmo;
@@ -27,11 +26,10 @@ public class SoliderEnemy : MonoBehaviour
     public int bulletsPerBurst = 1;
     public float timeBetweenShots = 0.1f;
 
-    // 💡 追加: 着地設定
     [Header("着地設定")]
-    public float initialWaitTime = 1.0f;  // 浮遊してから落下を開始するまでの待機時間
-    public float landingSpeed = 2.0f;    // ゆっくり落下する速度
-    public string groundTag = "Ground"; // 地面と判定するオブジェクトのタグ
+    public float initialWaitTime = 1.0f;
+    public float landingSpeed = 2.0f;
+    public string groundTag = "Ground";
 
     [SerializeField] private GameObject bulletPrefab;
     public Transform muzzlePoint;
@@ -66,7 +64,7 @@ public class SoliderEnemy : MonoBehaviour
         enemyCollider = GetComponent<Collider>();
         audioSource = GetComponent<AudioSource>();
 
-        // 💡 物理初期設定: Landing処理のため、最初は物理演算を無効化
+        // 物理初期設定: Landing処理のため、最初は物理演算を無効化
         if (rb != null)
         {
             rb.isKinematic = true;
@@ -95,7 +93,7 @@ public class SoliderEnemy : MonoBehaviour
         targetIdleRotation = transform.rotation;
         nextRotationTime = Time.time + Random.Range(3f, 6f);
 
-        // 💡 修正: 初期状態をLandingにし、着地処理を開始
+        // 初期状態をLandingにし、着地処理を開始
         TransitionToLanding();
     }
 
@@ -103,7 +101,6 @@ public class SoliderEnemy : MonoBehaviour
     // 3. メインループ
     // ===================================
 
-    // 💡 FixedUpdateは物理処理とLandingLogicのみに使用
     void FixedUpdate()
     {
         if (isDead || player == null || rb == null) return;
@@ -119,7 +116,6 @@ public class SoliderEnemy : MonoBehaviour
     {
         if (isDead || player == null || animator == null || isReloading) return;
 
-        // 💡 修正: Landing状態では、他の全てのロジックをスキップ
         if (currentState == EnemyState.Landing) return;
 
         animator.SetFloat("Speed", 0f);
@@ -136,16 +132,14 @@ public class SoliderEnemy : MonoBehaviour
                 AimingLogic(playerFound);
                 break;
             case EnemyState.Attack:
-                // Attack状態はInvokeで制御されるため、Updateでは何もしない
                 break;
             case EnemyState.Reload:
-                // Reload状態はInvokeで制御されるため、Updateでは何もしない
                 break;
         }
     }
 
     // ===================================
-    // 4. ダメージ・死亡処理 (変更なし)
+    // 4. ダメージ・死亡処理 
     // ===================================
 
     public void TakeDamage(float damage)
@@ -155,14 +149,45 @@ public class SoliderEnemy : MonoBehaviour
         currentHealth -= damage;
         Debug.Log(gameObject.name + "ダメージ: " + currentHealth);
 
-        if (currentHealth <= 0) Die();
+        if (currentHealth <= 0)
+        {
+            // 💡 修正: 死亡フラグとHPを即座に設定
+            isDead = true;
+            currentHealth = 0;
+
+            // ===============================================
+            // 💥 最重要: 全ロジックの即時強制停止
+            // ===============================================
+
+            // 1. タイマー・コルーチンの停止
+            CancelInvoke();
+            StopAllCoroutines();
+
+            // 2. スクリプト駆動の停止
+            this.enabled = false;
+
+            // 3. アニメーター駆動の停止 (アニメーションイベントもブロック)
+            if (animator != null) animator.enabled = false;
+
+            // 4. 外部AIスクリプトの停止 (念のため)
+            if (aiA != null) aiA.enabled = false;
+            if (aiB != null) aiB.enabled = false;
+
+            // 5. 物理とコライダーの無効化
+            if (rb != null) rb.isKinematic = true;
+            if (enemyCollider != null) enemyCollider.enabled = false;
+
+            // ===============================================
+
+            // アニメーション再生とオブジェクト無効化の処理に移る
+            Die();
+        }
     }
 
     void Die()
     {
-        if (isDead) return;
-        isDead = true;
-        currentHealth = 0;
+        // 💡 修正: isDeadフラグがtrueであることのみ確認 (TakeDamageで設定済み)
+        if (!isDead) return;
 
         Debug.Log(gameObject.name + "が停止しました。");
 
@@ -171,40 +196,33 @@ public class SoliderEnemy : MonoBehaviour
             Instantiate(deathExplosionPrefab, transform.position, Quaternion.identity);
         }
 
-        // アニメーション
+        // アニメーションを再生 (TakeDamageで無効化したAnimatorを一時的に有効化)
         if (animator != null)
         {
+            animator.enabled = true;
             animator.SetBool("IsAiming", false);
             animator.SetFloat("Speed", 0f);
-            // 💡 追加: 浮遊アニメーションもオフに
             animator.SetBool("IsFloating", false);
             animator.SetTrigger("Die");
         }
 
-        // AIの強制停止
-        CancelInvoke();
-        StopAllCoroutines();
+        // 死亡アニメーションの完了を待ってからオブジェクトを無効化
+        float animationDuration = 2.0f; // ★ 死亡アニメーションの再生時間に合わせる
+        StartCoroutine(DisableObjectAfterDie(animationDuration));
+    }
 
-        if (aiA != null) aiA.enabled = false;
-        if (aiB != null) aiB.enabled = false;
-        if (aiOld != null) aiOld.enabled = false;
-        this.enabled = false;
+    // 💡 修正: オブジェクトをシーンから完全に削除するコルーチン
+    IEnumerator DisableObjectAfterDie(float delay)
+    {
+        // アニメーションが再生し終わるまで待機
+        yield return new WaitForSeconds(delay);
 
-        // 物理的な固定
-        if (rb != null)
-        {
-            rb.isKinematic = true;
-        }
-
-        // 衝突判定の無効化
-        if (enemyCollider != null)
-        {
-            enemyCollider.enabled = false;
-        }
+        // 死亡アニメーション終了後、再起動を防ぐためにオブジェクトをシーンから完全に削除する
+        Destroy(gameObject); // 💥 これでいかなるロジックも再開しない
     }
 
     // ===================================
-    // 5. AIロジック関数 (Idle, Aimingは変更なし)
+    // 5. AIロジック関数 (変更なし)
     // ===================================
 
     bool CheckForPlayer()
@@ -285,7 +303,6 @@ public class SoliderEnemy : MonoBehaviour
         }
     }
 
-    // 💡 追加: ゆっくり落下させるロジック
     void LandingLogic()
     {
         if (rb == null) return;
@@ -296,7 +313,6 @@ public class SoliderEnemy : MonoBehaviour
     // 6. 状態遷移と発砲
     // ===================================
 
-    // 💡 追加: Landing遷移の開始
     void TransitionToLanding()
     {
         if (isDead) return;
@@ -305,17 +321,15 @@ public class SoliderEnemy : MonoBehaviour
         CancelInvoke();
         StopAllCoroutines();
 
-        // 浮遊待機後に落下を開始
         Invoke("StartFalling", initialWaitTime);
 
         if (animator != null)
         {
             animator.SetBool("IsAiming", false);
-            animator.SetBool("IsFloating", true); // 💡 浮遊アニメーションON
+            animator.SetBool("IsFloating", true);
         }
     }
 
-    // 💡 追加: 落下開始（物理を有効化）
     void StartFalling()
     {
         if (isDead) return;
@@ -323,28 +337,24 @@ public class SoliderEnemy : MonoBehaviour
         if (rb != null)
         {
             rb.isKinematic = false;
-            rb.useGravity = false; // LandingLogicで速度制御するため、重力は一旦OFF
+            rb.useGravity = false;
         }
     }
 
-    // 💡 追加: 着地完了コルーチン（物理安定化）
     IEnumerator FinishLandingCoroutine()
     {
         if (isDead) yield break;
 
-        // 衝突判定と位置調整が確定するまで待機
         yield return new WaitForFixedUpdate();
         yield return new WaitForFixedUpdate();
 
-        // 物理演算設定を通常AI動作に戻す
         if (rb != null)
         {
             rb.velocity = Vector3.zero;
             rb.isKinematic = false;
-            rb.useGravity = true; // 重力ONに戻す
+            rb.useGravity = true;
         }
 
-        // コライダーを有効化
         if (enemyCollider != null)
         {
             enemyCollider.enabled = true;
@@ -352,10 +362,9 @@ public class SoliderEnemy : MonoBehaviour
 
         if (animator != null)
         {
-            animator.SetBool("IsFloating", false); // 浮遊アニメーションOFF
+            animator.SetBool("IsFloating", false);
         }
 
-        // プレイヤーが近くにいればAiming、いなければIdleへ
         if (player != null && CheckForPlayer())
         {
             TransitionToAiming();
@@ -390,6 +399,8 @@ public class SoliderEnemy : MonoBehaviour
     void TransitionToAttack()
     {
         if (isDead) return;
+
+        Debug.Log(gameObject.name + ": 攻撃開始シークエンス！");
 
         if (currentAmmo <= 0)
         {
@@ -474,7 +485,6 @@ public class SoliderEnemy : MonoBehaviour
     {
         if (currentState == EnemyState.Landing && collision.gameObject.CompareTag(groundTag))
         {
-            // 💡 衝突したら既存の落下処理を停止
             StopCoroutine("FinishLandingCoroutine");
             CancelInvoke("StartFalling");
 
@@ -486,14 +496,11 @@ public class SoliderEnemy : MonoBehaviour
 
                 if (enemyCollider != null)
                 {
-                    // 衝突中の物理干渉を防ぐため、コライダーを一時的に無効化
                     enemyCollider.enabled = false;
-                    // 位置調整
                     transform.position = new Vector3(transform.position.x, contactY + enemyCollider.bounds.extents.y, transform.position.z);
                 }
             }
 
-            // 着地完了処理をコルーチンで呼び出す
             StartCoroutine(FinishLandingCoroutine());
         }
     }

@@ -28,7 +28,7 @@ public class SoldierMoveEnemy : MonoBehaviour
     // 💡 追加: 着地設定
     [Header("着地設定")]
     public float initialWaitTime = 1.0f;  // 浮遊してから落下を開始するまでの待機時間
-    public float landingSpeed = 2.0f;    // ゆっくり落下する速度
+    public float landingSpeed = 2.0f;     // ゆっくり落下する速度
     public string groundTag = "Ground"; // 地面と判定するオブジェクトのタグ
 
     // --- 攻撃設定 ---
@@ -114,12 +114,9 @@ public class SoldierMoveEnemy : MonoBehaviour
 
         float distanceToPlayer = Vector3.Distance(transform.position, player.position);
 
-        // 💡 修正: Landing状態では、AI遷移や移動速度チェックをスキップする (LandingLogicのみ実行)
         if (currentState == EnemyState.Landing)
         {
             LandingLogic();
-            // Landing状態では、以下のIdle/Chase/Attack判定をすべてスキップする。
-            // 状態遷移は FinishLandingCoroutine の中で排他的に行われるべき。
             return;
         }
 
@@ -179,25 +176,23 @@ public class SoldierMoveEnemy : MonoBehaviour
         isDead = true;
         currentHealth = 0;
 
-        Debug.Log(gameObject.name + "が倒れ、完全に停止します。");
+        Debug.Log(gameObject.name + "が倒れ、アニメーション後に破棄されます。");
 
-        // 1. 爆発エフェクトの生成
-        if (deathExplosionPrefab != null)
-        {
-            Instantiate(deathExplosionPrefab, transform.position, Quaternion.identity);
-        }
-
-        // 2. アニメーションのトリガー
+        // 1. アニメーションのトリガー (再生させるためAnimatorは有効なまま)
         if (animator != null)
         {
+            if (!animator.enabled) animator.enabled = true;
             animator.SetBool("IsAiming", false);
             animator.SetBool("IsRunning", false);
-            // 💡 修正: Floatingアニメーションもオフにする
             animator.SetBool("IsFloating", false);
             animator.SetTrigger("Die");
         }
 
-        // 3. 全てのAI、ナビゲーション、発砲ロジックを強制停止
+        // ===============================================
+        // 💥 最重要: AIロジックのみを即座に強制停止する
+        // ===============================================
+
+        // 2. 全てのAI、ナビゲーション、発砲ロジックを強制停止
         CancelInvoke();
         StopAllCoroutines();
 
@@ -205,19 +200,53 @@ public class SoldierMoveEnemy : MonoBehaviour
         if (aiA != null) aiA.enabled = false;
         if (aiB != null) aiB.enabled = false;
         if (aiOld != null) aiOld.enabled = false;
-        this.enabled = false;
+        this.enabled = false; // 自身のUpdate/FixedUpdateを停止
 
-        // 5. 物理的な固定と衝突判定の無効化
+        // 3. 物理的な固定と衝突判定の無効化
         if (rb != null)
         {
-            rb.velocity = Vector3.zero;
-            rb.isKinematic = true;
+            rb.velocity = Vector3.zero; // 動きを止める
+            rb.isKinematic = true;      // 物理的な影響を無視
         }
 
         if (enemyCollider != null)
         {
             enemyCollider.enabled = false;
         }
+
+        // ===============================================
+
+        // 4. 🗑️ 最終手段: 遅延破棄をキック
+        float animationDuration = 2.0f;
+        // 💡 修正: Animatorを渡してコルーチンを開始
+        StartCoroutine(DestroyAfterDelay(animationDuration, animator));
+    }
+
+    /// <summary>
+    /// 遅延後にAnimatorを停止し、オブジェクトを削除するコルーチン
+    /// </summary>
+    IEnumerator DestroyAfterDelay(float delay, Animator anim)
+    {
+        // 1. アニメーション再生時間（2.0秒）待機
+        yield return new WaitForSeconds(delay);
+
+        // 2. 💥 ここでエフェクトを生成し、拡大して目立たせる
+        if (deathExplosionPrefab != null)
+        {
+            // エフェクトを生成
+            GameObject explosion = Instantiate(deathExplosionPrefab, transform.position, Quaternion.identity);
+            // エフェクトを2倍に拡大 (より目立つように)
+            explosion.transform.localScale = Vector3.one * 2f;
+        }
+
+        // 3. Animatorを停止 (念のため)
+        if (anim != null)
+        {
+            anim.enabled = false;
+        }
+
+        // 4. 🗑️ 破棄（Destroy）
+        Destroy(gameObject);
     }
 
     // ----------------------------------------------------
@@ -317,16 +346,13 @@ public class SoldierMoveEnemy : MonoBehaviour
         }
     }
 
-    // 💡 修正: 物理挙動安定化のためのコルーチン。コライダーの無効化/有効化を追加。
     IEnumerator FinishLandingCoroutine()
     {
         if (isDead) yield break;
 
-        // 💡 物理エンジンがコライダー無効状態で位置調整を反映するのを待つ
         yield return new WaitForFixedUpdate();
         yield return new WaitForFixedUpdate();
 
-        // 物理演算設定を通常AI動作に戻す
         if (rb != null)
         {
             rb.velocity = Vector3.zero;
@@ -334,7 +360,6 @@ public class SoldierMoveEnemy : MonoBehaviour
             rb.useGravity = true;
         }
 
-        // 💡 修正: コライダーを有効化して、AI通常動作に戻す
         if (enemyCollider != null)
         {
             enemyCollider.enabled = true;
@@ -345,7 +370,6 @@ public class SoldierMoveEnemy : MonoBehaviour
             animator.SetBool("IsFloating", false);
         }
 
-        // プレイヤーが近くにいればChase、いなければIdleへ
         if (player != null)
         {
             float distance = Vector3.Distance(transform.position, player.position);
@@ -499,11 +523,9 @@ public class SoldierMoveEnemy : MonoBehaviour
     {
         if (currentState == EnemyState.Landing && collision.gameObject.CompareTag(groundTag))
         {
-            // 💡 衝突したら既存の落下処理を停止
             StopCoroutine("FinishLandingCoroutine");
             CancelInvoke("StartFalling");
 
-            // 落下速度をリセットし、地面にめり込まないように位置調整
             if (rb != null)
             {
                 rb.velocity = Vector3.zero;
@@ -512,14 +534,11 @@ public class SoldierMoveEnemy : MonoBehaviour
 
                 if (enemyCollider != null)
                 {
-                    // 💡 修正: 衝突判定を無効化して、位置調整中の物理干渉を防ぐ
                     enemyCollider.enabled = false;
-                    // 衝突した地面のY座標 + 自分のコライダー半分の高さ
                     transform.position = new Vector3(transform.position.x, contactY + enemyCollider.bounds.extents.y, transform.position.z);
                 }
             }
 
-            // 着地完了処理をコルーチンで呼び出す
             StartCoroutine(FinishLandingCoroutine());
         }
     }
@@ -542,7 +561,4 @@ public class SoldierMoveEnemy : MonoBehaviour
         Instantiate(bulletPrefab, muzzlePoint.position, muzzlePoint.rotation).transform.parent = null;
         Debug.Log("弾が発射されました！");
     }
-    
-    
 }
-    
