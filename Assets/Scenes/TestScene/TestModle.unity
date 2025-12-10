@@ -2251,6 +2251,8 @@ GameObject:
   m_Component:
   - component: {fileID: 280163873}
   - component: {fileID: 280163872}
+  - component: {fileID: 280163875}
+  - component: {fileID: 280163874}
   m_Layer: 0
   m_Name: Speed
   m_TagString: Untagged
@@ -2289,7 +2291,7 @@ Transform:
   m_GameObject: {fileID: 280163871}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -247.957, y: 0.059999943, z: -60}
+  m_LocalPosition: {x: -250, y: 0.059999943, z: -60}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -2298,6 +2300,49 @@ Transform:
   - {fileID: 222460334}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &280163874
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 280163871}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 721111cad8bf1454c9fbca16f12d9b59, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  walkSpeed: 5
+  dashSpeed: 10
+  gravity: -20
+  riseForce: 10
+  rotationSpeed: 10
+  landingDistance: 0.1
+--- !u!143 &280163875
+CharacterController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 280163871}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Height: 2
+  m_Radius: 0.5
+  m_SlopeLimit: 45
+  m_StepOffset: 0.3
+  m_SkinWidth: 0.08
+  m_MinMoveDistance: 0.001
+  m_Center: {x: 0, y: 1, z: 0}
 --- !u!1 &280780512
 GameObject:
   m_ObjectHideFlags: 0
@@ -5754,7 +5799,7 @@ Transform:
   m_GameObject: {fileID: 643295789}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -249.95499, y: -0.59, z: -59.477325}
+  m_LocalPosition: {x: -249.95499, y: -0.46, z: -59.477325}
   m_LocalScale: {x: 100, y: 1, z: 100}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -9860,8 +9905,8 @@ GameObject:
   m_Component:
   - component: {fileID: 1162225784}
   - component: {fileID: 1162225783}
-  - component: {fileID: 1162225785}
   - component: {fileID: 1162225786}
+  - component: {fileID: 1162225785}
   m_Layer: 0
   m_Name: Bustar
   m_TagString: Untagged
@@ -9900,14 +9945,13 @@ Transform:
   m_GameObject: {fileID: 1162225781}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -251.832, y: 0.059999943, z: -60}
+  m_LocalPosition: {x: -250, y: 0.059999943, z: -60}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 706814276}
   - {fileID: 793878085}
   - {fileID: 1281364156}
-  - {fileID: 1942965081}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1162225785
@@ -15865,11 +15909,11 @@ Transform:
   m_GameObject: {fileID: 1942965078}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 1.6, z: -5}
+  m_LocalPosition: {x: -250, y: 2.01, z: -64.82}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 1162225784}
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1942965082
 MonoBehaviour:
@@ -16638,6 +16682,8 @@ GameObject:
   m_Component:
   - component: {fileID: 2009706402}
   - component: {fileID: 2009706401}
+  - component: {fileID: 2009706409}
+  - component: {fileID: 2009706411}
   m_Layer: 0
   m_Name: Blance
   m_TagString: Untagged
@@ -16676,7 +16722,7 @@ Transform:
   m_GameObject: {fileID: 2009706400}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -250, y: 0.05799997, z: -60}
+  m_LocalPosition: {x: -250, y: 0.08, z: -60}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -16684,6 +16730,50 @@ Transform:
   - {fileID: 576375594}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2009706409
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2009706400}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0c461cd55fabb324dbf540a9cb2ec52c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  walkSpeed: 5
+  dashSpeed: 10
+  jumpForce: 8
+  gravity: -20
+  riseForce: 10
+  rotationSpeed: 10
+  landingDistance: 0.1
+--- !u!143 &2009706411
+CharacterController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2009706400}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Height: 2
+  m_Radius: 0.5
+  m_SlopeLimit: 45
+  m_StepOffset: 0.3
+  m_SkinWidth: 0.08
+  m_MinMoveDistance: 0.001
+  m_Center: {x: 0, y: 0.98, z: 0}
 --- !u!1 &2018095854
 GameObject:
   m_ObjectHideFlags: 0
@@ -17989,6 +18079,7 @@ SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
   - {fileID: 1728722152}
+  - {fileID: 1942965081}
   - {fileID: 1162225784}
   - {fileID: 2009706402}
   - {fileID: 280163873}
