@@ -460,22 +460,40 @@ public class SoliderEnemy : MonoBehaviour
             TransitionToIdle();
         }
     }
-
     public void ShootBullet()
     {
-        if (isDead || currentAmmo <= 0) return;
+        if (isDead || currentAmmo <= 0 || player == null || muzzlePoint == null) return;
 
         currentAmmo--;
 
-        if (bulletPrefab == null || muzzlePoint == null)
+        if (bulletPrefab == null)
         {
-            Debug.LogError("弾丸プレハブまたは銃口が未設定です！");
             return;
         }
 
-        Instantiate(bulletPrefab, muzzlePoint.position, muzzlePoint.rotation).transform.parent = null;
-        Debug.Log("弾が生成されました！ (残り弾数: " + currentAmmo + ")");
+        // 1. 🎯 プレイヤーへの正確な方向ベクトルを取得 (Y軸を含む)
+        //    プレイヤーがどこにいても、その中心点を狙います。
+        Vector3 targetPosition = player.position;
+        Vector3 directionToPlayer = (targetPosition - muzzlePoint.position).normalized;
+
+        // 2. プレイヤーを直接向くための基準回転を取得
+        //    LookRotation(directionToPlayer) は、Y軸を含むプレイヤーへの正確な回転を求めます。
+        Quaternion baseRotation = Quaternion.LookRotation(directionToPlayer);
+
+        // 3. 垂直方向の角度調整 (下向きの放物線オフセット) を加える
+        //    プレイヤーを狙った回転に対して、さらにX軸周りに -5度回転させ、弾が放物線を描くようにする。
+        //    これにより、プレイヤーがジャンプしても、狙いは外れず、放物線効果が維持されます。
+        float verticalAngleOffset = -5f;
+        Quaternion adjustedRotation = baseRotation * Quaternion.Euler(verticalAngleOffset, 0, 0);
+
+        // 4. 調整された回転で弾を生成
+        GameObject bulletInstance = Instantiate(bulletPrefab, muzzlePoint.position, adjustedRotation);
+        bulletInstance.transform.parent = null;
+
+        // 弾が重力と初速で放物線を描くのは、Bullet.csのRigidbodyへの速度設定に依存します。
     }
+
+    // 弾が重力と初速で放物線を描くのは、Bullet.csのRigidbodyへの速度設定に依存します。
 
     // ----------------------------------------------------
     // --- 確実な着地判定 (衝突判定) ---
