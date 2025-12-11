@@ -21,31 +21,72 @@ public class SceneLauncher
         OpenSceneWithSaveCheck("Assets/Scenes/GameScene/TitleScene.unity");
     }
 
-    [MenuItem("Launcher/StageSelectScene", priority = 0)]
+    [MenuItem("Launcher/StageSelectScene", priority = 1)]
     public static void OpenStageSelectScene()
     {
         OpenSceneWithSaveCheck("Assets/Scenes/GameScene/StageSelectScene.unity");
     }
 
-    [MenuItem("Launcher/TutorialScene", priority = 0)]
+    [MenuItem("Launcher/TutorialScene", priority = 3)]
     public static void OpenTutorialScene()
     {
         OpenSceneWithSaveCheck("Assets/Scenes/GameScene/TutorialScene.unity");
     }
 
 
-    [MenuItem("Launcher/ArmorSelectScene", priority = 0)]
+    [MenuItem("Launcher/ArmorSelectScene", priority =2)]
     public static void OpenArmorSelectScene()
     {
         OpenSceneWithSaveCheck("Assets/Scenes/GameScene/ArmorSelectScene/ArmorSelectScene.unity");
     }
 
-    [MenuItem("Launcher/GameScene1", priority = 0)]
+    [MenuItem("Launcher/GameScene1", priority = 4)]
     public static void OpenGameScene1()
     {
         OpenSceneWithSaveCheck("Assets/Scenes/GameScene/GameScenes/GameSceneStage1.unity");
     }
 
+    [MenuItem("Launcher/GameScene2", priority = 5)]
+    public static void OpenGameScene2()
+    {
+        OpenSceneWithSaveCheck("Assets/Scenes/GameScene/GameScenes/GameSceneStage2.unity");
+    }
+
+    [MenuItem("Launcher/ClearScene", priority = 6)]
+    public static void OpenClearScene()
+    {
+        OpenSceneWithSaveCheck("Assets/Scenes/GameScene/ClearScene/ClearScene.unity");
+    }
+
+    [MenuItem("Launcher/ClearScene1", priority = 7)]
+    public static void OpenClearScene1()
+    {
+        OpenSceneWithSaveCheck("Assets/Scenes/GameScene/ClearScene/ClearScene1.unity");
+    }
+
+    [MenuItem("Launcher/ClearScene2", priority = 8)]
+    public static void OpenClearScene2()
+    {
+        OpenSceneWithSaveCheck("Assets/Scenes/GameScene/ClearScene/ClearScene2.unity");
+    }
+
+    [MenuItem("Launcher/GameOverScene", priority = 9)]
+    public static void OpenGameOverScene()
+    {
+        OpenSceneWithSaveCheck("Assets/Scenes/GameScene/GameOverScene/GameOverScene.unity");
+    }
+
+    [MenuItem("Launcher/GameOverScene1", priority = 10)]
+    public static void OpenGameOverScene1()
+    {
+        OpenSceneWithSaveCheck("Assets/Scenes/GameScene/GameOverScene/GameOverScene.unity");
+    }
+
+    [MenuItem("Launcher/GameOverScene2", priority = 11)]
+    public static void OpenGameOverScene2()
+    {
+        OpenSceneWithSaveCheck("Assets/Scenes/GameScene/GameOverScene/GameOverScene2.unity");
+    }
 
     /// <summary>
     /// シーンを開く前に、現在のシーンに未保存の変更がある場合は保存を促し、
