@@ -25,10 +25,13 @@ public class VoxController : MonoBehaviour
     [SerializeField] private GameObject Arms7;
     [SerializeField] private GameObject Arms8;
 
-    [Header("Droppable Objects & Effects")]
-    [SerializeField] private GameObject bombPrefab;         // 落とす爆弾Prefab
-    [SerializeField] private GameObject[] enemyPrefabs;     // 敵プレハブを配列に変更！
+    //[Header("Droppable Objects & Effects")]
+    //[SerializeField] private GameObject bombPrefab;         // 落とす爆弾Prefab
+    //[SerializeField] private GameObject[] enemyPrefabs;     // 敵プレハブを配列に変更！
+
     [SerializeField] private GameObject explosionEffect;    // 爆発エフェクト
+
+    [SerializeField] private GameObject boxPrefab;          // ← 追加：落とす箱
 
     [Header("Movement & Game Params")]
     [SerializeField] private float dropHeight = -2f;        // アームの位置からどれくらい上に爆弾を出すか (Y座標調整)
@@ -235,43 +238,25 @@ public class VoxController : MonoBehaviour
         }
     }
 
-    // 爆弾 or 敵をランダムに落とす処理
-    void DropRandomObject(GameObject arm)
+    // 爆弾 or 敵ではなく「箱」を落とすように変更
+    void DropRandomObject(GameObject arm)
     {
-        bool dropEnemy = (Random.value < 0.5f); // 50%で敵を選択
-        GameObject prefab = null;
-        string typeName = "";
-
-        // 敵を選択し、敵プレハブが設定されていればランダムに選ぶ
-        if (dropEnemy && enemyPrefabs != null && enemyPrefabs.Length > 0)
+        if (boxPrefab == null)
         {
-            prefab = enemyPrefabs[Random.Range(0, enemyPrefabs.Length)];
-            typeName = prefab.name;
-        }
-        // 敵が選ばれなかったか、敵プレハブがない場合は爆弾を選択
-        else if (bombPrefab != null)
-        {
-            prefab = bombPrefab;
-            typeName = "爆弾";
-        }
-
-        // 投下するPrefabがない場合は警告を出して終了
-        if (prefab == null)
-        {
-            Debug.LogWarning("Prefab が設定されていません！ (爆弾または敵)");
+            Debug.LogWarning("箱のプレハブ(BoxPrefab)が設定されていません！");
             return;
         }
 
-        // アームの位置からdropHeight分Y座標を上げた位置にスポーン
-        Vector3 spawnPos = arm.transform.position + Vector3.up * dropHeight;
-        GameObject dropped = Instantiate(prefab, spawnPos, Quaternion.identity);
+        Vector3 spawnPos = arm.transform.position + Vector3.up * dropHeight;
 
-        // Rigidbodyを取得または追加し、重力を有効にする
-        Rigidbody rb = dropped.GetComponent<Rigidbody>();
-        if (rb == null) rb = dropped.AddComponent<Rigidbody>();
+        GameObject box = Instantiate(boxPrefab, spawnPos, Quaternion.identity);
+
+        // 重力で落ちるように Rigidbody を追加
+        Rigidbody rb = box.GetComponent<Rigidbody>();
+        if (rb == null) rb = box.AddComponent<Rigidbody>();
         rb.useGravity = true;
 
-        Debug.Log($"{arm.name} が {typeName} を投下しました！");
+        Debug.Log($"{arm.name} が箱を投下しました");
     }
 
     private void BossDefeated()
