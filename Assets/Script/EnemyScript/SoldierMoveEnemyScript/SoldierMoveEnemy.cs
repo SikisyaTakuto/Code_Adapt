@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System;
+using UnityEngine.AI;
 
 public class SoldierMoveEnemy : MonoBehaviour
 {
@@ -10,7 +11,10 @@ public class SoldierMoveEnemy : MonoBehaviour
     public float maxHealth = 100f;
     public float currentHealth;
     public GameObject deathExplosionPrefab;
+
     private bool isDead = false;
+    private bool isJumping = false;
+    private const float ANIMATION_DEATH_DELAY = 2.0f;
 
     // ====================================================================
     // --- 2. AI 状態定義と設定 ---
@@ -25,11 +29,22 @@ public class SoldierMoveEnemy : MonoBehaviour
     public float rotationSpeed = 10f;
     public float moveSpeed = 6.0f;
 
+    // 💡 ジャンプ設定
+    [Header("ジャンプ設定")]
+    public float jumpHeight = 1.5f;
+    public float jumpDuration = 0.5f;
+
+    // 💡 新規追加: ダッシュジャンプ設定
+    [Header("ダッシュジャンプ設定")]
+    public float dashJumpDistanceMultiplier = 1.5f; // ジャンプの水平速度の倍率 (大きいほど速くリンクを渡る)
+    public float dashJumpHeightMultiplier = 1.3f;    // ジャンプの高さの倍率 (大きいほど高く飛ぶ)
+
+
     // 💡 追加: 着地設定
     [Header("着地設定")]
-    public float initialWaitTime = 1.0f;  // 浮遊してから落下を開始するまでの待機時間
-    public float landingSpeed = 2.0f;     // ゆっくり落下する速度
-    public string groundTag = "Ground"; // 地面と判定するオブジェクトのタグ
+    public float initialWaitTime = 1.0f;
+    public float landingSpeed = 2.0f;
+    public string groundTag = "Ground";
 
     // --- 攻撃設定 ---
     public int bulletsPerBurst = 3;
@@ -52,6 +67,7 @@ public class SoldierMoveEnemy : MonoBehaviour
     private Rigidbody rb;
     private Collider enemyCollider;
     private AudioSource audioSource;
+    private NavMeshAgent agent;
 
     // 死亡時に無効化する外部AIスクリプトの参照
     private EnemyAI aiA;
@@ -68,8 +84,8 @@ public class SoldierMoveEnemy : MonoBehaviour
         rb = GetComponent<Rigidbody>();
         enemyCollider = GetComponent<Collider>();
         audioSource = GetComponent<AudioSource>();
+        agent = GetComponent<NavMeshAgent>();
 
-        // 💡 変更点: 最初は空中待機のため、物理演算を無効にする
         if (rb != null)
         {
             rb.isKinematic = true;
@@ -109,8 +125,35 @@ public class SoldierMoveEnemy : MonoBehaviour
 
     void FixedUpdate()
     {
-        if (isDead) return;
+        if (isDead || isJumping) return;
         if (player == null || rb == null) return;
+
+        // NavMeshAgent が OffMeshLink 上にいる場合、ジャンプ処理へ移行
+        if (agent != null && agent.isOnOffMeshLink)
+        {
+            // 💡 (1) 追跡/攻撃状態でのみジャンプするか？
+            if (currentState != EnemyState.Chase && currentState != EnemyState.Attack)
+            {
+                agent.isStopped = true;
+                return;
+            }
+
+            // 💡 (2) コルーチンが起動
+            Debug.Log("Jumping Started!");
+            StartCoroutine(ProcessOffMeshLink());
+            return; // AIロジックを無視
+        }
+
+        // NavMeshAgent による移動制御
+        if (agent != null && (currentState == EnemyState.Chase || currentState == EnemyState.Idle))
+        {
+            agent.isStopped = (currentState == EnemyState.Idle);
+            if (currentState == EnemyState.Chase)
+            {
+                agent.SetDestination(player.position);
+            }
+        }
+
 
         float distanceToPlayer = Vector3.Distance(transform.position, player.position);
 
@@ -137,17 +180,17 @@ public class SoldierMoveEnemy : MonoBehaviour
                 break;
         }
 
-        // アニメーション制御（移動速度連動）
+        // アニメーション制御
         if (animator != null && rb != null)
         {
-            bool isMoving = rb.velocity.magnitude > 0.1f;
+            bool isMoving = (agent != null) ? agent.velocity.magnitude > 0.1f : rb.velocity.magnitude > 0.1f;
             animator.SetBool("IsRunning", isMoving);
         }
     }
 
 
     // ----------------------------------------------------
-    // --- ヘルスとダメージ処理 ---
+    // --- ヘルスとダメージ処理 (省略) ---
     // ----------------------------------------------------
 
     public void TakeDamage(float damage)
@@ -163,7 +206,6 @@ public class SoldierMoveEnemy : MonoBehaviour
         {
             Die();
         }
-        // 💡 修正: Landing中はダメージを受けても状態遷移させない
         else if (currentState == EnemyState.Idle)
         {
             TransitionToChase();
@@ -178,7 +220,6 @@ public class SoldierMoveEnemy : MonoBehaviour
 
         Debug.Log(gameObject.name + "が倒れ、アニメーション後に破棄されます。");
 
-        // 1. アニメーションのトリガー (再生させるためAnimatorは有効なまま)
         if (animator != null)
         {
             if (!animator.enabled) animator.enabled = true;
@@ -188,25 +229,25 @@ public class SoldierMoveEnemy : MonoBehaviour
             animator.SetTrigger("Die");
         }
 
-        // ===============================================
-        // 💥 最重要: AIロジックのみを即座に強制停止する
-        // ===============================================
-
-        // 2. 全てのAI、ナビゲーション、発砲ロジックを強制停止
+        // AIロジック、Agent、物理挙動を強制停止
         CancelInvoke();
         StopAllCoroutines();
 
-        // AI制御スクリプトを無効化
         if (aiA != null) aiA.enabled = false;
         if (aiB != null) aiB.enabled = false;
         if (aiOld != null) aiOld.enabled = false;
-        this.enabled = false; // 自身のUpdate/FixedUpdateを停止
+        this.enabled = false;
 
-        // 3. 物理的な固定と衝突判定の無効化
+        if (agent != null)
+        {
+            agent.isStopped = true;
+            agent.enabled = false;
+        }
+
         if (rb != null)
         {
-            rb.velocity = Vector3.zero; // 動きを止める
-            rb.isKinematic = true;      // 物理的な影響を無視
+            rb.velocity = Vector3.zero;
+            rb.isKinematic = true;
         }
 
         if (enemyCollider != null)
@@ -214,43 +255,106 @@ public class SoldierMoveEnemy : MonoBehaviour
             enemyCollider.enabled = false;
         }
 
-        // ===============================================
-
-        // 4. 🗑️ 最終手段: 遅延破棄をキック
-        float animationDuration = 2.0f;
-        // 💡 修正: Animatorを渡してコルーチンを開始
-        StartCoroutine(DestroyAfterDelay(animationDuration, animator));
+        StartCoroutine(DestroyAfterDelay(ANIMATION_DEATH_DELAY, animator));
     }
 
     /// <summary>
-    /// 遅延後にAnimatorを停止し、オブジェクトを削除するコルーチン
+    /// 遅延後にAnimatorを停止し、エフェクトを生成し、オブジェクトを削除するコルーチン
     /// </summary>
     IEnumerator DestroyAfterDelay(float delay, Animator anim)
     {
-        // 1. アニメーション再生時間（2.0秒）待機
         yield return new WaitForSeconds(delay);
 
-        // 2. 💥 ここでエフェクトを生成し、拡大して目立たせる
         if (deathExplosionPrefab != null)
         {
-            // エフェクトを生成
             GameObject explosion = Instantiate(deathExplosionPrefab, transform.position, Quaternion.identity);
-            // エフェクトを2倍に拡大 (より目立つように)
+
             explosion.transform.localScale = Vector3.one * 2f;
+
+            ParticleSystem ps = explosion.GetComponent<ParticleSystem>();
+            if (ps != null)
+            {
+                ps.Play(true);
+            }
         }
 
-        // 3. Animatorを停止 (念のため)
         if (anim != null)
         {
             anim.enabled = false;
         }
 
-        // 4. 🗑️ 破棄（Destroy）
         Destroy(gameObject);
     }
 
     // ----------------------------------------------------
-    // --- ロジック関数 ---
+    // --- ダッシュジャンプ実行コルーチン ---
+    // ----------------------------------------------------
+
+    IEnumerator ProcessOffMeshLink()
+    {
+        if (isJumping) yield break;
+        isJumping = true;
+
+        // NavMesh Agentを停止し、物理挙動をリセット
+        if (agent != null)
+        {
+            agent.isStopped = true;
+            agent.updatePosition = false; // 💡 追加
+            agent.updateRotation = false; // 💡 追加
+        }
+        if (rb != null) rb.velocity = Vector3.zero;
+
+        // 1. ジャンプアニメーションのトリガー
+        if (animator != null)
+        {
+            animator.SetTrigger("Jump");
+        }
+
+        // 2. オフメッシュリンクの始点と終点を取得
+        Vector3 startPos = agent.currentOffMeshLinkData.startPos;
+        Vector3 endPos = agent.currentOffMeshLinkData.endPos;
+
+        // 💡 3. ダッシュジャンプの速度/高さパラメータを適用
+        float actualJumpHeight = jumpHeight * dashJumpHeightMultiplier;
+        float actualJumpDuration = jumpDuration / dashJumpDistanceMultiplier; // 短縮 = 水平速度アップ
+
+        float timer = 0f;
+
+        // 4. リンクに沿ってダッシュジャンプ移動 (放物線)
+        while (timer < actualJumpDuration)
+        {
+            timer += Time.deltaTime;
+            float progress = timer / actualJumpDuration;
+
+            float height = Mathf.Sin(progress * Mathf.PI) * actualJumpHeight;
+
+            // 💡 ログを追加 (数フレームに一度でOK)
+            // if (Time.frameCount % 5 == 0) Debug.Log("Jump Progress: " + progress.ToString("F2"));
+
+            transform.position = Vector3.Lerp(startPos, endPos, progress) + Vector3.up * height;
+            yield return null;
+        }
+
+        // 💡 ジャンプが完了したことを確認
+        Debug.Log("Jump Finished. Completing Link.");
+
+        // 5. ジャンプ完了後、NavMesh Agentの移動を完了させる
+        if (agent != null)
+        {
+            agent.CompleteOffMeshLink();
+
+            // 💡 再びNavMesh Agentに制御を戻す
+            agent.updatePosition = true; // 💡 戻す
+            agent.updateRotation = true; // 💡 戻す
+            agent.isStopped = false;
+        }
+
+        isJumping = false; // ジャンプ終了
+    }
+
+
+    // ----------------------------------------------------
+    // --- ロジック関数 (ChaseLogic, TransitionToChase など) (省略) ---
     // ----------------------------------------------------
 
     void IdleLogic(float distance)
@@ -264,18 +368,24 @@ public class SoldierMoveEnemy : MonoBehaviour
 
     void ChaseLogic(float distance)
     {
-        Vector3 direction = (player.position - transform.position);
-        Quaternion lookRotation = Quaternion.LookRotation(new Vector3(direction.x, 0, direction.z));
-        transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.fixedDeltaTime * rotationSpeed);
-
-        if (distance > attackRange)
+        if (agent != null)
         {
-            if (rb != null)
-            {
-                rb.velocity = transform.forward * moveSpeed;
-            }
+            Vector3 direction = (player.position - transform.position);
+            Quaternion lookRotation = Quaternion.LookRotation(new Vector3(direction.x, 0, direction.z));
+            transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.fixedDeltaTime * rotationSpeed);
         }
         else
+        {
+            Vector3 direction = (player.position - transform.position);
+            Quaternion lookRotation = Quaternion.LookRotation(new Vector3(direction.x, 0, direction.z));
+            transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.fixedDeltaTime * rotationSpeed);
+            if (distance > attackRange)
+            {
+                if (rb != null) rb.velocity = transform.forward * moveSpeed;
+            }
+        }
+
+        if (distance <= attackRange)
         {
             if (rb != null) rb.velocity = Vector3.zero;
             TransitionToAttack();
@@ -309,13 +419,8 @@ public class SoldierMoveEnemy : MonoBehaviour
     void LandingLogic()
     {
         if (rb == null) return;
-        // 落下速度を制御 (ゆっくり)
         rb.velocity = Vector3.down * landingSpeed;
     }
-
-    // ----------------------------------------------------
-    // --- 状態遷移関数 ---
-    // ----------------------------------------------------
 
     void TransitionToLanding()
     {
@@ -324,6 +429,8 @@ public class SoldierMoveEnemy : MonoBehaviour
 
         CancelInvoke();
         StopAllCoroutines();
+
+        if (agent != null) agent.enabled = false;
 
         Invoke("StartFalling", initialWaitTime);
 
@@ -360,6 +467,11 @@ public class SoldierMoveEnemy : MonoBehaviour
             rb.useGravity = true;
         }
 
+        if (agent != null)
+        {
+            agent.enabled = true;
+        }
+
         if (enemyCollider != null)
         {
             enemyCollider.enabled = true;
@@ -389,6 +501,7 @@ public class SoldierMoveEnemy : MonoBehaviour
         currentState = EnemyState.Idle;
 
         if (rb != null) rb.velocity = Vector3.zero;
+        if (agent != null) agent.isStopped = true;
 
         CancelInvoke();
         if (animator != null)
@@ -405,6 +518,8 @@ public class SoldierMoveEnemy : MonoBehaviour
         CancelInvoke("ShootBullet");
         CancelInvoke("TransitionToAttackComplete");
         if (animator != null) animator.SetBool("IsAiming", false);
+
+        if (agent != null) agent.isStopped = false;
     }
 
     void TransitionToAttack()
@@ -420,6 +535,7 @@ public class SoldierMoveEnemy : MonoBehaviour
         currentState = EnemyState.Attack;
 
         if (rb != null) rb.velocity = Vector3.zero;
+        if (agent != null) agent.isStopped = true;
 
         if (animator != null)
         {
@@ -467,6 +583,7 @@ public class SoldierMoveEnemy : MonoBehaviour
         currentState = EnemyState.Reload;
 
         if (rb != null) rb.velocity = Vector3.zero;
+        if (agent != null) agent.isStopped = true;
 
         CancelInvoke("ShootBullet");
         CancelInvoke("TransitionToAttackComplete");
@@ -515,10 +632,6 @@ public class SoldierMoveEnemy : MonoBehaviour
         }
     }
 
-    // ----------------------------------------------------
-    // --- 確実な着地判定 (衝突判定) ---
-    // ----------------------------------------------------
-
     private void OnCollisionEnter(Collision collision)
     {
         if (currentState == EnemyState.Landing && collision.gameObject.CompareTag(groundTag))
@@ -542,23 +655,36 @@ public class SoldierMoveEnemy : MonoBehaviour
             StartCoroutine(FinishLandingCoroutine());
         }
     }
-
-    // ----------------------------------------------------
-    // --- 弾丸生成処理 ---
-    // ----------------------------------------------------
-
     public void ShootBullet()
     {
-        if (isDead || currentAmmo <= 0) return;
+        if (isDead || currentAmmo <= 0 || player == null || muzzlePoint == null) return;
 
         currentAmmo--;
 
-        if (bulletPrefab == null || muzzlePoint == null)
+        if (bulletPrefab == null)
         {
             return;
         }
 
-        Instantiate(bulletPrefab, muzzlePoint.position, muzzlePoint.rotation).transform.parent = null;
-        Debug.Log("弾が発射されました！");
+        // 1. 🎯 プレイヤーへの正確な方向ベクトルを取得 (Y軸を含む)
+        //    プレイヤーがどこにいても、その中心点を狙います。
+        Vector3 targetPosition = player.position;
+        Vector3 directionToPlayer = (targetPosition - muzzlePoint.position).normalized;
+
+        // 2. プレイヤーを直接向くための基準回転を取得
+        //    LookRotation(directionToPlayer) は、Y軸を含むプレイヤーへの正確な回転を求めます。
+        Quaternion baseRotation = Quaternion.LookRotation(directionToPlayer);
+
+        // 3. 垂直方向の角度調整 (下向きの放物線オフセット) を加える
+        //    プレイヤーを狙った回転に対して、さらにX軸周りに -5度回転させ、弾が放物線を描くようにする。
+        //    これにより、プレイヤーがジャンプしても、狙いは外れず、放物線効果が維持されます。
+        float verticalAngleOffset = -5f;
+        Quaternion adjustedRotation = baseRotation * Quaternion.Euler(verticalAngleOffset, 0, 0);
+
+        // 4. 調整された回転で弾を生成
+        GameObject bulletInstance = Instantiate(bulletPrefab, muzzlePoint.position, adjustedRotation);
+        bulletInstance.transform.parent = null;
+
+        // 弾が重力と初速で放物線を描くのは、Bullet.csのRigidbodyへの速度設定に依存します。
     }
 }

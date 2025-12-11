@@ -6,27 +6,44 @@ public class Bullet : MonoBehaviour
     public float damage = 10f;
     public float lifetime = 3f;
 
-    // 💡 破壊処理が開始されたことを示すフラグ
+    // 💡 Rigidbodyコンポーネネントへの参照を追加
+    private Rigidbody rb;
     private bool isBeingDestroyed = false;
+
+    void Awake()
+    {
+        // Rigidbodyを取得
+        rb = GetComponent<Rigidbody>();
+        if (rb == null)
+        {
+            Debug.LogError("Bullet プレハブには Rigidbody コンポーネントが必要です。", this);
+            enabled = false; // Rigidbodyがない場合、スクリプトを無効にする
+        }
+    }
 
     void Start()
     {
         // lifetime秒後にGameObjectを破棄（自動消滅）を予約
         Destroy(gameObject, lifetime);
+
+        // 💡 物理エンジンを使用して初速を与える
+        // transform.forward は現在の回転（Enemy側で調整した下向きの回転）を反映する
+        if (rb != null)
+        {
+            rb.velocity = transform.forward * speed;
+        }
+
+        // 💡 Update() の transform.Translate は削除します。
     }
 
+    // 💡 Update() 関数は、移動処理がないため、このままでは不要ですが、残しておきます。
     void Update()
     {
-        // 💡 既に破棄処理中なら、移動処理をスキップ
-        if (isBeingDestroyed) return;
-
-        // 弾丸のローカル前方(Z軸)に移動
-        transform.Translate(Vector3.forward * speed * Time.deltaTime);
+        // 💡 移動処理はRigidbodyが担当するため、Translateは不要になりました。
     }
 
     void OnTriggerEnter(Collider other)
     {
-        // 💡 既に破棄処理中なら、二重にDestroyを呼ばないようスキップ
         if (isBeingDestroyed) return;
 
         // プレイヤーに当たったかチェック
@@ -36,8 +53,10 @@ public class Bullet : MonoBehaviour
             // ダメージ処理を実装
         }
 
-        // 💡 フラグを設定し、即時破棄を実行
+        // 💡 破壊フラグを設定し、即時破棄を実行
         isBeingDestroyed = true;
+
+        // 衝突で弾丸が停止した後に少し遅延を設けて破壊するなど、演出に合わせて調整可能
         Destroy(gameObject);
     }
 }
