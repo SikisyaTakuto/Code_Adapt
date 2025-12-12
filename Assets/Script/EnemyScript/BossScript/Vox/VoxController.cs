@@ -31,7 +31,7 @@ public class VoxController : MonoBehaviour
 
     [SerializeField] private GameObject explosionEffect;    // 爆発エフェクト
 
-    [SerializeField] private GameObject boxPrefab;          // ← 追加：落とす箱
+    [SerializeField] private GameObject boxPrefab;          // 落とす箱
 
     [Header("Movement & Game Params")]
     [SerializeField] private float dropHeight = -2f;        // アームの位置からどれくらい上に爆弾を出すか (Y座標調整)
@@ -47,6 +47,9 @@ public class VoxController : MonoBehaviour
     private bool[] canDropNow;                              // 特殊Z到達後、物を落とせる状態か
     private int[] armHPs;                                   // 各アームの現在のHP
     private bool[] isDestroyed;                             // HP0で動作停止したか
+    private GameObject[] heldBoxes;                         // アームが保持している箱
+    private Animator[] armAnimators;                        // アニメーション
+
 
     // 特殊Z座標の定義
     private const float SPECIAL_Z_FAR = -310f;
@@ -68,6 +71,7 @@ public class VoxController : MonoBehaviour
         canDropNow = new bool[count];
         armHPs = new int[count];
         isDestroyed = new bool[count];
+        heldBoxes = new GameObject[count];
 
         // HPを初期化
         for (int i = 0; i < count; i++)
@@ -77,6 +81,12 @@ public class VoxController : MonoBehaviour
             // 初回は物を落とせない状態からスタート
             hasReachedSpecialZ[i] = false;
             canDropNow[i] = false;
+        }
+
+        armAnimators = new Animator[armsArray.Length];
+        for (int i = 0; i < armsArray.Length; i++)
+        {
+            armAnimators[i] = armsArray[i].GetComponent<Animator>();
         }
 
         SetNewTargets(); // 開始時に全アームへランダム目標設定し、移動開始
@@ -204,59 +214,55 @@ public class VoxController : MonoBehaviour
             isMovingArray[index] = false;
             Debug.Log($"{arm.name} が Z={targetZs[index]:F2} に到達！");
 
-            // 特殊Z座標に到達した場合の処理
-            if (targetZs[index] == SPECIAL_Z_FAR || targetZs[index] == SPECIAL_Z_NEAR)
+            // 特殊Z座標に到達
+            if (targetZs[index] == SPECIAL_Z_FAR || targetZs[index] == SPECIAL_Z_NEAR)
             {
-                hasReachedSpecialZ[index] = true; // 特殊Zに到達したという実績フラグ
-                canDropNow[index] = true;         // 次の通常Z到達時にドロップ可能フラグ
-                Debug.Log($"{arm.name} が特殊座標Z={targetZs[index]}に到達 → 物を落とせるようになりました。");
+                hasReachedSpecialZ[index] = true;
+                canDropNow[index] = true;
+
+                // ★箱がまだ無い場合のみ生成してアームに保持★
+                if (heldBoxes[index] == null && boxPrefab != null)
+                {
+                    Vector3 spawnPos = arm.transform.position + Vector3.up * dropHeight;
+                    GameObject box = Instantiate(boxPrefab, spawnPos, Quaternion.identity);
+
+                    // アームの子オブジェクトにして保持
+                    box.transform.SetParent(arm.transform);
+
+                    // 落ちないようにつける
+                    Rigidbody rb = box.GetComponent<Rigidbody>();
+                    if (rb == null) rb = box.AddComponent<Rigidbody>();
+                    rb.useGravity = false;
+                    rb.isKinematic = true;
+
+                    heldBoxes[index] = box;
+
+                    Debug.Log($"{arm.name} は特殊Zで箱を生成して保持しました。");
+                }
             }
 
-            // 通常Z座標に到達した場合の処理
-            else // targetZs[index] が通常範囲 (-255fから-110f) の場合
-            {
-                // 特殊Zに過去到達しており、かつ現在ドロップ可能な状態か
-                if (hasReachedSpecialZ[index] && canDropNow[index])
+            // 通常Z座標に到達
+            else
+            {
+                // 特殊Zに行っており、箱を持っている場合 → 落とす
+                if (canDropNow[index] && heldBoxes[index] != null)
                 {
-                    DropRandomObject(arm);
-                    canDropNow[index] = false; // ドロップしたので、次の特殊Z到達までドロップ不可に
-                    Debug.Log($"{arm.name} は物を落としました。再び特殊Zに行くまで落とせません。");
-                }
-                else if (hasReachedSpecialZ[index] && !canDropNow[index])
-                {
-                    Debug.Log($"{arm.name} は特殊Zを再訪していないため、まだ落とせません。");
-                }
-                else
-                {
-                    // 特殊Zにも到達したことがない場合
-                    Debug.Log($"{arm.name} はまだ特殊Zに到達していないため、何も落としません。");
+                    // アニメーション開始
+                    if (armAnimators[index] != null)
+                    {
+                        armAnimators[index].SetTrigger("Drop");
+                    }
+
+                    // 少し待ってから箱を落とす（アニメに合わせる）
+                    StartCoroutine(DropAfterAnimation(index, arm));
+
+                    canDropNow[index] = false;
                 }
             }
 
             // 到達したら次の目標設定と移動再開までの待機コルーチンを開始
             StartCoroutine(WaitAndRetarget(index));
         }
-    }
-
-    // 爆弾 or 敵ではなく「箱」を落とすように変更
-    void DropRandomObject(GameObject arm)
-    {
-        if (boxPrefab == null)
-        {
-            Debug.LogWarning("箱のプレハブ(BoxPrefab)が設定されていません！");
-            return;
-        }
-
-        Vector3 spawnPos = arm.transform.position + Vector3.up * dropHeight;
-
-        GameObject box = Instantiate(boxPrefab, spawnPos, Quaternion.identity);
-
-        // 重力で落ちるように Rigidbody を追加
-        Rigidbody rb = box.GetComponent<Rigidbody>();
-        if (rb == null) rb = box.AddComponent<Rigidbody>();
-        rb.useGravity = true;
-
-        Debug.Log($"{arm.name} が箱を投下しました");
     }
 
     private void BossDefeated()
@@ -294,5 +300,29 @@ public class VoxController : MonoBehaviour
             // Random.Range(min, max) はfloatの場合、min以上、max以下を返す
             return Random.Range(-255f, -110f);
         }
+    }
+
+    void DropHeldBox(int index, GameObject arm)
+    {
+        GameObject box = heldBoxes[index];
+        if (box == null) return;
+
+        // 親子関係を解除
+        box.transform.SetParent(null);
+
+        // 落下できるように設定
+        Rigidbody rb = box.GetComponent<Rigidbody>();
+        if (rb == null) rb = box.AddComponent<Rigidbody>();
+        rb.useGravity = true;
+        rb.isKinematic = false;
+
+        heldBoxes[index] = null;
+    }
+
+    IEnumerator DropAfterAnimation(int index, GameObject arm)
+    {
+        yield return new WaitForSeconds(1f); // アニメに合わせて調整
+
+        DropHeldBox(index, arm);
     }
 }
