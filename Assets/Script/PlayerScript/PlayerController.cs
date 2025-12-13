@@ -445,10 +445,10 @@ public class PlayerController : MonoBehaviour
 
         // BeamControllerへの依存をそのままに
         BeamController beamInstance = Instantiate(
-    beamPrefab,
-    origin,
-    Quaternion.LookRotation(fireDirection)
-    );
+            beamPrefab,
+            origin,
+            Quaternion.LookRotation(fireDirection)
+        );
         beamInstance.Fire(origin, endPoint, didHit);
     }
 
@@ -568,13 +568,13 @@ public class PlayerController : MonoBehaviour
         // SoldierMoveEnemy がターゲットか確認
         if (target.TryGetComponent<SoldierMoveEnemy>(out var soldierMoveEnemy))
         {
-           soldierMoveEnemy.TakeDamage(damageAmount);
+            soldierMoveEnemy.TakeDamage(damageAmount);
             isHit = true;
         }
-        // SoldierEnemy コンポーネントを探してダメージを与える
-        if (target.TryGetComponent<SoldierEnemy>(out var soldierEnemy))
+        // ★ 修正済み: TryGetComponent の引数を SoliderEnemy (dなし) に変更
+        if (target.TryGetComponent<SoliderEnemy>(out var soliderEnemy))
         {
-            soldierEnemy.TakeDamage(damageAmount);
+            soliderEnemy.TakeDamage(damageAmount);
             isHit = true;
         }
         // 既存の敵コンポーネントへの依存
@@ -879,13 +879,5 @@ public class PlayerController : MonoBehaviour
             Gizmos.color = Color.yellow;
             Gizmos.DrawWireSphere(origin + fireDirection * beamMaxDistance, 0.05f);
         }
-    }
-}
-
-internal class SoldierEnemy
-{
-    internal void TakeDamage(float damageAmount)
-    {
-        throw new NotImplementedException();
     }
 }
