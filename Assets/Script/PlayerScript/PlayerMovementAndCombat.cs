@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
-using System;
 using System.Collections.Generic;
 
 /// <summary>
@@ -9,7 +8,10 @@ using System.Collections.Generic;
 [RequireComponent(typeof(CharacterController))]
 public class PlayerMovementAndCombat : MonoBehaviour
 {
-    // ★ 追加したデータ構造：モードごとのビーム発射ポイントを格納
+    // =======================================================
+    // I. データ構造 (Configuration Structs)
+    // =======================================================
+
     [System.Serializable]
     public class ModeBeamConfiguration
     {
@@ -17,13 +19,20 @@ public class PlayerMovementAndCombat : MonoBehaviour
         public List<Transform> firePoints = new List<Transform>();
     }
 
-    // 依存関係をパブリックプロパティまたはSerializeFieldで受け取る
-    [Header("Dependencies")]
-    public PlayerModeController modeController; // ★必須：ModeControllerへの参照
+    // =======================================================
+    // II. 公開設定 (Public/Serialized Fields)
+    // =======================================================
+
+    [Header("1. Dependencies (依存関係)")]
+    [Tooltip("アーマーモード、エネルギー管理、UI更新を制御するコントローラー。")]
+    public PlayerModeController modeController;
+    [Tooltip("カメラ、ロックオン、プレイヤーの回転を制御するコントローラー。")]
     public TPSCameraController tpsCamController;
+    [Tooltip("ゲームオーバー処理を担当するマネージャー。")]
     public SceneBasedGameOverManager gameOverManager;
 
-    [Header("Base Movement Stats")]
+    // --- Movement & Physics ---
+    [Header("2. Movement Stats (移動・物理設定)")]
     public float baseMoveSpeed = 15.0f;
     public float dashMultiplier = 2.5f;
     public float verticalSpeed = 10.0f;
@@ -32,17 +41,20 @@ public class PlayerMovementAndCombat : MonoBehaviour
     public float fastFallMultiplier = 3.0f;
     public bool canFly = true;
 
-    [Header("Attack Settings")]
-    public float attackFixedDuration = 0.8f;
+    [Header("3. Stun Settings (硬直設定)")]
+    [Tooltip("着地時の硬直時間 (秒)。")]
+    public float landingStunDuration = 0.2f;
+
+    // --- Combat Settings ---
+    [Header("4. Melee Attack Settings (近接攻撃設定)")]
+    public float attackFixedDuration = 1.5f; // ★ ここを 0.8f から 1.5f に変更しました
     public float meleeAttackRange = 2.0f;
     public float meleeDamage = 50.0f;
     public LayerMask enemyLayer;
     public GameObject hitEffectPrefab;
 
-    [Header("Beam Attack Settings")]
+    [Header("5. Beam Attack Settings (ビーム攻撃設定)")]
     public BeamController beamPrefab;
-
-    // モードごとのビーム設定のリスト
     [Tooltip("Normal(0: 2点), Buster(1: 4点), Speed(2: 2点)の順で設定します。")]
     public List<ModeBeamConfiguration> modeBeamConfigurations = new List<ModeBeamConfiguration>(3)
     {
@@ -50,33 +62,45 @@ public class PlayerMovementAndCombat : MonoBehaviour
         new ModeBeamConfiguration(),
         new ModeBeamConfiguration()
     };
-
     public float beamMaxDistance = 100f;
     public float beamDamage = 50.0f;
     [Tooltip("ロックオン時に敵のColliderがない場合、ビームを狙う高さのオフセット。")]
     public float lockOnTargetHeightOffset = 1.0f;
+
+    [Header("6. Health & Damage Settings (HP・ダメージ設定)")]
+    public float maxHP = 10000.0f;
     [Tooltip("受けたダメージがこの値を超えないように制限する。(一撃死対策の応急処置)")]
     public float damageCap = 10000.0f;
 
 
-    [Header("Health Settings")]
-    public float maxHP = 10000.0f;
+    // =======================================================
+    // III. プライベート/キャッシュ変数 & HPプロパティ
+    // =======================================================
+
+    // HPプロパティ (読み取り専用)
     private float _currentHP;
     public float currentHP { get => _currentHP; private set => _currentHP = value; }
 
-    // === プライベート/キャッシュ変数 ===
+    // キャッシュ
     private CharacterController _controller;
+    private Vector3 _velocity;
+
+    // 状態フラグ
     private bool _isAttacking = false;
     private float _attackTimer = 0.0f;
     private bool _isDead = false;
 
-    // === 入力変数 (PlayerModeControllerと共有) ===
+    // 硬直・接地状態
+    private bool _isLandingStunned = false;
+    private float _landingStunTimer = 0.0f;
+    private bool _wasGroundedLastFrame = false; // 前のフレームの接地状態を記憶
+
+    // 入力変数 (PlayerModeControllerと共有)
     [HideInInspector] public bool isBoosting = false;
     [HideInInspector] public float verticalInput = 0f;
-    private Vector3 _velocity;
 
     // =======================================================
-    // Unity Lifecycle Methods
+    // IV. Unity Lifecycle Methods
     // =======================================================
 
     void Awake()
@@ -85,6 +109,9 @@ public class PlayerMovementAndCombat : MonoBehaviour
         currentHP = maxHP;
 
         if (modeController == null) Debug.LogError("PlayerModeController が設定されていません。");
+
+        // 初期状態を検出するために、Awake時に現在の接地状態を保持
+        _wasGroundedLastFrame = _controller.isGrounded;
     }
 
     void Start()
@@ -99,32 +126,43 @@ public class PlayerMovementAndCombat : MonoBehaviour
     {
         if (_isDead) return;
 
-        if (_isAttacking)
+        bool isCurrentlyGrounded = _controller.isGrounded;
+
+        // 1. 着地判定と硬直開始
+        HandleLandingStunCheck(isCurrentlyGrounded);
+
+        // 2. 硬直中の処理
+        if (_isAttacking || _isLandingStunned)
         {
             HandleAttackState();
+            HandleLandingStunState();
 
-            if (!_controller.isGrounded)
+            // 攻撃硬直中は回転も完全に停止させる
+            // 着地硬直中のみ回転処理を許可
+            if (!_isAttacking)
             {
-                _velocity.y += gravity * Time.deltaTime;
+                HandleRotationWhileNotAttackingStunned();
             }
-            _controller.Move(Vector3.up * _velocity.y * Time.deltaTime);
 
-            return;
+            _wasGroundedLastFrame = isCurrentlyGrounded; // 状態を保存
+            return; // 完全硬直
         }
 
-        if (tpsCamController == null || tpsCamController.LockOnTarget == null)
-        {
-            tpsCamController?.RotatePlayerToCameraDirection();
-        }
+        // 3. 通常の移動・回転処理
+        HandleNormalRotation();
 
         Vector3 finalMove = HandleVerticalMovement() + HandleHorizontalMovement();
         _controller.Move(finalMove * Time.deltaTime);
+
+        // 4. 次のフレームのための接地状態更新
+        _wasGroundedLastFrame = isCurrentlyGrounded;
     }
 
     // =======================================================
-    // Movement Logic
+    // V. Movement Logic (移動ロジック)
     // =======================================================
 
+    /// <summary>水平方向の移動（前後左右）を計算します。</summary>
     private Vector3 HandleHorizontalMovement()
     {
         float h = Input.GetAxis("Horizontal"); // 左スティックX
@@ -135,6 +173,7 @@ public class PlayerMovementAndCombat : MonoBehaviour
         Vector3 inputDirection = new Vector3(h, 0, v);
         Vector3 moveDirection;
 
+        // カメラの向きを考慮した移動方向の計算
         if (tpsCamController != null)
         {
             Quaternion cameraRotation = Quaternion.Euler(0, tpsCamController.transform.eulerAngles.y, 0);
@@ -147,66 +186,69 @@ public class PlayerMovementAndCombat : MonoBehaviour
 
         moveDirection.Normalize();
 
-        // ModeControllerから現在の速度補正を取得
         float currentSpeed = baseMoveSpeed * modeController.currentArmorStats.moveSpeedMultiplier;
-        bool isConsumingEnergy = false;
 
         bool isDashing = (Input.GetKey(KeyCode.LeftShift) || isBoosting) && modeController.currentEnergy > 0.01f;
 
         if (isDashing)
         {
             currentSpeed *= dashMultiplier;
+            // エネルギー消費
             modeController.ConsumeEnergy(modeController.energyConsumptionRate * Time.deltaTime);
-            isConsumingEnergy = true;
+            modeController.ResetEnergyRecoveryTimer();
         }
-
-        if (isConsumingEnergy) modeController.ResetEnergyRecoveryTimer();
 
         return moveDirection * currentSpeed;
     }
 
+    /// <summary>垂直方向の移動（ジャンプ、落下、飛行）を計算し、重力を適用します。</summary>
     private Vector3 HandleVerticalMovement()
     {
         bool isGrounded = _controller.isGrounded;
-        if (isGrounded && _velocity.y < 0) _velocity.y = -0.1f;
+
+        // 接地している場合は垂直速度をリセット（CharacterControllerのめり込み防止）
+        if (isGrounded && _velocity.y < -0.1f)
+        {
+            _velocity.y = -0.1f;
+        }
 
         bool hasVerticalInput = false;
 
-        bool isFlyingUpKey = Input.GetKey(KeyCode.Space);
-        bool isFlyingDownKey = Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt);
-
-        bool isFlyingUpController = verticalInput > 0.5f;
-        bool isFlyingDownController = verticalInput < -0.5f;
-
+        bool isFlyingUp = Input.GetKey(KeyCode.Space) || verticalInput > 0.5f;
+        bool isFlyingDown = (Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt)) || verticalInput < -0.5f;
 
         if (canFly && modeController.currentEnergy > 0.01f)
         {
-            if (isFlyingUpKey || isFlyingUpController)
+            if (isFlyingUp)
             {
                 _velocity.y = verticalSpeed;
                 hasVerticalInput = true;
             }
-            else if (isFlyingDownKey || isFlyingDownController)
+            else if (isFlyingDown)
             {
                 _velocity.y = -verticalSpeed;
                 hasVerticalInput = true;
             }
         }
 
-        if (!hasVerticalInput)
+        if (hasVerticalInput)
         {
+            // 飛行によるエネルギー消費
+            modeController.ConsumeEnergy(modeController.energyConsumptionRate * Time.deltaTime);
+            modeController.ResetEnergyRecoveryTimer();
+        }
+        else
+        {
+            // 重力と落下処理
             if (!isGrounded)
             {
+                // 加速落下処理
                 float fallSpeedMultiplier = (_velocity.y < 0) ? fastFallMultiplier : 1.0f;
                 _velocity.y += gravity * Time.deltaTime * fallSpeedMultiplier;
             }
         }
-        else
-        {
-            modeController.ConsumeEnergy(modeController.energyConsumptionRate * Time.deltaTime);
-            modeController.ResetEnergyRecoveryTimer();
-        }
 
+        // エネルギー切れで上昇中の場合は停止
         if (modeController.currentEnergy <= 0.01f && _velocity.y > 0)
         {
             _velocity.y = 0;
@@ -214,13 +256,16 @@ public class PlayerMovementAndCombat : MonoBehaviour
 
         return new Vector3(0, _velocity.y, 0);
     }
+
     // =======================================================
-    // Combat Logic
+    // VI. Combat & State Logic (戦闘・状態ロジック)
     // =======================================================
 
+    /// <summary>現在の武器モードに基づいて攻撃を実行します。</summary>
     public void Attack()
     {
-        if (_isAttacking) return;
+        // 攻撃中または着地硬直中は攻撃不可
+        if (_isAttacking || _isLandingStunned) return;
 
         switch (modeController.currentWeaponMode)
         {
@@ -233,17 +278,17 @@ public class PlayerMovementAndCombat : MonoBehaviour
         }
     }
 
+    /// <summary>近接攻撃を実行します。</summary>
     private void HandleMeleeAttack()
     {
-        _isAttacking = true;
-        _attackTimer = 0f;
+        StartAttackStun();
 
-        Transform lockOnTarget = tpsCamController != null ? tpsCamController.LockOnTarget : null;
+        Transform lockOnTarget = tpsCamController?.LockOnTarget;
 
+        // メレー攻撃開始時にターゲットに回転する処理は維持
         if (lockOnTarget != null)
         {
-            Vector3 targetPosition = GetLockOnTargetPosition(lockOnTarget);
-            RotateTowards(targetPosition);
+            RotateTowards(GetLockOnTargetPosition(lockOnTarget));
         }
 
         Collider[] hitColliders = Physics.OverlapSphere(transform.position, meleeAttackRange, enemyLayer);
@@ -255,15 +300,12 @@ public class PlayerMovementAndCombat : MonoBehaviour
         }
     }
 
+    /// <summary>ビーム攻撃を実行します。</summary>
     private void HandleBeamAttack()
     {
+        // 設定チェック
         int modeIndex = (int)modeController.currentArmorMode;
-        ModeBeamConfiguration config = null;
-
-        if (modeIndex >= 0 && modeIndex < modeBeamConfigurations.Count)
-        {
-            config = modeBeamConfigurations[modeIndex];
-        }
+        ModeBeamConfiguration config = GetCurrentBeamConfig(modeIndex);
 
         if (config == null || config.firePoints.Count == 0 || beamPrefab == null)
         {
@@ -271,38 +313,34 @@ public class PlayerMovementAndCombat : MonoBehaviour
             return;
         }
 
-        // エネルギーは全ビームの発射に対して一度だけ消費
-        if (modeController.currentEnergy < modeController.beamAttackEnergyCost)
-        {
-            Debug.LogWarning("ビーム攻撃に必要なエネルギーがありません！");
-            return;
-        }
+        // エネルギーチェックと消費
+        if (!ConsumeEnergyForBeamAttack()) return;
 
-        modeController.ConsumeEnergy(modeController.beamAttackEnergyCost);
-        modeController.ResetEnergyRecoveryTimer();
-
-        _isAttacking = true;
-        _attackTimer = 0f;
-        _velocity.y = 0f;
+        StartAttackStun();
 
         // 全ての発射ポイントをループしてビームを生成する
+        Transform lockOnTarget = tpsCamController?.LockOnTarget;
+        bool isFirstFirePoint = true;
+
         foreach (Transform firePoint in config.firePoints)
         {
             if (firePoint == null) continue;
 
             Vector3 origin = firePoint.position;
             Vector3 fireDirection;
-            Transform lockOnTarget = tpsCamController?.LockOnTarget;
+            Vector3 targetPosition = Vector3.zero;
 
-            // ロックオンターゲットの決定と回転
+            // ロックオンターゲットの決定と回転 (ビームはロックオンを優先)
             if (lockOnTarget != null)
             {
-                Vector3 targetPosition = GetLockOnTargetPosition(lockOnTarget, true);
+                targetPosition = GetLockOnTargetPosition(lockOnTarget, true);
                 fireDirection = (targetPosition - origin).normalized;
-                // プレイヤー本体の回転は一度で十分 (最初のビームの発射時に実行)
-                if (firePoint == config.firePoints[0])
+
+                // プレイヤー本体の回転は一度で十分 (攻撃開始時のみ)
+                if (isFirstFirePoint)
                 {
                     RotateTowards(targetPosition);
+                    isFirstFirePoint = false;
                 }
             }
             else
@@ -310,16 +348,14 @@ public class PlayerMovementAndCombat : MonoBehaviour
                 fireDirection = firePoint.forward;
             }
 
+            // Raycastとダメージ処理
             RaycastHit hit;
             Vector3 endPoint;
-
-            // Raycastはビームごとに実行
             bool didHit = Physics.Raycast(origin, fireDirection, out hit, beamMaxDistance, ~0);
 
             if (didHit)
             {
                 endPoint = hit.point;
-                // 複数のビームが同時に発射され、同じ敵にヒットする場合、ダメージが重複することを許容する設計と仮定
                 ApplyDamageToEnemy(hit.collider, beamDamage);
             }
             else
@@ -337,6 +373,17 @@ public class PlayerMovementAndCombat : MonoBehaviour
         }
     }
 
+    /// <summary>攻撃硬直を開始します。</summary>
+    private void StartAttackStun()
+    {
+        _isAttacking = true;
+        _attackTimer = 0f;
+
+        // 攻撃中は垂直速度をリセット（空中での動作を安定させるため）
+        _velocity.y = 0f;
+    }
+
+    /// <summary>攻撃硬直タイマーを管理します。</summary>
     private void HandleAttackState()
     {
         if (!_isAttacking) return;
@@ -347,11 +394,39 @@ public class PlayerMovementAndCombat : MonoBehaviour
             _isAttacking = false;
             _attackTimer = 0.0f;
 
-            if (modeController.currentWeaponMode == PlayerModeController.WeaponMode.Beam && !_controller.isGrounded)
+            // 硬直解除後の垂直速度リセット（接地維持/落下再開）
+            if (_controller.isGrounded)
             {
-                _velocity.y = 0;
+                _velocity.y = -0.1f;
             }
-            else if (_controller.isGrounded)
+        }
+    }
+
+    /// <summary>着地硬直の条件をチェックし、硬直を開始します。</summary>
+    private void HandleLandingStunCheck(bool isCurrentlyGrounded)
+    {
+        // 浮いていた状態から着地し、かつ速度が速い場合
+        if (!_wasGroundedLastFrame && isCurrentlyGrounded && !_isAttacking && _velocity.y < -1f)
+        {
+            _isLandingStunned = true;
+            _landingStunTimer = 0f;
+            _velocity.y = -0.1f; // めり込み防止
+        }
+    }
+
+    /// <summary>着地硬直タイマーを管理します。</summary>
+    private void HandleLandingStunState()
+    {
+        if (!_isLandingStunned) return;
+
+        _landingStunTimer += Time.deltaTime;
+        if (_landingStunTimer >= landingStunDuration)
+        {
+            _isLandingStunned = false;
+            _landingStunTimer = 0f;
+
+            // 硬直解除後の垂直速度リセット
+            if (_controller.isGrounded)
             {
                 _velocity.y = -0.1f;
             }
@@ -359,22 +434,18 @@ public class PlayerMovementAndCombat : MonoBehaviour
     }
 
     // =======================================================
-    // Damage & Death Logic
+    // VII. Damage & Death Logic (ダメージ・死亡ロジック)
     // =======================================================
 
+    /// <summary>ダメージを受け、HPを減少させます。</summary>
     public void TakeDamage(float damageAmount)
     {
         if (_isDead) return;
 
-        float finalDamage = damageAmount;
+        // 防御補正を適用
+        float finalDamage = damageAmount * modeController.currentArmorStats.defenseMultiplier;
 
-        // ModeControllerから防御補正を取得
-        float defenseMulti = modeController.currentArmorStats.defenseMultiplier;
-
-        // ダメージ倍率を適用する
-        finalDamage *= defenseMulti;
-
-        // ★ 修正箇所: ダメージキャップを適用し、一撃死を回避する応急処置 ★
+        // ダメージキャップを適用
         if (damageCap > 0)
         {
             finalDamage = Mathf.Min(finalDamage, damageCap);
@@ -394,6 +465,7 @@ public class PlayerMovementAndCombat : MonoBehaviour
         }
     }
 
+    /// <summary>死亡処理を実行します。</summary>
     private void Die()
     {
         if (_isDead) return;
@@ -413,9 +485,35 @@ public class PlayerMovementAndCombat : MonoBehaviour
     }
 
     // =======================================================
-    // Helper Methods & Enemy Damage
+    // VIII. Helper & Utility Methods (ヘルパーメソッド)
     // =======================================================
 
+    /// <summary>ビーム攻撃に必要なエネルギーを消費します。</summary>
+    /// <returns>エネルギーが十分で消費が成功した場合 true。</returns>
+    private bool ConsumeEnergyForBeamAttack()
+    {
+        if (modeController.currentEnergy < modeController.beamAttackEnergyCost)
+        {
+            Debug.LogWarning("ビーム攻撃に必要なエネルギーがありません！");
+            return false;
+        }
+
+        modeController.ConsumeEnergy(modeController.beamAttackEnergyCost);
+        modeController.ResetEnergyRecoveryTimer();
+        return true;
+    }
+
+    /// <summary>現在のアーマーモードに対応するビーム設定を取得します。</summary>
+    private ModeBeamConfiguration GetCurrentBeamConfig(int modeIndex)
+    {
+        if (modeIndex >= 0 && modeIndex < modeBeamConfigurations.Count)
+        {
+            return modeBeamConfigurations[modeIndex];
+        }
+        return null;
+    }
+
+    /// <summary>ロックオンターゲットの位置を計算します。</summary>
     private Vector3 GetLockOnTargetPosition(Transform target, bool useOffsetIfNoCollider = false)
     {
         Collider targetCollider = target.GetComponent<Collider>();
@@ -430,25 +528,62 @@ public class PlayerMovementAndCombat : MonoBehaviour
         return target.position;
     }
 
+    /// <summary>プレイヤーをターゲット位置へ水平に回転させます。</summary>
     private void RotateTowards(Vector3 targetPosition)
     {
         Vector3 directionToTarget = (targetPosition - transform.position).normalized;
+        // XとZ成分のみを使用することで、水平方向の回転に限定
         Quaternion targetRotation = Quaternion.LookRotation(new Vector3(directionToTarget.x, 0, directionToTarget.z));
         transform.rotation = targetRotation;
     }
 
+    /// <summary>着地硬直中に回転処理を行います（攻撃硬直中は回転を禁止）。</summary>
+    private void HandleRotationWhileNotAttackingStunned()
+    {
+        // 攻撃硬直中でない、つまり着地硬直中のみ実行
+        if (_isLandingStunned)
+        {
+            if (tpsCamController == null || tpsCamController.LockOnTarget == null)
+            {
+                // ロックオンがない場合はカメラ方向に回転
+                tpsCamController?.RotatePlayerToCameraDirection();
+            }
+            else
+            {
+                // ロックオンがある場合はターゲットに回転
+                RotateTowards(GetLockOnTargetPosition(tpsCamController.LockOnTarget));
+            }
+        }
+    }
+
+    /// <summary>通常時のプレイヤー回転処理を行います。</summary>
+    private void HandleNormalRotation()
+    {
+        if (tpsCamController == null || tpsCamController.LockOnTarget == null)
+        {
+            tpsCamController?.RotatePlayerToCameraDirection();
+        }
+        else
+        {
+            // ロックオン中はターゲットに向かって回転
+            RotateTowards(GetLockOnTargetPosition(tpsCamController.LockOnTarget));
+        }
+    }
+
+
+    /// <summary>敵のColliderにダメージを適用し、ヒットエフェクトを生成します。</summary>
     private void ApplyDamageToEnemy(Collider hitCollider, float damageAmount)
     {
         GameObject target = hitCollider.gameObject;
         bool isHit = false;
 
-        // 敵コンポーネントを探してダメージを与えるロジック
+        // 敵コンポーネントを探してダメージを与えるロジックを簡素化
         if (target.TryGetComponent<SoldierMoveEnemy>(out var soldierMoveEnemy))
         {
             soldierMoveEnemy.TakeDamage(damageAmount);
             isHit = true;
         }
-        if (target.TryGetComponent<SoliderEnemy>(out var soliderEnemy))
+        else if (target.TryGetComponent<SoliderEnemy>(out var soliderEnemy))
         {
             soliderEnemy.TakeDamage(damageAmount);
             isHit = true;
@@ -477,23 +612,25 @@ public class PlayerMovementAndCombat : MonoBehaviour
 
         if (isHit && hitEffectPrefab != null)
         {
+            // ヒットエフェクト生成
             Instantiate(hitEffectPrefab, hitCollider.transform.position, Quaternion.identity);
         }
     }
 
+
+    // =======================================================
+    // IX. Editor Gizmos (エディタ描画)
+    // =======================================================
+
     private void OnDrawGizmosSelected()
     {
+        // 近接攻撃範囲の描画 (オレンジ色)
         Gizmos.color = new Color(1f, 0.5f, 0f, 0.5f);
         Gizmos.DrawSphere(transform.position, meleeAttackRange);
 
-        // Gizmo描画も全ての発射ポイントをループ
+        // ビームの射線描画
         int modeIndex = (int)modeController.currentArmorMode;
-        ModeBeamConfiguration config = null;
-
-        if (modeIndex >= 0 && modeIndex < modeBeamConfigurations.Count)
-        {
-            config = modeBeamConfigurations[modeIndex];
-        }
+        ModeBeamConfiguration config = GetCurrentBeamConfig(modeIndex);
 
         if (config != null)
         {
@@ -503,8 +640,9 @@ public class PlayerMovementAndCombat : MonoBehaviour
 
                 Vector3 origin = firePoint.position;
                 Vector3 fireDirection = firePoint.forward;
-                Transform lockOnTarget = tpsCamController != null ? tpsCamController.LockOnTarget : null;
+                Transform lockOnTarget = tpsCamController?.LockOnTarget;
 
+                // ロックオン時の射線方向の計算
                 if (lockOnTarget != null)
                 {
                     Vector3 targetPosition = GetLockOnTargetPosition(lockOnTarget, true);
@@ -514,15 +652,16 @@ public class PlayerMovementAndCombat : MonoBehaviour
                 RaycastHit hit;
                 Vector3 endPoint;
 
+                // Raycastの結果に基づいた描画
                 if (Physics.Raycast(origin, fireDirection, out hit, beamMaxDistance, ~0))
                 {
-                    Gizmos.color = Color.red;
+                    Gizmos.color = Color.red; // ヒットした場合
                     endPoint = hit.point;
                     Gizmos.DrawSphere(endPoint, 0.1f);
                 }
                 else
                 {
-                    Gizmos.color = Color.cyan;
+                    Gizmos.color = Color.cyan; // ヒットしなかった場合
                     endPoint = origin + fireDirection * beamMaxDistance;
                 }
                 Gizmos.DrawLine(origin, endPoint);
