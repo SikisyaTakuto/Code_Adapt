@@ -6,7 +6,20 @@ using UnityEngine;
 public class TargetObject : MonoBehaviour
 {
     [Tooltip("この目標を完了した後、関連するゲームプレイ処理を行うドアなど。")]
-    public DoorController targetDoor;
+    public BossDoorController targetDoor;
+
+    public Animator animator;
+
+    public string animationTriggerName = "PullLever";
+
+    private void Awake()
+    {
+        // もしInspectorで設定されていなければ、このゲームオブジェクトから取得を試みる
+        if (animator == null)
+        {
+            animator = GetComponent<Animator>();
+        }
+    }
 
     // レバーを操作できるトリガーコライダーがアタッチされていることを前提とします
 
@@ -15,21 +28,15 @@ public class TargetObject : MonoBehaviour
     /// </summary>
     public void PlayerInteractionCompleted()
     {
-        Debug.Log($"{gameObject.name} の目標を完了しました。");
 
-        // 関連するゲームプレイ処理を実行（例：ドアを開ける）
-        if (targetDoor != null)
-        {
-            // targetDoor.OpenDoor(); // ドアコントローラーが定義されていることを前提
-        }
+            // Animatorのトリガーを設定してアニメーションを再生
+            animator.SetTrigger(animationTriggerName);
+        
 
-        // 目標管理システムに、この目標が完了したことを通知し、次の目標へ切り替える
+        Debug.Log($"{gameObject.name} を操作しました");
+        targetDoor.OpenDoor(); // Fキーでレバーを下ろす
         TargetManager.Instance.CompleteCurrentObjective();
-
-        // 完了後、このコンポーネントを無効化し、二重起動を防ぐ
         enabled = false;
-
-        // 完了したら、操作プロンプトも消すために通知（通常はPlayerInteraction側で処理される）
     }
 
     // ------------------------------------------------------------------

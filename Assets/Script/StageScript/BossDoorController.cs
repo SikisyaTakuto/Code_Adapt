@@ -20,30 +20,49 @@ public class BossDoorController : MonoBehaviour
     void Update()
     {
         // Lキーで開く(レバー)
-        if (Input.GetKeyDown(KeyCode.L))
-        {
-            isOpening = true;
+        if (Input.GetKeyDown(KeyCode.L)) 
+        { 
+            isOpening = true; 
             isClosing = false;
         }
 
-        // 開閉処理
+        // 開く処理
         if (isOpening)
         {
-            transform.position = Vector3.MoveTowards(transform.position, openPos, speed * Time.deltaTime);
+            transform.position = Vector3.MoveTowards(
+                transform.position,
+                openPos,
+                speed * Time.deltaTime
+            );
+
             if (Vector3.Distance(transform.position, openPos) < 0.01f)
             {
                 isOpening = false;
             }
         }
 
+        // 閉じる処理
         if (isClosing)
         {
-            transform.position = Vector3.MoveTowards(transform.position, closedPos, speed * Time.deltaTime);
+            transform.position = Vector3.MoveTowards(
+                transform.position,
+                closedPos,
+                speed * Time.deltaTime
+            );
+
             if (Vector3.Distance(transform.position, closedPos) < 0.01f)
             {
                 isClosing = false;
             }
         }
+    }
+
+    // 外部から呼ばれる「開く」メソッド
+    public void OpenDoor()
+    {
+        Debug.Log("a");
+        isOpening = true;
+        isClosing = false;
     }
 
     // プレイヤーが扉のコライダーに触れたら閉まる
