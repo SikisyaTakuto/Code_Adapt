@@ -2039,9 +2039,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 26072345}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: CatWalk Stairs Wide
-  m_TagString: Untagged
+  m_TagString: Ground
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -5972,9 +5972,9 @@ GameObject:
   - component: {fileID: 98137246}
   - component: {fileID: 98137245}
   - component: {fileID: 98137244}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Catwalk Rails Short
-  m_TagString: Untagged
+  m_TagString: Ground
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -7022,9 +7022,9 @@ GameObject:
   - component: {fileID: 126271388}
   - component: {fileID: 126271387}
   - component: {fileID: 126271386}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Catwalk Rails Short
-  m_TagString: Untagged
+  m_TagString: Ground
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -7242,9 +7242,9 @@ GameObject:
   - component: {fileID: 132708637}
   - component: {fileID: 132708636}
   - component: {fileID: 132708635}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Catwalk Rails Short
-  m_TagString: Untagged
+  m_TagString: Ground
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -9519,9 +9519,9 @@ GameObject:
   - component: {fileID: 171716347}
   - component: {fileID: 171716346}
   - component: {fileID: 171716345}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Catwalk Stairs
-  m_TagString: Untagged
+  m_TagString: Ground
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -11612,6 +11612,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 1133438067}
   - {fileID: 1373941076}
   - {fileID: 639283767}
   - {fileID: 569907569}
@@ -11623,7 +11624,6 @@ Transform:
   - {fileID: 254222087}
   - {fileID: 1607530261}
   - {fileID: 514787046}
-  - {fileID: 1133438067}
   - {fileID: 1892847821389385813}
   - {fileID: 1892847822039537222}
   - {fileID: 1892847822991134490}
@@ -14323,9 +14323,9 @@ GameObject:
   - component: {fileID: 256108030}
   - component: {fileID: 256108029}
   - component: {fileID: 256108028}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Catwalk Rails Short
-  m_TagString: Untagged
+  m_TagString: Ground
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -16954,9 +16954,9 @@ GameObject:
   - component: {fileID: 301043437}
   - component: {fileID: 301043436}
   - component: {fileID: 301043435}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Catwalk Stair Rails Wide
-  m_TagString: Untagged
+  m_TagString: Ground
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -18782,9 +18782,9 @@ GameObject:
   - component: {fileID: 344331447}
   - component: {fileID: 344331446}
   - component: {fileID: 344331445}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Catwalk Rails Short
-  m_TagString: Untagged
+  m_TagString: Ground
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -23249,37 +23249,6 @@ Transform:
   - {fileID: 1512327635}
   m_Father: {fileID: 1155484083}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &446940429
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 446940430}
-  m_Layer: 0
-  m_Name: joint2
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &446940430
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 446940429}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: -0.109842025, z: -0, w: 0.99394906}
-  m_LocalPosition: {x: -0.028707225, y: 0, z: 0.025952931}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 491514295}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &450150534
 GameObject:
   m_ObjectHideFlags: 0
@@ -24762,9 +24731,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 467993949}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: CatWalk Stairs Wide
-  m_TagString: Untagged
+  m_TagString: Ground
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -24801,9 +24770,9 @@ GameObject:
   - component: {fileID: 468574118}
   - component: {fileID: 468574117}
   - component: {fileID: 468574116}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Catwalk Rails Short
-  m_TagString: Untagged
+  m_TagString: Ground
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -26063,38 +26032,6 @@ Transform:
   - {fileID: 909582657}
   m_Father: {fileID: 1986418}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &491514294
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 491514295}
-  m_Layer: 0
-  m_Name: joint1
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &491514295
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 491514294}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0.659374, y: 0.659374, z: -0.25539383, w: 0.25539383}
-  m_LocalPosition: {x: -0, y: 0.035055395, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 446940430}
-  m_Father: {fileID: 824418083}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &493193854
 GameObject:
   m_ObjectHideFlags: 0
@@ -26453,9 +26390,9 @@ GameObject:
   - component: {fileID: 503510236}
   - component: {fileID: 503510235}
   - component: {fileID: 503510234}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Catwalk Pillar Rails
-  m_TagString: Untagged
+  m_TagString: Ground
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -27594,9 +27531,9 @@ GameObject:
   - component: {fileID: 518922737}
   - component: {fileID: 518922736}
   - component: {fileID: 518922735}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Catwalk Stairs Wide
-  m_TagString: Untagged
+  m_TagString: Ground
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -28366,9 +28303,9 @@ GameObject:
   - component: {fileID: 532073965}
   - component: {fileID: 532073964}
   - component: {fileID: 532073963}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Catwalk Corner
-  m_TagString: Untagged
+  m_TagString: Ground
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -29259,7 +29196,6 @@ Transform:
   - {fileID: 1228304278}
   - {fileID: 26072345}
   - {fileID: 2570332209491581828}
-  - {fileID: 824418083}
   m_Father: {fileID: 1718295921}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &545721543
@@ -40996,9 +40932,9 @@ GameObject:
   - component: {fileID: 763288997}
   - component: {fileID: 763288996}
   - component: {fileID: 763288995}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Catwalk Pillar Rails
-  m_TagString: Untagged
+  m_TagString: Ground
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -43842,75 +43778,6 @@ Transform:
   - {fileID: 1668957308}
   m_Father: {fileID: 1909515694}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &824418082
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 824418083}
-  - component: {fileID: 824418086}
-  - component: {fileID: 824418084}
-  m_Layer: 0
-  m_Name: reba-3 (1)
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &824418083
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 824418082}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: 0.7071068, z: -0, w: 0.7071068}
-  m_LocalPosition: {x: 151.4, y: 53.581333, z: -34.70981}
-  m_LocalScale: {x: 50, y: 50, z: 50}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 491514295}
-  - {fileID: 2039957107}
-  m_Father: {fileID: 545144487}
-  m_LocalEulerAnglesHint: {x: 0, y: 90, z: 0}
---- !u!65 &824418084
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 824418082}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 1
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &824418086
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 824418082}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ae138c8dc6130214296880a28c8f6a90, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  targetDoor: {fileID: 1304819324}
 --- !u!1001 &824924563
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -45727,9 +45594,9 @@ GameObject:
   - component: {fileID: 867665145}
   - component: {fileID: 867665144}
   - component: {fileID: 867665143}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Catwalk Rails Short
-  m_TagString: Untagged
+  m_TagString: Ground
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -50818,9 +50685,9 @@ GameObject:
   - component: {fileID: 945522411}
   - component: {fileID: 945522410}
   - component: {fileID: 945522409}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Catwalk Rails Short
-  m_TagString: Untagged
+  m_TagString: Ground
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -51627,9 +51494,9 @@ GameObject:
   - component: {fileID: 967614583}
   - component: {fileID: 967614582}
   - component: {fileID: 967614581}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Catwalk Rails Short
-  m_TagString: Untagged
+  m_TagString: Ground
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -54326,9 +54193,9 @@ GameObject:
   - component: {fileID: 1012666740}
   - component: {fileID: 1012666739}
   - component: {fileID: 1012666738}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Catwalk Long Rails
-  m_TagString: Untagged
+  m_TagString: Ground
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -60754,9 +60621,9 @@ GameObject:
   - component: {fileID: 1155447854}
   - component: {fileID: 1155447853}
   - component: {fileID: 1155447852}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Catwalk Rails Short
-  m_TagString: Untagged
+  m_TagString: Ground
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -63320,9 +63187,9 @@ GameObject:
   - component: {fileID: 1201052393}
   - component: {fileID: 1201052392}
   - component: {fileID: 1201052391}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Catwalk Stair Rails Wide
-  m_TagString: Untagged
+  m_TagString: Ground
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -66296,6 +66163,53 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1269687483}
   m_Mesh: {fileID: 4300000, guid: e53378bffa67fba40888797a9016d1c4, type: 3}
+--- !u!1 &1269713101
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1269713102}
+  - component: {fileID: 1269713103}
+  m_Layer: 0
+  m_Name: DoorTargetObject
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1269713102
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1269713101}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0.7071068, z: -0, w: 0.7071068}
+  m_LocalPosition: {x: -0.37999922, y: 8.679993, z: -13.040006}
+  m_LocalScale: {x: 2, y: 1, z: 0.49999988}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1527998156}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1269713103
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1269713101}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae138c8dc6130214296880a28c8f6a90, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  targetDoor: {fileID: 223972590}
+  animator: {fileID: 0}
+  animationTriggerName: PullLever
 --- !u!1 &1271551460
 GameObject:
   m_ObjectHideFlags: 0
@@ -68203,9 +68117,9 @@ GameObject:
   - component: {fileID: 1304317573}
   - component: {fileID: 1304317572}
   - component: {fileID: 1304317571}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Catwalk Rails Short
-  m_TagString: Untagged
+  m_TagString: Ground
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -69171,9 +69085,9 @@ GameObject:
   - component: {fileID: 1325041596}
   - component: {fileID: 1325041595}
   - component: {fileID: 1325041594}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Catwalk Short
-  m_TagString: Untagged
+  m_TagString: Ground
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -71167,9 +71081,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1363246313}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: CatWalk Stairs
-  m_TagString: Untagged
+  m_TagString: Ground
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -75805,9 +75719,9 @@ GameObject:
   - component: {fileID: 1432229349}
   - component: {fileID: 1432229348}
   - component: {fileID: 1432229347}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Catwalk Pillar 02
-  m_TagString: Untagged
+  m_TagString: Ground
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -82508,7 +82422,8 @@ Transform:
   m_LocalPosition: {x: 3.47, y: 0, z: 2.78}
   m_LocalScale: {x: 0.5, y: 0.25, z: 0.25}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 1269713102}
   m_Father: {fileID: 1133438067}
   m_LocalEulerAnglesHint: {x: 0, y: 90, z: 0}
 --- !u!114 &1527998157
@@ -89002,9 +88917,9 @@ GameObject:
   - component: {fileID: 1662069180}
   - component: {fileID: 1662069179}
   - component: {fileID: 1662069178}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Catwalk Stairs Wide
-  m_TagString: Untagged
+  m_TagString: Ground
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -90373,9 +90288,9 @@ GameObject:
   - component: {fileID: 1683016848}
   - component: {fileID: 1683016847}
   - component: {fileID: 1683016846}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Catwalk Rails Short
-  m_TagString: Untagged
+  m_TagString: Ground
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -94881,9 +94796,9 @@ GameObject:
   - component: {fileID: 1760209870}
   - component: {fileID: 1760209869}
   - component: {fileID: 1760209868}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Catwalk Steps
-  m_TagString: Untagged
+  m_TagString: Ground
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -97960,9 +97875,9 @@ GameObject:
   - component: {fileID: 1816668661}
   - component: {fileID: 1816668660}
   - component: {fileID: 1816668659}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Catwalk Rails Short
-  m_TagString: Untagged
+  m_TagString: Ground
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -99263,9 +99178,9 @@ GameObject:
   - component: {fileID: 1840257597}
   - component: {fileID: 1840257596}
   - component: {fileID: 1840257595}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Catwalk Rails Short
-  m_TagString: Untagged
+  m_TagString: Ground
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -99634,9 +99549,9 @@ GameObject:
   - component: {fileID: 1848966637}
   - component: {fileID: 1848966636}
   - component: {fileID: 1848966635}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Catwalk Stair Rails
-  m_TagString: Untagged
+  m_TagString: Ground
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -108880,9 +108795,9 @@ GameObject:
   - component: {fileID: 2035066482}
   - component: {fileID: 2035066481}
   - component: {fileID: 2035066480}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Catwalk Steps Wide
-  m_TagString: Untagged
+  m_TagString: Ground
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -109205,96 +109120,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2038664453}
   m_CullTransparentMesh: 1
---- !u!1 &2039957106
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2039957107}
-  - component: {fileID: 2039957108}
-  m_Layer: 0
-  m_Name: pCube10
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &2039957107
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2039957106}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 824418083}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!137 &2039957108
-SkinnedMeshRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2039957106}
-  m_Enabled: 1
-  m_CastShadows: 1
-  m_ReceiveShadows: 1
-  m_DynamicOccludee: 1
-  m_StaticShadowCaster: 0
-  m_MotionVectors: 1
-  m_LightProbeUsage: 1
-  m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 3
-  m_RayTraceProcedural: 0
-  m_RayTracingAccelStructBuildFlagsOverride: 0
-  m_RayTracingAccelStructBuildFlags: 1
-  m_SmallMeshCulling: 1
-  m_RenderingLayerMask: 1
-  m_RendererPriority: 0
-  m_Materials:
-  - {fileID: 8748892135801146194, guid: 24e467550702e8b4d97f2749d51101c9, type: 3}
-  m_StaticBatchInfo:
-    firstSubMesh: 0
-    subMeshCount: 0
-  m_StaticBatchRoot: {fileID: 0}
-  m_ProbeAnchor: {fileID: 0}
-  m_LightProbeVolumeOverride: {fileID: 0}
-  m_ScaleInLightmap: 1
-  m_ReceiveGI: 1
-  m_PreserveUVs: 0
-  m_IgnoreNormalsForChartDetection: 0
-  m_ImportantGI: 0
-  m_StitchLightmapSeams: 1
-  m_SelectedEditorRenderState: 3
-  m_MinimumChartSize: 4
-  m_AutoUVMaxDistance: 0.5
-  m_AutoUVMaxAngle: 89
-  m_LightmapParameters: {fileID: 0}
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
-  m_SortingOrder: 0
-  serializedVersion: 2
-  m_Quality: 0
-  m_UpdateWhenOffscreen: 0
-  m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: -1364087873485794358, guid: 24e467550702e8b4d97f2749d51101c9, type: 3}
-  m_Bones:
-  - {fileID: 491514295}
-  - {fileID: 446940430}
-  m_BlendShapeWeights: []
-  m_RootBone: {fileID: 491514295}
-  m_AABB:
-    m_Center: {x: -0.0259093, y: 0.000000007450581, z: 0.019618548}
-    m_Extent: {x: 0.033957403, y: 0.021789374, z: 0.035568953}
-  m_DirtyAABB: 0
 --- !u!1 &2042849276
 GameObject:
   m_ObjectHideFlags: 0
@@ -111012,9 +110837,9 @@ GameObject:
   - component: {fileID: 2072523665}
   - component: {fileID: 2072523664}
   - component: {fileID: 2072523663}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Catwalk Steps Wide
-  m_TagString: Untagged
+  m_TagString: Ground
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -117712,6 +117537,7 @@ GameObject:
   - component: {fileID: 2945485179240431935}
   - component: {fileID: 2945485179240431936}
   - component: {fileID: 2945485179240431938}
+  - component: {fileID: 2945485179240431939}
   m_Layer: 0
   m_Name: reba-3
   m_TagString: Untagged
@@ -117731,7 +117557,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ae138c8dc6130214296880a28c8f6a90, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  targetDoor: {fileID: 1304819324}
+  targetDoor: {fileID: 223972590}
+  animator: {fileID: 2945485179240431939}
+  animationTriggerName: PullLever
 --- !u!114 &2945485179240431936
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -117746,7 +117574,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   objectiveSequence:
   - {fileID: 2945485179240431935}
-  - {fileID: 824418086}
+  - {fileID: 1269713103}
 --- !u!65 &2945485179240431938
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -117766,8 +117594,30 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Size: {x: 0.23697652, y: 0.2330154, z: 0.15702386}
+  m_Center: {x: -0.009871101, y: -0.0229249, z: 0.01316616}
+--- !u!95 &2945485179240431939
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2945485179240431934}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: 651947024d4738149b38226db952672e, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
 --- !u!1 &3174528889168069101
 GameObject:
   m_ObjectHideFlags: 0
