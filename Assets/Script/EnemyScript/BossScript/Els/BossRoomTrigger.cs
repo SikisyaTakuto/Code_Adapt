@@ -14,6 +14,9 @@ public class BossRoomTrigger : MonoBehaviour
             boss.isActivated = true;
             Debug.Log("Bossの動きを有効化");
 
+            // ターゲットを解除
+            TargetManager.Instance.SetTarget(null);
+
             // 一度起動したら二度と起動しないように、このトリガーコンポーネントを無効化しても良い
             GetComponent<Collider>().enabled = false;
         }

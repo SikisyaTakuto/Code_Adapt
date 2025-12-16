@@ -29,10 +29,8 @@ public class TargetObject : MonoBehaviour
     public void PlayerInteractionCompleted()
     {
 
-            // Animatorのトリガーを設定してアニメーションを再生
-            animator.SetTrigger(animationTriggerName);
-        
-
+        // Animatorのトリガーを設定してアニメーションを再生
+        animator.SetTrigger(animationTriggerName);
         Debug.Log($"{gameObject.name} を操作しました");
         targetDoor.OpenDoor(); // Fキーでレバーを下ろす
         TargetManager.Instance.CompleteCurrentObjective();
