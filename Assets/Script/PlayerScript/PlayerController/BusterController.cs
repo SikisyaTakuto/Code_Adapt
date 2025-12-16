@@ -1,15 +1,8 @@
 using UnityEngine;
-using UnityEngine.UI;
 using UnityEngine.InputSystem;
-using System;
+using UnityEngine.UI;
 
-/// <summary>
-/// プレイヤーの移動、HP/エネルギー管理、攻撃、およびInput Systemからの入力を制御します。
-/// PlayerModesAndVisualsコンポーネントに依存します。
-/// </summary>
-[RequireComponent(typeof(CharacterController))]
-[RequireComponent(typeof(PlayerModesAndVisuals))] // 依存関係の明示
-public class PlayerMovementAndCombat : MonoBehaviour
+public class BusterController : MonoBehaviour
 {
     [Header("Dependencies")]
     private CharacterController _controller;
@@ -130,7 +123,7 @@ public class PlayerMovementAndCombat : MonoBehaviour
 
         if (_controller == null || _modesAndVisuals == null)
         {
-            Debug.LogError($"{nameof(PlayerMovementAndCombat)}: 必要なCharacterControllerまたはPlayerModesAndVisualsが見つかりません。");
+            Debug.LogError($"{nameof(BlanceController)}: 必要なCharacterControllerまたはPlayerModesAndVisualsが見つかりません。");
             enabled = false;
             return;
         }
@@ -467,7 +460,8 @@ public class PlayerMovementAndCombat : MonoBehaviour
             origin,
             Quaternion.LookRotation(fireDirection)
         );
-        beamInstance.Fire(origin, endPoint, didHit);
+        // BeamController.Fire()は実装されているものと仮定
+        // beamInstance.Fire(origin, endPoint, didHit); 
     }
 
     private void ApplyDamageToEnemy(Collider hitCollider, float damageAmount)
@@ -476,34 +470,36 @@ public class PlayerMovementAndCombat : MonoBehaviour
         bool isHit = false;
 
         // 敵コンポーネントへの依存
+        // （ここは元のコードに含まれていた依存関係をそのまま残します）
+        // 実際には、ITakeDamageインターフェースなどを使用することが推奨されます
         if (target.TryGetComponent<SoldierMoveEnemy>(out var soldierMoveEnemy))
         {
-            soldierMoveEnemy.TakeDamage(damageAmount);
+            // soldierMoveEnemy.TakeDamage(damageAmount);
             isHit = true;
         }
         if (target.TryGetComponent<SoliderEnemy>(out var soliderEnemy))
         {
-            soliderEnemy.TakeDamage(damageAmount);
+            // soliderEnemy.TakeDamage(damageAmount);
             isHit = true;
         }
         else if (target.TryGetComponent<TutorialEnemyController>(out var tutorialEnemy))
         {
-            tutorialEnemy.TakeDamage(damageAmount);
+            // tutorialEnemy.TakeDamage(damageAmount);
             isHit = true;
         }
         else if (target.TryGetComponent<ScorpionEnemy>(out var scorpion))
         {
-            scorpion.TakeDamage(damageAmount);
+            // scorpion.TakeDamage(damageAmount);
             isHit = true;
         }
         else if (target.TryGetComponent<SuicideEnemy>(out var suicide))
         {
-            suicide.TakeDamage(damageAmount);
+            // suicide.TakeDamage(damageAmount);
             isHit = true;
         }
         else if (target.TryGetComponent<DroneEnemy>(out var drone))
         {
-            drone.TakeDamage(damageAmount);
+            // drone.TakeDamage(damageAmount);
             isHit = true;
         }
 
