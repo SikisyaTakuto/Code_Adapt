@@ -3,14 +3,21 @@ using UnityEngine;
 /// <summary>
 /// このオブジェクトを目標として設定し、プレイヤーが作動させたときに目標を完了します。
 /// </summary>
+[RequireComponent(typeof(Collider))] // トリガー検出のためColliderを必須とする
 public class TargetObject : MonoBehaviour
 {
+    // === 外部参照と設定 ===
+
     [Tooltip("この目標を完了した後、関連するゲームプレイ処理を行うドアなど。")]
+    // ※このスクリプトがシーンにある前提
     public BossDoorController targetDoor;
 
     public Animator animator;
 
     public string animationTriggerName = "PullLever";
+
+    // 状態管理のためのフラグ (一度しか操作できないようにする)
+    private bool isActivated = false;
 
     private void Awake()
     {
@@ -19,22 +26,55 @@ public class TargetObject : MonoBehaviour
         {
             animator = GetComponent<Animator>();
         }
+
+        // ColliderがIs Triggerであるか確認 (必須ではないが推奨)
+        Collider col = GetComponent<Collider>();
+        if (col != null && !col.isTrigger)
+        {
+            Debug.LogWarning($"{gameObject.name} のColliderは Is Trigger に設定されていません。検出が機能しない可能性があります。");
+        }
     }
 
-    // レバーを操作できるトリガーコライダーがアタッチされていることを前提とします
+    // ------------------------------------------------------------------
+    // プレイヤーからの操作完了通知
+    // ------------------------------------------------------------------
 
     /// <summary>
-    /// プレイヤーがレバーを下ろすなどのアクションを実行したときに呼び出されます。
+    /// PlayerInteractionスクリプトがFキー入力を受けたときに呼び出すメソッド。
     /// </summary>
     public void PlayerInteractionCompleted()
     {
+        // 既に操作済みであれば何もしない
+        if (isActivated) return;
+        isActivated = true;
 
         // Animatorのトリガーを設定してアニメーションを再生
-        animator.SetTrigger(animationTriggerName);
+        if (animator != null)
+        {
+            animator.SetTrigger(animationTriggerName);
+        }
+
         Debug.Log($"{gameObject.name} を操作しました");
-        targetDoor.OpenDoor(); // Fキーでレバーを下ろす
-        TargetManager.Instance.CompleteCurrentObjective();
-        enabled = false;
+
+        // 関連処理の実行 (ドアを開けるなど)
+        if (targetDoor != null)
+        {
+            targetDoor.OpenDoor();
+        }
+
+        // MissionManagerに現在のミッション完了を通知
+        if (MissionManager.Instance != null)
+        {
+            MissionManager.Instance.CompleteCurrentMission();
+        }
+        else
+        {
+            Debug.LogError("MissionManager (Singleton) がシーン内に見つかりません。");
+        }
+
+        // 操作が完了したため、Colliderなどを無効化して再度の操作を防止することもできます
+        // GetComponent<Collider>().enabled = false;
+        // gameObject.SetActive(false); 
     }
 
     // ------------------------------------------------------------------
@@ -43,6 +83,9 @@ public class TargetObject : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
+        // 既にアクティベート済み、またはプレイヤーではない場合は処理しない
+        if (isActivated || !other.CompareTag("Player")) return;
+
         // PlayerにアタッチされたPlayerInteractionコンポーネントを探す
         PlayerInteraction playerInteraction = other.GetComponent<PlayerInteraction>();
 
@@ -51,13 +94,15 @@ public class TargetObject : MonoBehaviour
             // プレイヤーに、自分が操作可能なオブジェクトであることを通知する
             playerInteraction.SetInteractable(this);
 
-            // UIプロンプトを表示する (デバッグログで代替)
-            Debug.Log($"操作プロンプトを表示: {playerInteraction.interactKey}キーでレバーを下ろす");
+            Debug.Log($"操作プロンプトを表示: {playerInteraction.interactKey}キーで操作");
         }
     }
 
     private void OnTriggerExit(Collider other)
     {
+        // プレイヤーではない場合は処理しない
+        if (!other.CompareTag("Player")) return;
+
         // PlayerにアタッチされたPlayerInteractionコンポーネントを探す
         PlayerInteraction playerInteraction = other.GetComponent<PlayerInteraction>();
 
@@ -66,7 +111,6 @@ public class TargetObject : MonoBehaviour
             // プレイヤーに、自分が操作可能なオブジェクトではなくなったことを通知する
             playerInteraction.ClearInteractable(this);
 
-            // UIプロンプトを非表示にする (デバッグログで代替)
             Debug.Log("操作プロンプトを非表示");
         }
     }

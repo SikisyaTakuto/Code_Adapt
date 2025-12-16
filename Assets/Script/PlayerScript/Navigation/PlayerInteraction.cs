@@ -50,7 +50,7 @@ public class PlayerInteraction : MonoBehaviour
             // 操作可能なオブジェクトを作動させる
             currentInteractable.PlayerInteractionCompleted();
 
-            // 操作が完了したら、現在の操作対象をクリアする
+            // 操作が完了したら、現在の操作対象をクリアする (連続操作を防ぐ)
             currentInteractable = null;
         }
     }
