@@ -34,7 +34,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: cc0bb748ecf34498bc2ee09faecb58fa, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: cc0bb748ecf34498bc2ee09faecb58fa, type: 3}
       propertyPath: m_LocalRotation.x
@@ -42,7 +42,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: cc0bb748ecf34498bc2ee09faecb58fa, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: cc0bb748ecf34498bc2ee09faecb58fa, type: 3}
       propertyPath: m_LocalRotation.z
@@ -54,7 +54,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: cc0bb748ecf34498bc2ee09faecb58fa, type: 3}
       propertyPath: m_LocalEulerAnglesHint.y
-      value: 180
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: cc0bb748ecf34498bc2ee09faecb58fa, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
@@ -91,7 +91,13 @@ PrefabInstance:
       addedObject: {fileID: -3544815501454512351}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: cc0bb748ecf34498bc2ee09faecb58fa, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 4212042549113051115}
+      addedObject: {fileID: 3955745284959917477}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: cc0bb748ecf34498bc2ee09faecb58fa, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3303372485200829917}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: cc0bb748ecf34498bc2ee09faecb58fa, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4944263035300969018}
   m_SourcePrefab: {fileID: 100100000, guid: cc0bb748ecf34498bc2ee09faecb58fa, type: 3}
 --- !u!1 &1339525588013243375 stripped
 GameObject:
@@ -167,7 +173,29 @@ SphereCollider:
   serializedVersion: 3
   m_Radius: 0.8001258
   m_Center: {x: 0, y: 0, z: -0.8001258}
---- !u!114 &4212042549113051115
+--- !u!95 &3955745284959917477
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1339525588013243375}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 0}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &3303372485200829917
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -176,8 +204,23 @@ MonoBehaviour:
   m_GameObject: {fileID: 1339525588013243375}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 422cfef30d0a84543bd1b74bd276ec2d, type: 3}
+  m_Script: {fileID: 11500000, guid: a0175af6269414e4ea80271094f3149a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   damageAmount: 10
-  lifeTime: 5
+  hitEffectPrefab: {fileID: 5487502716189772801, guid: f919715fc7c57da4d8706548cade6c75, type: 3}
+--- !u!114 &4944263035300969018
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1339525588013243375}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4b7756512a1f6e409882a0a9d01d4bb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  speed: 70
+  damage: 10
+  lifetime: 3
