@@ -19,12 +19,12 @@ public class BossDoorController : MonoBehaviour
 
     void Update()
     {
-        // Lキーで開く(レバー)
-        if (Input.GetKeyDown(KeyCode.L)) 
-        { 
-            isOpening = true; 
-            isClosing = false;
-        }
+        //// Lキーで開く(レバー)
+        //if (Input.GetKeyDown(KeyCode.L)) 
+        //{ 
+        //    isOpening = true; 
+        //    isClosing = false;
+        //}
 
         // 開く処理
         if (isOpening)

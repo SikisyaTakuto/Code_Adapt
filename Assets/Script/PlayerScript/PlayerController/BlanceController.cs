@@ -547,6 +547,9 @@ public class BlanceController : MonoBehaviour
         }
 
         _currentHP -= finalDamage;
+
+        Debug.Log($"<color=red>プレイヤーがダメージを受けました！</color> ダメージ量: {finalDamage}, 残りHP: {_currentHP}");
+
         _currentHP = Mathf.Clamp(_currentHP, 0, maxHP);
         UpdateHPUI();
 

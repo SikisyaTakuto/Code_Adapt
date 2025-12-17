@@ -1,117 +1,98 @@
 using UnityEngine;
 
-/// <summary>
-/// このオブジェクトを目標として設定し、プレイヤーが作動させたときに目標を完了します。
-/// </summary>
-[RequireComponent(typeof(Collider))] // トリガー検出のためColliderを必須とする
 public class TargetObject : MonoBehaviour
 {
-    // === 外部参照と設定 ===
+    [Header("Settings")]
+    public BossDoorController doorController;
+    [Tooltip("これが最後のターゲットならチェックを入れる（完了後に消えます）")]
+    public bool isLastTarget = false;
 
-    [Tooltip("この目標を完了した後、関連するゲームプレイ処理を行うドアなど。")]
-    // ※このスクリプトがシーンにある前提
-    public BossDoorController targetDoor;
-
+    [Header("Animation")]
     public Animator animator;
+    public string animationTrigger = "Activate";
 
-    public string animationTriggerName = "PullLever";
+    [Header("Input")]
+    public KeyCode interactKey = KeyCode.F;
 
-    // 状態管理のためのフラグ (一度しか操作できないようにする)
     private bool isActivated = false;
+    private bool isPlayerInRange = false;
 
-    private void Awake()
+    private void Update()
     {
-        // もしInspectorで設定されていなければ、このゲームオブジェクトから取得を試みる
-        if (animator == null)
+        // プレイヤーが範囲内にいて、まだ未起動で、かつタグが "Lever" の場合のみFキー入力を監視
+        if (isPlayerInRange && !isActivated && gameObject.CompareTag("Lever"))
         {
-            animator = GetComponent<Animator>();
-        }
-
-        // ColliderがIs Triggerであるか確認 (必須ではないが推奨)
-        Collider col = GetComponent<Collider>();
-        if (col != null && !col.isTrigger)
-        {
-            Debug.LogWarning($"{gameObject.name} のColliderは Is Trigger に設定されていません。検出が機能しない可能性があります。");
+            if (Input.GetKeyDown(interactKey))
+            {
+                Debug.Log("レバーを操作しました（Fキー）");
+                ExecuteLogic();
+            }
         }
     }
-
-    // ------------------------------------------------------------------
-    // プレイヤーからの操作完了通知
-    // ------------------------------------------------------------------
-
-    /// <summary>
-    /// PlayerInteractionスクリプトがFキー入力を受けたときに呼び出すメソッド。
-    /// </summary>
-    public void PlayerInteractionCompleted()
-    {
-        // 既に操作済みであれば何もしない
-        if (isActivated) return;
-        isActivated = true;
-
-        // Animatorのトリガーを設定してアニメーションを再生
-        if (animator != null)
-        {
-            animator.SetTrigger(animationTriggerName);
-        }
-
-        Debug.Log($"{gameObject.name} を操作しました");
-
-        // 関連処理の実行 (ドアを開けるなど)
-        if (targetDoor != null)
-        {
-            targetDoor.OpenDoor();
-        }
-
-        // MissionManagerに現在のミッション完了を通知
-        if (MissionManager.Instance != null)
-        {
-            MissionManager.Instance.CompleteCurrentMission();
-        }
-        else
-        {
-            Debug.LogError("MissionManager (Singleton) がシーン内に見つかりません。");
-        }
-
-        // 操作が完了したため、Colliderなどを無効化して再度の操作を防止することもできます
-        // GetComponent<Collider>().enabled = false;
-        // gameObject.SetActive(false); 
-    }
-
-    // ------------------------------------------------------------------
-    // プレイヤーが近づいたときの処理
-    // ------------------------------------------------------------------
 
     private void OnTriggerEnter(Collider other)
     {
-        // 既にアクティベート済み、またはプレイヤーではない場合は処理しない
-        if (isActivated || !other.CompareTag("Player")) return;
-
-        // PlayerにアタッチされたPlayerInteractionコンポーネントを探す
-        PlayerInteraction playerInteraction = other.GetComponent<PlayerInteraction>();
-
-        if (playerInteraction != null)
+        if (other.CompareTag("Player"))
         {
-            // プレイヤーに、自分が操作可能なオブジェクトであることを通知する
-            playerInteraction.SetInteractable(this);
+            isPlayerInRange = true;
 
-            Debug.Log($"操作プロンプトを表示: {playerInteraction.interactKey}キーで操作");
+            // 1. タグが "TargetCheck" の場合は触れた瞬間に自動実行
+            if (gameObject.CompareTag("TargetCheck") && !isActivated)
+            {
+                Debug.Log("TargetCheckに接触：自動で更新します");
+                ExecuteLogic();
+            }
+            // 2. タグが "Lever" の場合はログを出すだけ（UpdateでFキーを待つ）
+            else if (gameObject.CompareTag("Lever") && !isActivated)
+            {
+                Debug.Log("Leverに接触：Fキーを押してください");
+            }
         }
     }
 
     private void OnTriggerExit(Collider other)
     {
-        // プレイヤーではない場合は処理しない
-        if (!other.CompareTag("Player")) return;
-
-        // PlayerにアタッチされたPlayerInteractionコンポーネントを探す
-        PlayerInteraction playerInteraction = other.GetComponent<PlayerInteraction>();
-
-        if (playerInteraction != null)
+        if (other.CompareTag("Player"))
         {
-            // プレイヤーに、自分が操作可能なオブジェクトではなくなったことを通知する
-            playerInteraction.ClearInteractable(this);
-
-            Debug.Log("操作プロンプトを非表示");
+            isPlayerInRange = false;
         }
+    }
+
+    private void ExecuteLogic()
+    {
+        if (isActivated) return;
+        isActivated = true;
+
+        // 1. アニメーション再生
+        if (animator != null)
+        {
+            animator.SetTrigger(animationTrigger);
+        }
+
+        // 2. 扉を開ける処理
+        if (doorController != null)
+        {
+            doorController.OpenDoor();
+        }
+
+        // 3. ミッションテキストを更新
+        if (MissionManager.Instance != null)
+        {
+            MissionManager.Instance.CompleteCurrentMission();
+        }
+
+        // 4. 矢印を次の目的地へ更新
+        if (TargetManager.Instance != null)
+        {
+            TargetManager.Instance.CompleteCurrentObjective();
+        }
+
+        // 5. 最後のターゲットなら消去
+        if (isLastTarget)
+        {
+            Destroy(gameObject, 1.0f);
+        }
+
+        Debug.Log($"{gameObject.name} の処理が完了しました。");
     }
 }

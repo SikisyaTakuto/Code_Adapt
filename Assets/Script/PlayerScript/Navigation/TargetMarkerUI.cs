@@ -143,7 +143,9 @@ public class TargetMarkerUI : MonoBehaviour
     /// </summary>
     public void SetTarget(Transform newTarget)
     {
+        Debug.Log($"[TargetMarkerUI] ターゲットが更新されました: " + (newTarget != null ? newTarget.name : "null"));
         targetTransform = newTarget;
+
         if (newTarget == null)
         {
             markerRect.gameObject.SetActive(false);
