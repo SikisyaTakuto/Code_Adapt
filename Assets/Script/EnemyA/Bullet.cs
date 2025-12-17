@@ -30,7 +30,7 @@ public class Bullet : MonoBehaviour
         // transform.forward は現在の回転（Enemy側で調整した下向きの回転）を反映する
         if (rb != null)
         {
-            rb.velocity = transform.forward * speed;
+            rb.linearVelocity = transform.forward * speed;
         }
 
         // 💡 Update() の transform.Translate は削除します。

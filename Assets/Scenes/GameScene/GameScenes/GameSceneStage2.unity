@@ -11164,6 +11164,8 @@ MonoBehaviour:
   gravity: -9.81
   canFly: 1
   fastFallMultiplier: 3
+  attackFixedDuration: 0.8
+  landStunDuration: 0.2
   maxHP: 10000
   hPSlider: {fileID: 914122297}
   hPText: {fileID: 424639099}
@@ -11171,7 +11173,6 @@ MonoBehaviour:
   energyRecoveryRate: 10
   recoveryDelay: 1
   energySlider: {fileID: 919157050}
-  attackFixedDuration: 0.8
   meleeAttackRange: 2
   meleeDamage: 50
   beamDamage: 50
@@ -21035,6 +21036,8 @@ MonoBehaviour:
   gravity: -9.81
   canFly: 1
   fastFallMultiplier: 3
+  attackFixedDuration: 0.8
+  landStunDuration: 0.2
   maxHP: 10000
   hPSlider: {fileID: 914122297}
   hPText: {fileID: 424639099}
@@ -21042,7 +21045,6 @@ MonoBehaviour:
   energyRecoveryRate: 10
   recoveryDelay: 1
   energySlider: {fileID: 919157050}
-  attackFixedDuration: 0.8
   meleeAttackRange: 2
   meleeDamage: 50
   beamDamage: 50
@@ -87316,35 +87318,36 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _modesAndVisuals: {fileID: 709359096}
   gameOverManager: {fileID: 970602412}
-  baseMoveSpeed: 15
-  dashMultiplier: 2.5
-  verticalSpeed: 10
-  energyConsumptionRate: 15
-  gravity: -9.81
-  canFly: 1
-  fastFallMultiplier: 3
-  maxHP: 10000
   hPSlider: {fileID: 914122297}
   hPText: {fileID: 424639099}
-  maxEnergy: 1000
-  energyRecoveryRate: 10
-  recoveryDelay: 1
   energySlider: {fileID: 919157050}
-  attackFixedDuration: 0.8
-  meleeAttackRange: 2
-  meleeDamage: 50
-  beamDamage: 50
-  beamAttackEnergyCost: 30
   beamPrefab: {fileID: 7068210006117006437, guid: d929e84277a2fe84bb469fb55f1cf446, type: 3}
   beamFirePoints:
   - {fileID: 2063663528}
   - {fileID: 109096163}
-  beamMaxDistance: 100
-  lockOnTargetHeightOffset: 1
   hitEffectPrefab: {fileID: 5487502716189772801, guid: f919715fc7c57da4d8706548cade6c75, type: 3}
   enemyLayer:
     serializedVersion: 2
     m_Bits: 512
+  baseMoveSpeed: 15
+  dashMultiplier: 2.5
+  verticalSpeed: 10
+  gravity: -9.81
+  canFly: 1
+  fastFallMultiplier: 3
+  attackFixedDuration: 0.8
+  landStunDuration: 0.2
+  maxHP: 10000
+  maxEnergy: 1000
+  energyRecoveryRate: 10
+  recoveryDelay: 1
+  energyConsumptionRate: 15
+  meleeAttackRange: 2
+  meleeDamage: 50
+  beamDamage: 50
+  beamAttackEnergyCost: 30
+  beamMaxDistance: 100
+  lockOnTargetHeightOffset: 1
 --- !u!1 &2137527792
 GameObject:
   m_ObjectHideFlags: 0

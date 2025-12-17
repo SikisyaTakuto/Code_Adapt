@@ -183,7 +183,7 @@ public class SoldierMoveEnemy : MonoBehaviour
         // アニメーション制御
         if (animator != null && rb != null)
         {
-            bool isMoving = (agent != null) ? agent.velocity.magnitude > 0.1f : rb.velocity.magnitude > 0.1f;
+            bool isMoving = (agent != null) ? agent.velocity.magnitude > 0.1f : rb.linearVelocity.magnitude > 0.1f;
             animator.SetBool("IsRunning", isMoving);
         }
     }
@@ -246,7 +246,7 @@ public class SoldierMoveEnemy : MonoBehaviour
 
         if (rb != null)
         {
-            rb.velocity = Vector3.zero;
+            rb.linearVelocity = Vector3.zero;
             rb.isKinematic = true;
         }
 
@@ -302,7 +302,7 @@ public class SoldierMoveEnemy : MonoBehaviour
             agent.updatePosition = false; // 💡 追加
             agent.updateRotation = false; // 💡 追加
         }
-        if (rb != null) rb.velocity = Vector3.zero;
+        if (rb != null) rb.linearVelocity = Vector3.zero;
 
         // 1. ジャンプアニメーションのトリガー
         if (animator != null)
@@ -359,7 +359,7 @@ public class SoldierMoveEnemy : MonoBehaviour
 
     void IdleLogic(float distance)
     {
-        if (rb != null) rb.velocity = Vector3.zero;
+        if (rb != null) rb.linearVelocity = Vector3.zero;
         if (distance <= sightRange)
         {
             TransitionToChase();
@@ -381,13 +381,13 @@ public class SoldierMoveEnemy : MonoBehaviour
             transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.fixedDeltaTime * rotationSpeed);
             if (distance > attackRange)
             {
-                if (rb != null) rb.velocity = transform.forward * moveSpeed;
+                if (rb != null) rb.linearVelocity = transform.forward * moveSpeed;
             }
         }
 
         if (distance <= attackRange)
         {
-            if (rb != null) rb.velocity = Vector3.zero;
+            if (rb != null) rb.linearVelocity = Vector3.zero;
             TransitionToAttack();
         }
 
@@ -399,7 +399,7 @@ public class SoldierMoveEnemy : MonoBehaviour
 
     void AttackLogic(float distance)
     {
-        if (rb != null) rb.velocity = Vector3.zero;
+        if (rb != null) rb.linearVelocity = Vector3.zero;
 
         Vector3 direction = (player.position - transform.position).normalized;
         Quaternion lookRotation = Quaternion.LookRotation(new Vector3(direction.x, 0, direction.z));
@@ -413,13 +413,13 @@ public class SoldierMoveEnemy : MonoBehaviour
 
     void ReloadLogic()
     {
-        if (rb != null) rb.velocity = Vector3.zero;
+        if (rb != null) rb.linearVelocity = Vector3.zero;
     }
 
     void LandingLogic()
     {
         if (rb == null) return;
-        rb.velocity = Vector3.down * landingSpeed;
+        rb.linearVelocity = Vector3.down * landingSpeed;
     }
 
     void TransitionToLanding()
@@ -462,7 +462,7 @@ public class SoldierMoveEnemy : MonoBehaviour
 
         if (rb != null)
         {
-            rb.velocity = Vector3.zero;
+            rb.linearVelocity = Vector3.zero;
             rb.isKinematic = false;
             rb.useGravity = true;
         }
@@ -500,7 +500,7 @@ public class SoldierMoveEnemy : MonoBehaviour
         if (isDead) return;
         currentState = EnemyState.Idle;
 
-        if (rb != null) rb.velocity = Vector3.zero;
+        if (rb != null) rb.linearVelocity = Vector3.zero;
         if (agent != null) agent.isStopped = true;
 
         CancelInvoke();
@@ -534,7 +534,7 @@ public class SoldierMoveEnemy : MonoBehaviour
 
         currentState = EnemyState.Attack;
 
-        if (rb != null) rb.velocity = Vector3.zero;
+        if (rb != null) rb.linearVelocity = Vector3.zero;
         if (agent != null) agent.isStopped = true;
 
         if (animator != null)
@@ -582,7 +582,7 @@ public class SoldierMoveEnemy : MonoBehaviour
         if (isDead) return;
         currentState = EnemyState.Reload;
 
-        if (rb != null) rb.velocity = Vector3.zero;
+        if (rb != null) rb.linearVelocity = Vector3.zero;
         if (agent != null) agent.isStopped = true;
 
         CancelInvoke("ShootBullet");
@@ -641,7 +641,7 @@ public class SoldierMoveEnemy : MonoBehaviour
 
             if (rb != null)
             {
-                rb.velocity = Vector3.zero;
+                rb.linearVelocity = Vector3.zero;
 
                 float contactY = collision.contacts[0].point.y;
 

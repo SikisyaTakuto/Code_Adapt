@@ -225,13 +225,13 @@ public class SniperEnemy : MonoBehaviour
 
     void TransitionToLanding() { currentState = EnemyState.Landing; Invoke("StartFalling", initialWaitTime); }
     void StartFalling() { if (rb) { rb.isKinematic = false; rb.useGravity = false; } }
-    void FixedUpdate() { if (currentState == EnemyState.Landing && rb != null) rb.velocity = Vector3.down * landingSpeed; }
+    void FixedUpdate() { if (currentState == EnemyState.Landing && rb != null) rb.linearVelocity = Vector3.down * landingSpeed; }
 
     private void OnCollisionEnter(Collision collision)
     {
         if (currentState == EnemyState.Landing && collision.gameObject.CompareTag(groundTag))
         {
-            if (rb) { rb.velocity = Vector3.zero; rb.useGravity = true; }
+            if (rb) { rb.linearVelocity = Vector3.zero; rb.useGravity = true; }
             if (animator) animator.SetBool("IsFloating", false);
             TransitionToIdle();
         }
