@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using System.Collections;
 
 public class DropBox : MonoBehaviour
 {
@@ -16,22 +17,37 @@ public class DropBox : MonoBehaviour
 
     private bool alreadyOpened = false;
 
+    private Animator animator;
+
     private int groundLayer;
 
     void Start()
     {
         // Ground レイヤー番号を取得
         groundLayer = LayerMask.NameToLayer("Ground");
+        animator = GetComponent<Animator>();
     }
 
     private void OnCollisionEnter(Collision collision)
     {
-        // Ground レイヤー以外は無視
         if (collision.gameObject.layer != groundLayer) return;
-
         if (alreadyOpened) return;
+
         alreadyOpened = true;
 
+        // アニメーション再生
+        if (animator != null)
+        {
+            animator.SetTrigger("Open");
+            StartCoroutine(OnBreakAnimationEnd());
+        }
+
+        // アニメーション後に中身を出したい場合は
+        // Destroy をすぐに呼ばない方がいい
+    }
+
+    IEnumerator OnBreakAnimationEnd()
+    {
         SpawnRandomItem();
 
         if (breakEffect != null)
@@ -42,9 +58,11 @@ public class DropBox : MonoBehaviour
                 Quaternion.identity
             );
         }
+        yield return new WaitForSeconds(1f);
 
         Destroy(gameObject);
     }
+
 
     private void SpawnRandomItem()
     {
