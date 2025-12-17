@@ -154,6 +154,33 @@ public class VoxController : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// ダメージを受ける共通メソッド
+    /// </summary>
+    /// <param name="damageAmount">ダメージ量</param>
+    public void TakeDamage(float damageAmount)
+    {
+
+        // これがコンソールに出るか確認
+        Debug.Log($"<color=red>ボスがダメージを受けました！量: {damageAmount}</color>");
+
+        // 浮動小数点のダメージをintに変換（現在のHP変数がint型のため）
+        int dmg = Mathf.CeilToInt(damageAmount);
+
+        // 基本的にはボス本体へダメージを与える
+        DamageBoss(dmg);
+
+        // もし「特定のアームに攻撃が当たった時だけアームのHPを減らしたい」場合は、
+        // 攻撃側の判定（Raycastなど）からアームのインデックスを取得して 
+        // DamageArm(index, dmg) を呼ぶように拡張も可能です。
+    }
+
+    // ヒットエフェクトなどのためにコライダーの中心を返すプロパティ（必要に応じて）
+    public Vector3 GetCenter()
+    {
+        return transform.position; // もしBoxの中心がズレているなら調整
+    }
+
 
     // 爆発＆停止処理
     IEnumerator DestroyArm(int index)
