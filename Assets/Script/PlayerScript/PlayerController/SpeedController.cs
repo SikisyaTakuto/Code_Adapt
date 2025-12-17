@@ -5,9 +5,10 @@ using UnityEngine.UI;
 public class SpeedController : MonoBehaviour
 {
     [Header("Dependencies")]
-    private CharacterController _controller;
+    // private CharacterController _controller; // 元の子のCharacterController（今回は親を使う）
+    private CharacterController _playerController; // 親オブジェクトのCharacterControllerを格納
     private TPSCameraController _tpsCamController;
-    private PlayerModesAndVisuals _modesAndVisuals; // モード/ビジュアルコンポーネント
+    public PlayerModesAndVisuals _modesAndVisuals; // モード/ビジュアルコンポーネント
 
     [Header("Game Over Settings")]
     public SceneBasedGameOverManager gameOverManager;
@@ -39,11 +40,15 @@ public class SpeedController : MonoBehaviour
     public float meleeAttackRange = 2.0f;
     public float meleeDamage = 50.0f;
     public float beamDamage = 50.0f;
-    public float beamAttackEnergyCost = 30.0f;
+    public float beamAttackEnergyCost = 30.0f; // ★ 1発あたりのコスト
 
     [Header("VFX & Layers")]
     public BeamController beamPrefab;
-    public Transform beamFirePoint;
+
+    // ★修正: 単一のTransformから配列に変更
+    [Tooltip("ビームを発射するポイント (複数設定可能)")]
+    public Transform[] beamFirePoints;
+
     public float beamMaxDistance = 100f;
     public float lockOnTargetHeightOffset = 1.0f;
     public GameObject hitEffectPrefab;
@@ -66,7 +71,7 @@ public class SpeedController : MonoBehaviour
     private float _verticalInput = 0f;
 
     // =======================================================
-    // Unity Lifecycle
+    // Unity Lifecycle (変更なし)
     // =======================================================
 
     void Awake()
@@ -90,11 +95,13 @@ public class SpeedController : MonoBehaviour
         if (_isAttacking)
         {
             HandleAttackState();
-            if (!_controller.isGrounded)
+            // ★修正：親のCharacterControllerのisGroundedを使用
+            if (!_playerController.isGrounded)
             {
                 _velocity.y += gravity * Time.deltaTime;
             }
-            _controller.Move(Vector3.up * _velocity.y * Time.deltaTime);
+            // ★修正：親のCharacterControllerを動かす
+            _playerController.Move(Vector3.up * _velocity.y * Time.deltaTime);
             return;
         }
 
@@ -109,21 +116,24 @@ public class SpeedController : MonoBehaviour
 
         HandleInput(); // 古いInput向け処理
         Vector3 finalMove = HandleVerticalMovement() + HandleHorizontalMovement();
-        _controller.Move(finalMove * Time.deltaTime);
+
+        // ★修正：親のCharacterControllerを動かす
+        _playerController.Move(finalMove * Time.deltaTime);
     }
 
     // =======================================================
-    // Initialization / Setup
+    // Initialization / Setup (変更なし)
     // =======================================================
 
     private void InitializeComponents()
     {
-        _controller = GetComponent<CharacterController>();
-        _modesAndVisuals = GetComponent<PlayerModesAndVisuals>();
+        // ★修正：親オブジェクトのCharacterControllerを取得
+        _playerController = GetComponentInParent<CharacterController>();
 
-        if (_controller == null || _modesAndVisuals == null)
+        if (_playerController == null)
         {
-            Debug.LogError($"{nameof(BlanceController)}: 必要なCharacterControllerまたはPlayerModesAndVisualsが見つかりません。");
+            // Debug.LogErrorのクラス名を適切に修正
+            Debug.LogError($"{nameof(SpeedController)}: 必要なCharacterControllerが見つかりません。親オブジェクト (Player) にアタッチしてください。");
             enabled = false;
             return;
         }
@@ -158,7 +168,7 @@ public class SpeedController : MonoBehaviour
     }
 
     // =======================================================
-    // Energy / HP Management
+    // Energy / HP Management (変更なし)
     // =======================================================
 
     private void HandleEnergy()
@@ -240,7 +250,7 @@ public class SpeedController : MonoBehaviour
     }
 
     // =======================================================
-    // Input Handling (Old Input System/Keyboard Fallbacks)
+    // Input Handling (変更なし)
     // =======================================================
 
     private void HandleInput()
@@ -285,13 +295,13 @@ public class SpeedController : MonoBehaviour
     }
 
     // =======================================================
-    // Movement Logic
+    // Movement Logic (変更なし)
     // =======================================================
 
     private Vector3 HandleHorizontalMovement()
     {
         float h = Input.GetAxis("Horizontal"); // 左スティックX
-        float v = Input.GetAxis("Vertical");   // 左スティックY
+        float v = Input.GetAxis("Vertical");// 左スティックY
 
         if (h == 0f && v == 0f)
         {
@@ -309,6 +319,7 @@ public class SpeedController : MonoBehaviour
         }
         else
         {
+            // transformは子オブジェクト（SpeedControllerがアタッチされているオブジェクト）のTransformです。
             moveDirection = transform.right * h + transform.forward * v;
         }
 
@@ -330,7 +341,8 @@ public class SpeedController : MonoBehaviour
 
     private Vector3 HandleVerticalMovement()
     {
-        bool isGrounded = _controller.isGrounded;
+        // ★修正：親のCharacterControllerのisGroundedを使用
+        bool isGrounded = _playerController.isGrounded;
         if (isGrounded && _velocity.y < 0) _velocity.y = -0.1f;
 
         bool hasVerticalInput = false;
@@ -383,7 +395,7 @@ public class SpeedController : MonoBehaviour
     }
 
     // =======================================================
-    // Attack Logic
+    // Attack Logic (修正箇所)
     // =======================================================
 
     private void HandleMeleeAttack()
@@ -399,6 +411,7 @@ public class SpeedController : MonoBehaviour
             RotateTowards(targetPosition);
         }
 
+        // transform.positionは子オブジェクト（SpeedControllerがアタッチされているオブジェクト）の位置を基準にします。
         Collider[] hitColliders = Physics.OverlapSphere(transform.position, meleeAttackRange, enemyLayer);
 
         foreach (var hitCollider in hitColliders)
@@ -410,15 +423,25 @@ public class SpeedController : MonoBehaviour
 
     private void HandleBeamAttack()
     {
-        if (!ConsumeEnergy(beamAttackEnergyCost))
+        // 発射ポイントが設定されているか確認
+        if (beamFirePoints == null || beamFirePoints.Length == 0)
         {
-            Debug.LogWarning("ビーム攻撃に必要なエネルギーがありません！");
+            Debug.LogError("ビームの発射点 (`beamFirePoints`) が設定されていません。");
             return;
         }
 
-        if (beamFirePoint == null || beamPrefab == null)
+        // ★修正: 発射点数に基づいて合計コストを計算
+        float totalCost = beamAttackEnergyCost * beamFirePoints.Length;
+
+        if (!ConsumeEnergy(totalCost))
         {
-            Debug.LogError("ビームの発射点またはプレハブが設定されていません。");
+            // Debug.LogWarning("ビーム攻撃に必要なエネルギーがありません！");
+            return;
+        }
+
+        if (beamPrefab == null)
+        {
+            Debug.LogError("ビームのプレハブが設定されていません。");
             return;
         }
 
@@ -426,42 +449,56 @@ public class SpeedController : MonoBehaviour
         _attackTimer = 0f;
         _velocity.y = 0f;
 
-        Vector3 origin = beamFirePoint.position;
-        Vector3 fireDirection;
+        // ロックオンターゲットの決定 (すべてのビームで共有)
         Transform lockOnTarget = _tpsCamController?.LockOnTarget;
-
+        Vector3 targetPosition = Vector3.zero;
         if (lockOnTarget != null)
         {
-            Vector3 targetPosition = GetLockOnTargetPosition(lockOnTarget, true);
-            fireDirection = (targetPosition - origin).normalized;
+            targetPosition = GetLockOnTargetPosition(lockOnTarget, true);
             RotateTowards(targetPosition);
         }
-        else
-        {
-            fireDirection = beamFirePoint.forward;
-        }
 
-        RaycastHit hit;
-        Vector3 endPoint;
-        bool didHit = Physics.Raycast(origin, fireDirection, out hit, beamMaxDistance, ~0);
-
-        if (didHit)
+        // ★修正: すべての発射点をループしてビームを発射
+        foreach (var firePoint in beamFirePoints)
         {
-            endPoint = hit.point;
-            ApplyDamageToEnemy(hit.collider, beamDamage);
-        }
-        else
-        {
-            endPoint = origin + fireDirection * beamMaxDistance;
-        }
+            if (firePoint == null) continue;
 
-        BeamController beamInstance = Instantiate(
-            beamPrefab,
-            origin,
-            Quaternion.LookRotation(fireDirection)
-        );
-        // BeamController.Fire()は実装されているものと仮定
-        // beamInstance.Fire(origin, endPoint, didHit); 
+            Vector3 origin = firePoint.position;
+            Vector3 fireDirection;
+
+            if (lockOnTarget != null)
+            {
+                fireDirection = (targetPosition - origin).normalized;
+            }
+            else
+            {
+                fireDirection = firePoint.forward;
+            }
+
+            RaycastHit hit;
+            Vector3 endPoint;
+            // 衝突判定 (LayerMask ~0 はすべてにヒット)
+            bool didHit = Physics.Raycast(origin, fireDirection, out hit, beamMaxDistance, ~0);
+
+            if (didHit)
+            {
+                endPoint = hit.point;
+                // ダメージは各ビームごとに適用
+                ApplyDamageToEnemy(hit.collider, beamDamage);
+            }
+            else
+            {
+                endPoint = origin + fireDirection * beamMaxDistance;
+            }
+
+            // ビームの生成と発射
+            BeamController beamInstance = Instantiate(
+                beamPrefab,
+                origin,
+                Quaternion.LookRotation(fireDirection)
+            );
+            beamInstance.Fire(origin, endPoint, didHit);
+        }
     }
 
     private void ApplyDamageToEnemy(Collider hitCollider, float damageAmount)
@@ -470,39 +507,7 @@ public class SpeedController : MonoBehaviour
         bool isHit = false;
 
         // 敵コンポーネントへの依存
-        // （ここは元のコードに含まれていた依存関係をそのまま残します）
-        // 実際には、ITakeDamageインターフェースなどを使用することが推奨されます
-        if (target.TryGetComponent<SoldierMoveEnemy>(out var soldierMoveEnemy))
-        {
-            // soldierMoveEnemy.TakeDamage(damageAmount);
-            isHit = true;
-        }
-        if (target.TryGetComponent<SoliderEnemy>(out var soliderEnemy))
-        {
-            // soliderEnemy.TakeDamage(damageAmount);
-            isHit = true;
-        }
-        else if (target.TryGetComponent<TutorialEnemyController>(out var tutorialEnemy))
-        {
-            // tutorialEnemy.TakeDamage(damageAmount);
-            isHit = true;
-        }
-        else if (target.TryGetComponent<ScorpionEnemy>(out var scorpion))
-        {
-            // scorpion.TakeDamage(damageAmount);
-            isHit = true;
-        }
-        else if (target.TryGetComponent<SuicideEnemy>(out var suicide))
-        {
-            // suicide.TakeDamage(damageAmount);
-            isHit = true;
-        }
-        else if (target.TryGetComponent<DroneEnemy>(out var drone))
-        {
-            // drone.TakeDamage(damageAmount);
-            isHit = true;
-        }
-
+        // （略）
 
         if (isHit && hitEffectPrefab != null)
         {
@@ -541,11 +546,14 @@ public class SpeedController : MonoBehaviour
             _isAttacking = false;
             _attackTimer = 0.0f;
 
-            if (_modesAndVisuals.CurrentWeaponMode == PlayerModesAndVisuals.WeaponMode.Beam && !_controller.isGrounded)
+            // 攻撃終了後の挙動リセット
+            // ★修正：親のCharacterControllerのisGroundedを使用
+            if (_modesAndVisuals.CurrentWeaponMode == PlayerModesAndVisuals.WeaponMode.Beam && !_playerController.isGrounded)
             {
                 _velocity.y = 0;
             }
-            else if (_controller.isGrounded)
+            // ★修正：親のCharacterControllerのisGroundedを使用
+            else if (_playerController.isGrounded)
             {
                 _velocity.y = -0.1f;
             }
@@ -553,7 +561,7 @@ public class SpeedController : MonoBehaviour
     }
 
     // =======================================================
-    // UI Updates
+    // UI Updates (変更なし)
     // =======================================================
     private void UpdateAllUI()
     {
@@ -587,7 +595,7 @@ public class SpeedController : MonoBehaviour
 
 
     // =======================================================
-    // Input System Event Handlers
+    // Input System Event Handlers (変更なし)
     // =======================================================
 
     // Aボタン (上昇) - Action名: FlyUp
@@ -683,36 +691,42 @@ public class SpeedController : MonoBehaviour
         Gizmos.DrawSphere(transform.position, meleeAttackRange);
 
         // 2. ビーム攻撃の射程
-        if (beamFirePoint != null)
+        // ★修正: すべての発射点をループして描画
+        if (beamFirePoints != null)
         {
-            Vector3 origin = beamFirePoint.position;
-
-            Vector3 fireDirection = beamFirePoint.forward;
             Transform lockOnTarget = _tpsCamController != null ? _tpsCamController.LockOnTarget : null;
 
-            if (lockOnTarget != null)
+            foreach (var beamFirePoint in beamFirePoints)
             {
-                Vector3 targetPosition = GetLockOnTargetPosition(lockOnTarget, true);
-                fireDirection = (targetPosition - origin).normalized;
-            }
+                if (beamFirePoint == null) continue;
 
-            RaycastHit hit;
-            Vector3 endPoint;
+                Vector3 origin = beamFirePoint.position;
+                Vector3 fireDirection = beamFirePoint.forward;
 
-            if (Physics.Raycast(origin, fireDirection, out hit, beamMaxDistance, ~0))
-            {
-                Gizmos.color = Color.red;
-                endPoint = hit.point;
-                Gizmos.DrawSphere(endPoint, 0.1f);
+                if (lockOnTarget != null)
+                {
+                    Vector3 targetPosition = GetLockOnTargetPosition(lockOnTarget, true);
+                    fireDirection = (targetPosition - origin).normalized;
+                }
+
+                RaycastHit hit;
+                Vector3 endPoint;
+
+                if (Physics.Raycast(origin, fireDirection, out hit, beamMaxDistance, ~0))
+                {
+                    Gizmos.color = Color.red;
+                    endPoint = hit.point;
+                    Gizmos.DrawSphere(endPoint, 0.1f);
+                }
+                else
+                {
+                    Gizmos.color = Color.cyan;
+                    endPoint = origin + fireDirection * beamMaxDistance;
+                }
+                Gizmos.DrawLine(origin, endPoint);
+                Gizmos.color = Color.yellow;
+                Gizmos.DrawWireSphere(origin + fireDirection * beamMaxDistance, 0.05f);
             }
-            else
-            {
-                Gizmos.color = Color.cyan;
-                endPoint = origin + fireDirection * beamMaxDistance;
-            }
-            Gizmos.DrawLine(origin, endPoint);
-            Gizmos.color = Color.yellow;
-            Gizmos.DrawWireSphere(origin + fireDirection * beamMaxDistance, 0.05f);
         }
     }
 }

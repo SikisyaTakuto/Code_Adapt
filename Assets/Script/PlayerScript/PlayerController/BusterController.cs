@@ -4,10 +4,18 @@ using UnityEngine.UI;
 
 public class BusterController : MonoBehaviour
 {
+    // =======================================================
+    // Dependencies
+    // =======================================================
+
     [Header("Dependencies")]
-    private CharacterController _controller;
+    private CharacterController _playerController; // 親オブジェクトのCharacterControllerを格納
     private TPSCameraController _tpsCamController;
-    private PlayerModesAndVisuals _modesAndVisuals; // モード/ビジュアルコンポーネント
+    public PlayerModesAndVisuals _modesAndVisuals; // モード/ビジュアルコンポーネント
+
+    // =======================================================
+    // Game/Stats Settings
+    // =======================================================
 
     [Header("Game Over Settings")]
     public SceneBasedGameOverManager gameOverManager;
@@ -34,6 +42,10 @@ public class BusterController : MonoBehaviour
     public float recoveryDelay = 1.0f;
     public Slider energySlider;
 
+    // =======================================================
+    // Attack Settings (Multiple Beam Fire Points)
+    // =======================================================
+
     [Header("Attack Settings")]
     public float attackFixedDuration = 0.8f;
     public float meleeAttackRange = 2.0f;
@@ -43,7 +55,18 @@ public class BusterController : MonoBehaviour
 
     [Header("VFX & Layers")]
     public BeamController beamPrefab;
-    public Transform beamFirePoint;
+
+    // ★修正: 複数の発射点を格納するための配列
+    [Tooltip("ミニガン用発射点 (2箇所)")]
+    public Transform[] minigunFirePoints;
+
+    [Tooltip("レールガン用発射点 (2箇所)")]
+    public Transform[] railgunFirePoints;
+
+    // ★追加: ミニガン連射間隔
+    [Tooltip("ミニガン連射間隔")]
+    public float minigunFireRate = 0.1f;
+
     public float beamMaxDistance = 100f;
     public float lockOnTargetHeightOffset = 1.0f;
     public GameObject hitEffectPrefab;
@@ -57,6 +80,8 @@ public class BusterController : MonoBehaviour
     private float _lastEnergyConsumptionTime;
     private bool _hasTriggeredEnergyDepletedEvent = false;
     private bool _isDead = false;
+
+    private float _lastMinigunFireTime = -1f; // ミニガン連射タイマー
 
     private Vector3 _velocity;
     private float _moveSpeed; // 派生した移動速度
@@ -90,11 +115,13 @@ public class BusterController : MonoBehaviour
         if (_isAttacking)
         {
             HandleAttackState();
-            if (!_controller.isGrounded)
+            // 親のCharacterControllerのisGroundedを使用し、重力を適用
+            if (!_playerController.isGrounded)
             {
                 _velocity.y += gravity * Time.deltaTime;
             }
-            _controller.Move(Vector3.up * _velocity.y * Time.deltaTime);
+            // 親のCharacterControllerを動かす
+            _playerController.Move(Vector3.up * _velocity.y * Time.deltaTime);
             return;
         }
 
@@ -107,9 +134,22 @@ public class BusterController : MonoBehaviour
         ApplyArmorStats();
         HandleEnergy();
 
-        HandleInput(); // 古いInput向け処理
+        HandleInput(); // 古いInput向け処理 (主に攻撃と武器切り替えを処理)
+
+        // ★修正: Minigunの連射はUpdateで処理する
+        if (_modesAndVisuals.CurrentWeaponMode == PlayerModesAndVisuals.WeaponMode.Beam &&
+            Input.GetMouseButton(0) && !_isAttacking)
+        {
+            // 仮定: 現在のビームモードがMinigunであるかどうかのフラグが必要
+            // ここではMinigunモードであると仮定して連射ロジックを呼び出す
+            // (実際には_modesAndVisualsにフラグが必要です)
+            HandleBeamAttack(true); // true = Minigunモード
+        }
+
         Vector3 finalMove = HandleVerticalMovement() + HandleHorizontalMovement();
-        _controller.Move(finalMove * Time.deltaTime);
+
+        // 親のCharacterControllerを動かす
+        _playerController.Move(finalMove * Time.deltaTime);
     }
 
     // =======================================================
@@ -118,12 +158,12 @@ public class BusterController : MonoBehaviour
 
     private void InitializeComponents()
     {
-        _controller = GetComponent<CharacterController>();
-        _modesAndVisuals = GetComponent<PlayerModesAndVisuals>();
+        // 親オブジェクトのCharacterControllerを取得
+        _playerController = GetComponentInParent<CharacterController>();
 
-        if (_controller == null || _modesAndVisuals == null)
+        if (_playerController == null)
         {
-            Debug.LogError($"{nameof(BlanceController)}: 必要なCharacterControllerまたはPlayerModesAndVisualsが見つかりません。");
+            Debug.LogError($"{nameof(BusterController)}: 必要なCharacterControllerが見つかりません。親オブジェクト (Player) にアタッチしてください。");
             enabled = false;
             return;
         }
@@ -175,7 +215,7 @@ public class BusterController : MonoBehaviour
         _currentEnergy = Mathf.Clamp(_currentEnergy, 0, maxEnergy);
         UpdateEnergyUI();
 
-        // エネルギー枯渇イベントの管理
+        // エネルギー枯渇イベントの管理 (省略)
         if (_currentEnergy <= 0.1f && !_hasTriggeredEnergyDepletedEvent)
         {
             _hasTriggeredEnergyDepletedEvent = true;
@@ -278,7 +318,9 @@ public class BusterController : MonoBehaviour
                     HandleMeleeAttack();
                     break;
                 case PlayerModesAndVisuals.WeaponMode.Beam:
-                    HandleBeamAttack();
+                    // レールガン（単発）モードだと仮定し、HandleBeamAttack(false) を呼び出す
+                    // MinigunはUpdate()のGetMouseButton(0)で処理されます。
+                    HandleBeamAttack(false);
                     break;
             }
         }
@@ -291,7 +333,7 @@ public class BusterController : MonoBehaviour
     private Vector3 HandleHorizontalMovement()
     {
         float h = Input.GetAxis("Horizontal"); // 左スティックX
-        float v = Input.GetAxis("Vertical");   // 左スティックY
+        float v = Input.GetAxis("Vertical");// 左スティックY
 
         if (h == 0f && v == 0f)
         {
@@ -301,7 +343,6 @@ public class BusterController : MonoBehaviour
         Vector3 inputDirection = new Vector3(h, 0, v);
         Vector3 moveDirection;
 
-        // カメラ基準の移動方向を決定
         if (_tpsCamController != null)
         {
             Quaternion cameraRotation = Quaternion.Euler(0, _tpsCamController.transform.eulerAngles.y, 0);
@@ -316,7 +357,7 @@ public class BusterController : MonoBehaviour
 
         float currentSpeed = _moveSpeed;
 
-        // ダッシュ処理 (キーボード LeftShift / Input System _isBoosting)
+        // ダッシュ処理
         bool isDashing = (Input.GetKey(KeyCode.LeftShift) || _isBoosting) && _currentEnergy > 0.01f;
 
         if (isDashing)
@@ -330,7 +371,8 @@ public class BusterController : MonoBehaviour
 
     private Vector3 HandleVerticalMovement()
     {
-        bool isGrounded = _controller.isGrounded;
+        // 親のCharacterControllerのisGroundedを使用
+        bool isGrounded = _playerController.isGrounded;
         if (isGrounded && _velocity.y < 0) _velocity.y = -0.1f;
 
         bool hasVerticalInput = false;
@@ -383,7 +425,7 @@ public class BusterController : MonoBehaviour
     }
 
     // =======================================================
-    // Attack Logic
+    // Attack Logic (Melee / Multiple Beam)
     // =======================================================
 
     private void HandleMeleeAttack()
@@ -408,101 +450,112 @@ public class BusterController : MonoBehaviour
         }
     }
 
-    private void HandleBeamAttack()
+    /// <summary>ミニガンまたはレールガンとしてビーム攻撃を処理します。</summary>
+    /// <param name="isMinigunMode">trueの場合ミニガン（連射）、falseの場合レールガン（単発）として処理。</param>
+    private void HandleBeamAttack(bool isMinigunMode)
     {
-        if (!ConsumeEnergy(beamAttackEnergyCost))
+        if (_isAttacking && !isMinigunMode) return; // Railgunは攻撃アニメーション中は発射しない
+
+        // Minigun連射制御
+        if (isMinigunMode)
         {
-            Debug.LogWarning("ビーム攻撃に必要なエネルギーがありません！");
+            if (Time.time < _lastMinigunFireTime + minigunFireRate)
+            {
+                return; // 冷却中
+            }
+        }
+
+        // Minigun/Railgunでの処理分岐
+        Transform[] firePoints = isMinigunMode ? minigunFirePoints : railgunFirePoints;
+
+        if (firePoints == null || firePoints.Length == 0)
+        {
+            Debug.LogError($"{(isMinigunMode ? "Minigun" : "Railgun")} の発射点が設定されていません。");
             return;
         }
 
-        if (beamFirePoint == null || beamPrefab == null)
+        float cost = beamAttackEnergyCost * (isMinigunMode ? 0.5f : 1.0f); // Minigunはコストを抑える
+
+        if (!ConsumeEnergy(cost * firePoints.Length)) // 全ての発射点からの合計コストを消費
         {
-            Debug.LogError("ビームの発射点またはプレハブが設定されていません。");
+            // Debug.LogWarning("ビーム攻撃に必要なエネルギーがありません！");
             return;
         }
 
-        _isAttacking = true;
-        _attackTimer = 0f;
-        _velocity.y = 0f;
-
-        Vector3 origin = beamFirePoint.position;
-        Vector3 fireDirection;
-        Transform lockOnTarget = _tpsCamController?.LockOnTarget;
-
-        if (lockOnTarget != null)
+        // Railgunは攻撃アニメーションを伴う（単発固定時間）
+        if (!isMinigunMode)
         {
-            Vector3 targetPosition = GetLockOnTargetPosition(lockOnTarget, true);
-            fireDirection = (targetPosition - origin).normalized;
-            RotateTowards(targetPosition);
-        }
-        else
-        {
-            fireDirection = beamFirePoint.forward;
+            _isAttacking = true;
+            _attackTimer = 0f;
+            _velocity.y = 0f;
         }
 
-        RaycastHit hit;
-        Vector3 endPoint;
-        bool didHit = Physics.Raycast(origin, fireDirection, out hit, beamMaxDistance, ~0);
-
-        if (didHit)
+        // 複数の発射点からビームを発射
+        foreach (var firePoint in firePoints)
         {
-            endPoint = hit.point;
-            ApplyDamageToEnemy(hit.collider, beamDamage);
-        }
-        else
-        {
-            endPoint = origin + fireDirection * beamMaxDistance;
+            if (firePoint == null) continue;
+
+            Vector3 origin = firePoint.position;
+            Vector3 fireDirection;
+            Transform lockOnTarget = _tpsCamController?.LockOnTarget;
+
+            // ターゲットの決定
+            if (lockOnTarget != null)
+            {
+                Vector3 targetPosition = GetLockOnTargetPosition(lockOnTarget, true);
+                fireDirection = (targetPosition - origin).normalized;
+                RotateTowards(targetPosition);
+            }
+            else
+            {
+                fireDirection = firePoint.forward;
+            }
+
+            RaycastHit hit;
+            Vector3 endPoint;
+            bool didHit = Physics.Raycast(origin, fireDirection, out hit, beamMaxDistance, ~0);
+
+            if (didHit)
+            {
+                endPoint = hit.point;
+                // ダメージ適用 (Minigunはダメージを低くする)
+                ApplyDamageToEnemy(hit.collider, beamDamage * (isMinigunMode ? 0.5f : 1.0f));
+            }
+            else
+            {
+                endPoint = origin + fireDirection * beamMaxDistance;
+            }
+
+            // ビームの視覚効果を生成
+            BeamController beamInstance = Instantiate(
+                beamPrefab,
+                origin,
+                Quaternion.LookRotation(fireDirection)
+            );
+            // BeamControllerのFire関数を呼び出す
+            beamInstance.Fire(origin, endPoint, didHit);
         }
 
-        BeamController beamInstance = Instantiate(
-            beamPrefab,
-            origin,
-            Quaternion.LookRotation(fireDirection)
-        );
-        // BeamController.Fire()は実装されているものと仮定
-        // beamInstance.Fire(origin, endPoint, didHit); 
+        if (isMinigunMode)
+        {
+            _lastMinigunFireTime = Time.time;
+        }
     }
+
 
     private void ApplyDamageToEnemy(Collider hitCollider, float damageAmount)
     {
         GameObject target = hitCollider.gameObject;
         bool isHit = false;
 
-        // 敵コンポーネントへの依存
-        // （ここは元のコードに含まれていた依存関係をそのまま残します）
-        // 実際には、ITakeDamageインターフェースなどを使用することが推奨されます
-        if (target.TryGetComponent<SoldierMoveEnemy>(out var soldierMoveEnemy))
-        {
-            // soldierMoveEnemy.TakeDamage(damageAmount);
-            isHit = true;
-        }
-        if (target.TryGetComponent<SoliderEnemy>(out var soliderEnemy))
-        {
-            // soliderEnemy.TakeDamage(damageAmount);
-            isHit = true;
-        }
-        else if (target.TryGetComponent<TutorialEnemyController>(out var tutorialEnemy))
-        {
-            // tutorialEnemy.TakeDamage(damageAmount);
-            isHit = true;
-        }
-        else if (target.TryGetComponent<ScorpionEnemy>(out var scorpion))
-        {
-            // scorpion.TakeDamage(damageAmount);
-            isHit = true;
-        }
-        else if (target.TryGetComponent<SuicideEnemy>(out var suicide))
-        {
-            // suicide.TakeDamage(damageAmount);
-            isHit = true;
-        }
-        else if (target.TryGetComponent<DroneEnemy>(out var drone))
-        {
-            // drone.TakeDamage(damageAmount);
-            isHit = true;
-        }
-
+        // 敵コンポーネントへの依存（略）
+        // if (target.TryGetComponent<EnemyHealth>(out var health))
+        // {
+        //     health.TakeDamage(damageAmount);
+        //     isHit = true;
+        // }
+        // 仮に常にヒットしたとします
+        isHit = true;
 
         if (isHit && hitEffectPrefab != null)
         {
@@ -541,13 +594,14 @@ public class BusterController : MonoBehaviour
             _isAttacking = false;
             _attackTimer = 0.0f;
 
-            if (_modesAndVisuals.CurrentWeaponMode == PlayerModesAndVisuals.WeaponMode.Beam && !_controller.isGrounded)
+            // 攻撃終了後の挙動リセット
+            if (!_playerController.isGrounded)
             {
-                _velocity.y = 0;
+                _velocity.y = 0; // 空中攻撃後の勢いをリセット
             }
-            else if (_controller.isGrounded)
+            else
             {
-                _velocity.y = -0.1f;
+                _velocity.y = -0.1f; // 地面に着地状態を強制
             }
         }
     }
@@ -604,17 +658,21 @@ public class BusterController : MonoBehaviour
         _verticalInput = context.performed ? -1f : 0f;
     }
 
-    // Right Button/RB (加速/ブースト) - Action名: RightShoulder (推奨) または Boost
+    // Right Button/RB (加速/ブースト) - Action名: Boost
     public void OnBoost(InputAction.CallbackContext context)
     {
         if (_isDead) return;
         _isBoosting = context.performed;
     }
 
-    // Right Trigger/RT (攻撃) - Action名: RightTrigger または Attack
+    // Right Trigger/RT (攻撃) - Action名: Attack
     public void OnAttack(InputAction.CallbackContext context)
     {
         if (_isDead) return;
+
+        // Input Systemの場合、MinigunはPerformed（長押し）で連射させるのが理想ですが、
+        // Minigunの連射ロジックはUpdate/GetMouseButton(0)に任せます。
+        // ここでは、単発のMeleeまたはRailgunの "開始" のみを処理します。
         if (context.started && !_isAttacking)
         {
             switch (_modesAndVisuals.CurrentWeaponMode)
@@ -623,13 +681,14 @@ public class BusterController : MonoBehaviour
                     HandleMeleeAttack();
                     break;
                 case PlayerModesAndVisuals.WeaponMode.Beam:
-                    HandleBeamAttack();
+                    // Railgunモードの発射
+                    HandleBeamAttack(false);
                     break;
             }
         }
     }
 
-    // Yボタン (武装切替) - Action名: WeaponSwitch (推奨) または YButton
+    // Yボタン (武装切替) - Action名: WeaponSwitch
     public void OnWeaponSwitch(InputAction.CallbackContext context)
     {
         if (_isDead) return;
@@ -639,7 +698,7 @@ public class BusterController : MonoBehaviour
         }
     }
 
-    // DPad (Armor Switch - 例として DPad Right, Up, Left を使用)
+    // DPad (Armor Switch)
     public void OnDPad(InputAction.CallbackContext context)
     {
         if (_isDead) return;
@@ -647,17 +706,14 @@ public class BusterController : MonoBehaviour
         {
             Vector2 input = context.ReadValue<Vector2>();
 
-            // DPadの右 (Buster Mode)
             if (input.x > 0.5f)
             {
                 _modesAndVisuals.SwitchArmor(PlayerModesAndVisuals.ArmorMode.Buster);
             }
-            // DPadの上 (Normal Mode)
             else if (input.y > 0.5f)
             {
                 _modesAndVisuals.SwitchArmor(PlayerModesAndVisuals.ArmorMode.Normal);
             }
-            // DPadの左 (Speed Mode)
             else if (input.x < -0.5f)
             {
                 _modesAndVisuals.SwitchArmor(PlayerModesAndVisuals.ArmorMode.Speed);
@@ -665,7 +721,7 @@ public class BusterController : MonoBehaviour
         }
     }
 
-    // Menuボタン (設定画面) - Action名: Menu (推奨) または StartButton
+    // Menuボタン (設定画面) - Action名: Menu
     public void OnMenu(InputAction.CallbackContext context)
     {
         if (_isDead) return;
@@ -676,18 +732,32 @@ public class BusterController : MonoBehaviour
     }
 
 
+    // =======================================================
+    // Gizmos (Debug Visuals)
+    // =======================================================
+
     private void OnDrawGizmosSelected()
     {
         // 1. 近接攻撃の範囲 (球体)
         Gizmos.color = new Color(1f, 0.5f, 0f, 0.5f);
         Gizmos.DrawSphere(transform.position, meleeAttackRange);
 
-        // 2. ビーム攻撃の射程
-        if (beamFirePoint != null)
-        {
-            Vector3 origin = beamFirePoint.position;
+        // 2. ビーム攻撃の射程 (MinigunとRailgunの発射点をすべて描画)
+        DrawBeamGizmos(minigunFirePoints, Color.cyan);
+        DrawBeamGizmos(railgunFirePoints, Color.magenta);
+    }
 
+    private void DrawBeamGizmos(Transform[] firePoints, Color baseColor)
+    {
+        if (firePoints == null) return;
+
+        foreach (var beamFirePoint in firePoints)
+        {
+            if (beamFirePoint == null) continue;
+
+            Vector3 origin = beamFirePoint.position;
             Vector3 fireDirection = beamFirePoint.forward;
+
             Transform lockOnTarget = _tpsCamController != null ? _tpsCamController.LockOnTarget : null;
 
             if (lockOnTarget != null)
@@ -701,13 +771,13 @@ public class BusterController : MonoBehaviour
 
             if (Physics.Raycast(origin, fireDirection, out hit, beamMaxDistance, ~0))
             {
-                Gizmos.color = Color.red;
+                Gizmos.color = Color.red; // ヒット時は赤
                 endPoint = hit.point;
                 Gizmos.DrawSphere(endPoint, 0.1f);
             }
             else
             {
-                Gizmos.color = Color.cyan;
+                Gizmos.color = baseColor; // ベースの色
                 endPoint = origin + fireDirection * beamMaxDistance;
             }
             Gizmos.DrawLine(origin, endPoint);

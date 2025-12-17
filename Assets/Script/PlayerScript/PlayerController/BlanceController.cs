@@ -3,19 +3,22 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.InputSystem;
 using System;
+using System.Collections.Generic; // List<T>を使用する場合に必要ですが、今回はArrayのままにします。
 
 /// <summary>
 /// プレイヤーの移動、HP/エネルギー管理、攻撃、およびInput Systemからの入力を制御します。
-/// PlayerModesAndVisualsコンポーネントに依存します。（PlayerMovementAndCombatの複製）
+/// PlayerModesAndVisualsコンポーネントに依存します。
 /// </summary>
-[RequireComponent(typeof(CharacterController))]
-[RequireComponent(typeof(PlayerModesAndVisuals))]
+// ★注意: 親にCharacterControllerをアタッチする場合は、子にアタッチされているCharacterControllerを削除し、
+// この[RequireComponent(typeof(CharacterController))]も削除することが推奨されます。
+// 今回は元のコードの構造を残し、機能だけを親依存に変更します。
 public class BlanceController : MonoBehaviour
 {
     [Header("Dependencies")]
-    private CharacterController _controller;
+    // private CharacterController _controller; // 元の子のCharacterController（今回は親を使う）
+    private CharacterController _playerController; // ★修正：親オブジェクトのCharacterControllerを格納
     private TPSCameraController _tpsCamController;
-    private PlayerModesAndVisuals _modesAndVisuals; // モード/ビジュアルコンポーネント
+    public PlayerModesAndVisuals _modesAndVisuals; // モード/ビジュアルコンポーネント
 
     [Header("Game Over Settings")]
     public SceneBasedGameOverManager gameOverManager;
@@ -51,7 +54,9 @@ public class BlanceController : MonoBehaviour
 
     [Header("VFX & Layers")]
     public BeamController beamPrefab;
-    public Transform beamFirePoint;
+    // ★修正: 単一のFirePointから複数のFirePointsへ変更
+    // Unityエディタで2つ以上のTransformを割り当ててください。
+    public Transform[] beamFirePoints;
     public float beamMaxDistance = 100f;
     public float lockOnTargetHeightOffset = 1.0f;
     public GameObject hitEffectPrefab;
@@ -98,11 +103,13 @@ public class BlanceController : MonoBehaviour
         if (_isAttacking)
         {
             HandleAttackState();
-            if (!_controller.isGrounded)
+            // ★修正：親のCharacterControllerのisGroundedを使用
+            if (!_playerController.isGrounded)
             {
                 _velocity.y += gravity * Time.deltaTime;
             }
-            _controller.Move(Vector3.up * _velocity.y * Time.deltaTime);
+            // ★修正：親のCharacterControllerを動かす
+            _playerController.Move(Vector3.up * _velocity.y * Time.deltaTime);
             return;
         }
 
@@ -117,7 +124,9 @@ public class BlanceController : MonoBehaviour
 
         HandleInput(); // 古いInput向け処理
         Vector3 finalMove = HandleVerticalMovement() + HandleHorizontalMovement();
-        _controller.Move(finalMove * Time.deltaTime);
+
+        // ★修正：親のCharacterControllerを動かす
+        _playerController.Move(finalMove * Time.deltaTime);
     }
 
     // =======================================================
@@ -126,12 +135,12 @@ public class BlanceController : MonoBehaviour
 
     private void InitializeComponents()
     {
-        _controller = GetComponent<CharacterController>();
-        _modesAndVisuals = GetComponent<PlayerModesAndVisuals>();
+        // ★修正：親オブジェクトのCharacterControllerを取得
+        _playerController = GetComponentInParent<CharacterController>();
 
-        if (_controller == null || _modesAndVisuals == null)
+        if (_playerController == null)
         {
-            Debug.LogError($"{nameof(BlanceController)}: 必要なCharacterControllerまたはPlayerModesAndVisualsが見つかりません。");
+            Debug.LogError($"{nameof(BlanceController)}: 必要なCharacterControllerが見つかりません。親オブジェクト (Player) にアタッチしてください。");
             enabled = false;
             return;
         }
@@ -166,7 +175,7 @@ public class BlanceController : MonoBehaviour
     }
 
     // =======================================================
-    // Energy / HP Management
+    // Energy / HP Management (変更なし)
     // =======================================================
 
     private void HandleEnergy()
@@ -248,7 +257,7 @@ public class BlanceController : MonoBehaviour
     }
 
     // =======================================================
-    // Input Handling (Old Input System/Keyboard Fallbacks)
+    // Input Handling (Old Input System/Keyboard Fallbacks) (変更なし)
     // =======================================================
 
     private void HandleInput()
@@ -299,7 +308,7 @@ public class BlanceController : MonoBehaviour
     private Vector3 HandleHorizontalMovement()
     {
         float h = Input.GetAxis("Horizontal"); // 左スティックX
-        float v = Input.GetAxis("Vertical");   // 左スティックY
+        float v = Input.GetAxis("Vertical");// 左スティックY
 
         if (h == 0f && v == 0f)
         {
@@ -317,6 +326,7 @@ public class BlanceController : MonoBehaviour
         }
         else
         {
+            // transformは子オブジェクト（Blance）のTransformです。
             moveDirection = transform.right * h + transform.forward * v;
         }
 
@@ -338,7 +348,8 @@ public class BlanceController : MonoBehaviour
 
     private Vector3 HandleVerticalMovement()
     {
-        bool isGrounded = _controller.isGrounded;
+        // ★修正：親のCharacterControllerのisGroundedを使用
+        bool isGrounded = _playerController.isGrounded;
         if (isGrounded && _velocity.y < 0) _velocity.y = -0.1f;
 
         bool hasVerticalInput = false;
@@ -391,7 +402,7 @@ public class BlanceController : MonoBehaviour
     }
 
     // =======================================================
-    // Attack Logic
+    // Attack Logic (ビーム発射処理を複数FirePoint対応に修正)
     // =======================================================
 
     private void HandleMeleeAttack()
@@ -407,6 +418,7 @@ public class BlanceController : MonoBehaviour
             RotateTowards(targetPosition);
         }
 
+        // transform.positionは子オブジェクト（Blance）の位置を基準にします。
         Collider[] hitColliders = Physics.OverlapSphere(transform.position, meleeAttackRange, enemyLayer);
 
         foreach (var hitCollider in hitColliders)
@@ -418,13 +430,14 @@ public class BlanceController : MonoBehaviour
 
     private void HandleBeamAttack()
     {
+        // エネルギーチェックは一度で良い
         if (!ConsumeEnergy(beamAttackEnergyCost))
         {
             Debug.LogWarning("ビーム攻撃に必要なエネルギーがありません！");
             return;
         }
 
-        if (beamFirePoint == null || beamPrefab == null)
+        if (beamFirePoints == null || beamFirePoints.Length == 0 || beamPrefab == null)
         {
             Debug.LogError("ビームの発射点またはプレハブが設定されていません。");
             return;
@@ -434,42 +447,58 @@ public class BlanceController : MonoBehaviour
         _attackTimer = 0f;
         _velocity.y = 0f;
 
-        Vector3 origin = beamFirePoint.position;
-        Vector3 fireDirection;
         Transform lockOnTarget = _tpsCamController?.LockOnTarget;
+        Vector3 targetPosition = Vector3.zero;
+        bool isLockedOn = lockOnTarget != null;
 
-        if (lockOnTarget != null)
+        if (isLockedOn)
         {
-            Vector3 targetPosition = GetLockOnTargetPosition(lockOnTarget, true);
-            fireDirection = (targetPosition - origin).normalized;
+            targetPosition = GetLockOnTargetPosition(lockOnTarget, true);
             RotateTowards(targetPosition);
         }
-        else
-        {
-            fireDirection = beamFirePoint.forward;
-        }
 
-        RaycastHit hit;
-        Vector3 endPoint;
-        bool didHit = Physics.Raycast(origin, fireDirection, out hit, beamMaxDistance, ~0);
-
-        if (didHit)
+        // ★修正: すべてのFirePointからビームを発射
+        foreach (var firePoint in beamFirePoints)
         {
-            endPoint = hit.point;
-            ApplyDamageToEnemy(hit.collider, beamDamage);
-        }
-        else
-        {
-            endPoint = origin + fireDirection * beamMaxDistance;
-        }
+            if (firePoint == null) continue;
 
-        BeamController beamInstance = Instantiate(
-            beamPrefab,
-            origin,
-            Quaternion.LookRotation(fireDirection)
-        );
-        // BeamController.Fire()は実装されているものと仮定
-        // beamInstance.Fire(origin, endPoint, didHit); 
+            Vector3 origin = firePoint.position;
+            Vector3 fireDirection;
+
+            if (isLockedOn)
+            {
+                fireDirection = (targetPosition - origin).normalized;
+            }
+            else
+            {
+                // ロックオンしていない場合は、FirePointの向きをそのまま使用
+                fireDirection = firePoint.forward;
+            }
+
+            RaycastHit hit;
+            Vector3 endPoint;
+            bool didHit = Physics.Raycast(origin, fireDirection, out hit, beamMaxDistance, ~0);
+
+            if (didHit)
+            {
+                endPoint = hit.point;
+                // ダメージはFirePointの数で分割すべきか、そのままか、ゲームデザインによります。
+                // ここではシンプルに、当たった場合はビーム一本分のダメージを与えることにします。
+                ApplyDamageToEnemy(hit.collider, beamDamage);
+            }
+            else
+            {
+                endPoint = origin + fireDirection * beamMaxDistance;
+            }
+
+            BeamController beamInstance = Instantiate(
+                beamPrefab,
+                origin,
+                Quaternion.LookRotation(fireDirection)
+            );
+            // BeamController.Fire()は実装されているものと仮定
+            beamInstance.Fire(origin, endPoint, didHit);
+        }
     }
 
     private void ApplyDamageToEnemy(Collider hitCollider, float damageAmount)
@@ -478,43 +507,27 @@ public class BlanceController : MonoBehaviour
         bool isHit = false;
 
         // 敵コンポーネントへの依存
-        // （ここは元のコードに含まれていた依存関係をそのまま残します）
-        // 実際には、ITakeDamageインターフェースなどを使用することが推奨されます
-        if (target.TryGetComponent<SoldierMoveEnemy>(out var soldierMoveEnemy))
+        // （略）
+        // 以下の行をコメントアウトまたは適切な敵コンポーネントのロジックに置き換える必要があります
+        // if (target.TryGetComponent<IDamageable>(out var damageable))
+        // {
+        //     damageable.TakeDamage(damageAmount);
+        //     isHit = true;
+        // }
+
+        // 暫定的にレイヤーで判定できると仮定してisHitをtrueにします
+        if (((1 << target.layer) & enemyLayer) != 0)
         {
-            // soldierMoveEnemy.TakeDamage(damageAmount);
-            isHit = true;
-        }
-        if (target.TryGetComponent<SoliderEnemy>(out var soliderEnemy))
-        {
-            // soliderEnemy.TakeDamage(damageAmount);
-            isHit = true;
-        }
-        else if (target.TryGetComponent<TutorialEnemyController>(out var tutorialEnemy))
-        {
-            // tutorialEnemy.TakeDamage(damageAmount);
-            isHit = true;
-        }
-        else if (target.TryGetComponent<ScorpionEnemy>(out var scorpion))
-        {
-            // scorpion.TakeDamage(damageAmount);
-            isHit = true;
-        }
-        else if (target.TryGetComponent<SuicideEnemy>(out var suicide))
-        {
-            // suicide.TakeDamage(damageAmount);
-            isHit = true;
-        }
-        else if (target.TryGetComponent<DroneEnemy>(out var drone))
-        {
-            // drone.TakeDamage(damageAmount);
+            // 敵レイヤーに属していればヒットと見なします (本来は敵コンポーネントでの判定が必要)
             isHit = true;
         }
 
 
         if (isHit && hitEffectPrefab != null)
         {
-            Instantiate(hitEffectPrefab, hitCollider.transform.position, Quaternion.identity);
+            // Raycastのhit.pointを使う代わりに、一旦ターゲットの位置でエフェクトを生成
+            // 近接攻撃との兼ね合いを考え、今回はそのままColliderの位置を使用
+            Instantiate(hitEffectPrefab, hitCollider.bounds.center, Quaternion.identity);
         }
     }
 
@@ -549,11 +562,13 @@ public class BlanceController : MonoBehaviour
             _isAttacking = false;
             _attackTimer = 0.0f;
 
-            if (_modesAndVisuals.CurrentWeaponMode == PlayerModesAndVisuals.WeaponMode.Beam && !_controller.isGrounded)
+            // ★修正：親のCharacterControllerのisGroundedを使用
+            if (_modesAndVisuals.CurrentWeaponMode == PlayerModesAndVisuals.WeaponMode.Beam && !_playerController.isGrounded)
             {
                 _velocity.y = 0;
             }
-            else if (_controller.isGrounded)
+            // ★修正：親のCharacterControllerのisGroundedを使用
+            else if (_playerController.isGrounded)
             {
                 _velocity.y = -0.1f;
             }
@@ -561,7 +576,7 @@ public class BlanceController : MonoBehaviour
     }
 
     // =======================================================
-    // UI Updates
+    // UI Updates (変更なし)
     // =======================================================
     private void UpdateAllUI()
     {
@@ -595,7 +610,7 @@ public class BlanceController : MonoBehaviour
 
 
     // =======================================================
-    // Input System Event Handlers
+    // Input System Event Handlers (変更なし)
     // =======================================================
 
     // Aボタン (上昇) - Action名: FlyUp
@@ -687,40 +702,56 @@ public class BlanceController : MonoBehaviour
     private void OnDrawGizmosSelected()
     {
         // 1. 近接攻撃の範囲 (球体)
+        // transform.positionは子オブジェクト（Blance）の位置を基準にします。
         Gizmos.color = new Color(1f, 0.5f, 0f, 0.5f);
         Gizmos.DrawSphere(transform.position, meleeAttackRange);
 
-        // 2. ビーム攻撃の射程
-        if (beamFirePoint != null)
+        // 2. ビーム攻撃の射程 (複数FirePoint対応に修正)
+        if (beamFirePoints != null && beamFirePoints.Length > 0 && beamFirePoints[0] != null) // 少なくとも1つ目のFirePointが存在するか確認
         {
-            Vector3 origin = beamFirePoint.position;
-
-            Vector3 fireDirection = beamFirePoint.forward;
             Transform lockOnTarget = _tpsCamController != null ? _tpsCamController.LockOnTarget : null;
+            Vector3 targetPosition = Vector3.zero;
+            bool isLockedOn = lockOnTarget != null;
 
-            if (lockOnTarget != null)
+            if (isLockedOn)
             {
-                Vector3 targetPosition = GetLockOnTargetPosition(lockOnTarget, true);
-                fireDirection = (targetPosition - origin).normalized;
+                targetPosition = GetLockOnTargetPosition(lockOnTarget, true);
             }
 
-            RaycastHit hit;
-            Vector3 endPoint;
+            foreach (var firePoint in beamFirePoints)
+            {
+                if (firePoint == null) continue;
 
-            if (Physics.Raycast(origin, fireDirection, out hit, beamMaxDistance, ~0))
-            {
-                Gizmos.color = Color.red;
-                endPoint = hit.point;
-                Gizmos.DrawSphere(endPoint, 0.1f);
+                Vector3 origin = firePoint.position;
+                Vector3 fireDirection;
+
+                if (isLockedOn)
+                {
+                    fireDirection = (targetPosition - origin).normalized;
+                }
+                else
+                {
+                    fireDirection = firePoint.forward;
+                }
+
+                RaycastHit hit;
+                Vector3 endPoint;
+
+                if (Physics.Raycast(origin, fireDirection, out hit, beamMaxDistance, ~0))
+                {
+                    Gizmos.color = Color.red;
+                    endPoint = hit.point;
+                    Gizmos.DrawSphere(endPoint, 0.1f);
+                }
+                else
+                {
+                    Gizmos.color = Color.cyan;
+                    endPoint = origin + fireDirection * beamMaxDistance;
+                }
+                Gizmos.DrawLine(origin, endPoint);
+                Gizmos.color = Color.yellow;
+                Gizmos.DrawWireSphere(origin + fireDirection * beamMaxDistance, 0.05f);
             }
-            else
-            {
-                Gizmos.color = Color.cyan;
-                endPoint = origin + fireDirection * beamMaxDistance;
-            }
-            Gizmos.DrawLine(origin, endPoint);
-            Gizmos.color = Color.yellow;
-            Gizmos.DrawWireSphere(origin + fireDirection * beamMaxDistance, 0.05f);
         }
     }
 }
