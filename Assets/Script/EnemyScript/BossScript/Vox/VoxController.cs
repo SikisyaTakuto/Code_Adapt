@@ -48,7 +48,7 @@ public class VoxController : MonoBehaviour
     private int[] armHPs;                                   // 各アームの現在のHP
     private bool[] isDestroyed;                             // HP0で動作停止したか
     private GameObject[] heldBoxes;                         // アームが保持している箱
-    private Animator[] armAnimators;                        // アニメーション
+    private Animator[] armAnimators;                        // アームアニメーション
 
 
     // 特殊Z座標の定義
@@ -247,11 +247,8 @@ public class VoxController : MonoBehaviour
                 // 特殊Zに行っており、箱を持っている場合 → 落とす
                 if (canDropNow[index] && heldBoxes[index] != null)
                 {
-                    // アニメーション開始
-                    if (armAnimators[index] != null)
-                    {
-                        armAnimators[index].SetTrigger("Drop");
-                    }
+                    // アニメーション開始        
+                    armAnimators[index].SetTrigger("Drop");
 
                     // 少し待ってから箱を落とす（アニメに合わせる）
                     StartCoroutine(DropAfterAnimation(index, arm));
@@ -321,7 +318,7 @@ public class VoxController : MonoBehaviour
 
     IEnumerator DropAfterAnimation(int index, GameObject arm)
     {
-        yield return new WaitForSeconds(1f); // アニメに合わせて調整
+        yield return new WaitForSeconds(0f); // アニメに合わせて調整
 
         DropHeldBox(index, arm);
     }

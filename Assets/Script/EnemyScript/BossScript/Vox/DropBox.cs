@@ -11,6 +11,9 @@ public class DropBox : MonoBehaviour
     public GameObject[] enemyPrefabs;
     public GameObject breakEffect;
 
+    [SerializeField]
+    private Vector3 breakEffectOffset = new Vector3(0f, 0.5f, 0f);
+
     private bool alreadyOpened = false;
 
     private int groundLayer;
@@ -32,7 +35,13 @@ public class DropBox : MonoBehaviour
         SpawnRandomItem();
 
         if (breakEffect != null)
-            Instantiate(breakEffect, transform.position, Quaternion.identity);
+        {
+            Instantiate(
+                breakEffect,
+                transform.position + breakEffectOffset,
+                Quaternion.identity
+            );
+        }
 
         Destroy(gameObject);
     }
