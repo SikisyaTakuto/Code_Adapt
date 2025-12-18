@@ -23,17 +23,18 @@ public class Bullet : MonoBehaviour
 
     void Start()
     {
-        // lifetime秒後にGameObjectを破棄（自動消滅）を予約
         Destroy(gameObject, lifetime);
 
-        // 💡 物理エンジンを使用して初速を与える
-        // transform.forward は現在の回転（Enemy側で調整した下向きの回転）を反映する
         if (rb != null)
         {
+            // 💡 もし弾が「お尻」を向けて飛んでいるなら 
+            // transform.forward の代わりに -transform.forward (マイナス) を使う
             rb.linearVelocity = transform.forward * speed;
-        }
 
-        // 💡 Update() の transform.Translate は削除します。
+            // 💡 もし「横」を向いて飛んでいるなら
+            // rb.velocity = transform.right * speed; 
+            // など、ここを書き換えるだけで飛ぶ方向を調整できます。
+        }
     }
 
     // 💡 Update() 関数は、移動処理がないため、このままでは不要ですが、残しておきます。

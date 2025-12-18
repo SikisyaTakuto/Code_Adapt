@@ -7918,7 +7918,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e16f40b89ddeac8418bf27a632a218ee, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  rotationSpeed: 360
+  rotationSpeed: 45
   rotateLeftKey: 113
   rotateRightKey: 101
 --- !u!1 &498067771
@@ -12648,7 +12648,7 @@ Transform:
   m_GameObject: {fileID: 894459128}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.329, y: 1.506, z: 1.8}
+  m_LocalPosition: {x: 0.329, y: 1.68, z: 1.53}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -19141,7 +19141,7 @@ Transform:
   m_GameObject: {fileID: 2132987389}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 1, z: 0, w: 0}
-  m_LocalPosition: {x: 17.2, y: 15, z: 50}
+  m_LocalPosition: {x: 61.5, y: 15, z: 82.9}
   m_LocalScale: {x: 2, y: 2, z: 2}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -19174,18 +19174,17 @@ MonoBehaviour:
   currentState: 0
   maxAmmo: 5
   reloadTime: 4
-  sightRange: 50
-  viewAngle: 120
-  rotationSpeed: 10
-  shootDuration: 1.5
-  bulletsPerBurst: 1
-  warningDuration: 1
-  blinkCount: 5
+  initialWaitTime: 1
+  landingSpeed: 7
+  groundTag: Ground
+  chargeTime: 3
+  postShotPause: 1.5
+  sightRange: 80
+  rotationSpeed: 6
+  tooCloseDistance: 5
   bulletPrefab: {fileID: 1339525588013243375, guid: 34a904684bf82664cba14426f15a3cc4, type: 3}
   muzzlePoint: {fileID: 894459129}
-  groundTag: Ground
-  landingSpeed: 2
-  initialWaitTime: 1
+  targetHeightOffset: 1.2
 --- !u!120 &2132987398
 LineRenderer:
   serializedVersion: 2
@@ -19236,7 +19235,7 @@ LineRenderer:
   - {x: 0, y: 0, z: 1}
   m_Parameters:
     serializedVersion: 3
-    widthMultiplier: 0.1
+    widthMultiplier: 0.05
     widthCurve:
       serializedVersion: 2
       m_Curve:
@@ -22257,7 +22256,7 @@ Transform:
   m_GameObject: {fileID: 944727971356844610}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 1, z: 0, w: 0}
-  m_LocalPosition: {x: 48.4, y: 15, z: 50}
+  m_LocalPosition: {x: 26.1, y: 15, z: 78.6}
   m_LocalScale: {x: 2, y: 2, z: 2}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -22557,7 +22556,7 @@ Transform:
   m_GameObject: {fileID: 7390345599375336819}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 1, z: 0, w: 0}
-  m_LocalPosition: {x: 43.4, y: 15, z: 50}
+  m_LocalPosition: {x: 8.9, y: 15, z: 79.4}
   m_LocalScale: {x: 2, y: 2, z: 2}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -25331,8 +25330,8 @@ SceneRoots:
   - {fileID: 18812409}
   - {fileID: 18963356}
   - {fileID: 266729410}
-  - {fileID: 513612925}
   - {fileID: 4802361585707027624}
+  - {fileID: 513612925}
   - {fileID: 2132987396}
   - {fileID: 4515844769915259858}
   - {fileID: 197482975}
