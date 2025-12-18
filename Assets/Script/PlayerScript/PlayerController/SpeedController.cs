@@ -127,7 +127,9 @@ public class SpeedController : MonoBehaviour
         if (_isStunned) return;
         _isStunned = true;
         _stunTimer = landStunDuration;
-        _velocity = Vector3.zero;
+
+        // 足元を地面に密着させる微調整
+        _velocity = new Vector3(0, -0.1f, 0);
     }
 
     public void StartAttackStun()
@@ -208,14 +210,14 @@ public class SpeedController : MonoBehaviour
         if (_isStunned) return Vector3.zero;
 
         bool isFlyingUp = (Input.GetKey(KeyCode.Space) || _verticalInput > 0.5f);
-        //bool isFlyingDown = (Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt) || _verticalInput < -0.5f);
+        // bool isFlyingDown = (Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt) || _verticalInput < -0.5f);
         bool hasVerticalInput = false;
 
         // ★飛行エネルギーチェックを委譲
         if (canFly && playerStatus.currentEnergy > 0.1f)
         {
             if (isFlyingUp) { _velocity.y = verticalSpeed; hasVerticalInput = true; }
-            //else if (isFlyingDown) { _velocity.y = -verticalSpeed; hasVerticalInput = true; }
+            // else if (isFlyingDown) { _velocity.y = -verticalSpeed; hasVerticalInput = true; }
         }
 
         if (hasVerticalInput) playerStatus.ConsumeEnergy(15.0f * Time.deltaTime);
@@ -258,8 +260,8 @@ public class SpeedController : MonoBehaviour
     {
         switch (_modesAndVisuals.CurrentWeaponMode)
         {
-            case PlayerModesAndVisuals.WeaponMode.Melee: HandleMeleeAttack(); break;
-            case PlayerModesAndVisuals.WeaponMode.Beam: HandleBeamAttack(); break;
+            case PlayerModesAndVisuals.WeaponMode.Attack1: HandleMeleeAttack(); break;
+            case PlayerModesAndVisuals.WeaponMode.Attack2: HandleBeamAttack(); break;
         }
     }
 
@@ -278,9 +280,7 @@ public class SpeedController : MonoBehaviour
 
     private void HandleBeamAttack()
     {
-        // ★エネルギー消費を委譲
         if (!playerStatus.ConsumeEnergy(beamAttackEnergyCost)) return;
-
         if (beamFirePoints == null || beamFirePoints.Length == 0 || beamPrefab == null) return;
 
         StartAttackStun();
@@ -294,13 +294,19 @@ public class SpeedController : MonoBehaviour
             RotateTowards(targetPosition);
         }
 
+        // ★追加: ロックオンしていない時の基準となる「プレイヤーの正面方向」
+        Vector3 playerForward = transform.forward;
+
         foreach (var firePoint in beamFirePoints)
         {
             if (firePoint == null) continue;
             Vector3 origin = firePoint.position;
-            Vector3 fireDirection = isLockedOn ? (targetPosition - origin).normalized : firePoint.forward;
+
+            // ★修正点: ロックオン時はターゲットへ、そうでない時は「プレイヤーの正面」へ飛ばす
+            Vector3 fireDirection = isLockedOn ? (targetPosition - origin).normalized : playerForward;
 
             RaycastHit hit;
+            // プレイヤー自身に当たらないよう、自分自身のレイヤーを除外するか、少し前方から飛ばすのが安全です
             bool didHit = Physics.Raycast(origin, fireDirection, out hit, beamMaxDistance, ~0);
             Vector3 endPoint = didHit ? hit.point : origin + fireDirection * beamMaxDistance;
 
@@ -323,9 +329,10 @@ public class SpeedController : MonoBehaviour
         else if (target.TryGetComponent<ScorpionEnemy>(out var s4)) { s4.TakeDamage(damageAmount); isHit = true; }
         else if (target.TryGetComponent<SuicideEnemy>(out var s5)) { s5.TakeDamage(damageAmount); isHit = true; }
         else if (target.TryGetComponent<DroneEnemy>(out var s6)) { s6.TakeDamage(damageAmount); isHit = true; }
-        else if (target.TryGetComponent<VoxController>(out var vox))
+        // ★追加：本体のパーツ（胴体など）を撃った場合
+        else if (target.TryGetComponent<VoxBodyPart>(out var bodyPart))
         {
-            vox.TakeDamage(damageAmount);
+            bodyPart.TakeDamage(damageAmount);
             isHit = true;
         }
         // ★追加：ボスのパーツ（アームなど）へのヒット
@@ -334,7 +341,6 @@ public class SpeedController : MonoBehaviour
             part.TakeDamage(damageAmount);
             isHit = true;
         }
-
         if (isHit && hitEffectPrefab != null)
         {
             Instantiate(hitEffectPrefab, hitCollider.bounds.center, Quaternion.identity);
@@ -368,9 +374,16 @@ public class SpeedController : MonoBehaviour
     private void HandleWeaponSwitchInput() { if (Input.GetKeyDown(KeyCode.E)) _modesAndVisuals.SwitchWeapon(); }
     private void HandleArmorSwitchInput()
     {
-        if (Input.GetKeyDown(KeyCode.Alpha1)) _modesAndVisuals.SwitchArmor(PlayerModesAndVisuals.ArmorMode.Normal);
-        else if (Input.GetKeyDown(KeyCode.Alpha2)) _modesAndVisuals.SwitchArmor(PlayerModesAndVisuals.ArmorMode.Buster);
-        else if (Input.GetKeyDown(KeyCode.Alpha3)) _modesAndVisuals.SwitchArmor(PlayerModesAndVisuals.ArmorMode.Speed);
+        // 1キーで最初に選んだアーマーを表示
+        if (Input.GetKeyDown(KeyCode.Alpha1))
+        {
+            _modesAndVisuals.ChangeArmorBySlot(0);
+        }
+        // 2キーで2番目に選んだアーマーを表示
+        else if (Input.GetKeyDown(KeyCode.Alpha2))
+        {
+            _modesAndVisuals.ChangeArmorBySlot(1);
+        }
     }
 
     public void OnFlyUp(InputAction.CallbackContext ctx) { if (!playerStatus.IsDead && !_isStunned) _verticalInput = ctx.performed ? 1f : 0f; }

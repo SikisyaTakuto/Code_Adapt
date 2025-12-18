@@ -39,10 +39,6 @@ public class PauseManager : MonoBehaviour
     [Tooltip("ゲームパッド操作説明パネルを設定してください。")]
     public GameObject GamePadPanelUI;
 
-    [Header("Audio Settings")]
-    [Tooltip("ボタンをクリックしたときに再生するSEクリップ")]
-    public AudioClip buttonClickSFX;
-
     private bool isPaused = false;
     private CanvasGroup pauseMenuCanvasGroup;
 
@@ -148,8 +144,6 @@ public class PauseManager : MonoBehaviour
     /// </summary>
     public void TogglePauseState()
     {
-        PlayButtonClickSFX();
-
         if (isPaused)
         {
             // ポーズ中の場合はゲームに戻る（メニュー階層の戻る処理はESCキーに任せる）
@@ -227,27 +221,13 @@ public class PauseManager : MonoBehaviour
         isPaused = true;
     }
 
-    // ボタンSE再生用の共通メソッド
-    /// <summary>
-    /// ボタンクリックSEを再生します。
-    /// </summary>
-    public void PlayButtonClickSFX()
-    {
-        if (/*AudioManager.Instance != null && */buttonClickSFX != null)
-        {
-            var audioSource = GetComponent<AudioSource>();
-            if (audioSource == null) audioSource = gameObject.AddComponent<AudioSource>();
-            audioSource.PlayOneShot(buttonClickSFX);
-        }
-    }
-
     // --- NEW: 感度設定パネル表示/非表示の切り替え (ボタンアクション) ---
     /// <summary>
     /// SensitivitySettingPanelを表示し、ポーズメニューの他の兄弟パネルを閉じます。
     /// </summary>
     public void ToggleSensitivitySettingPanel()
     {
-        PlayButtonClickSFX();
+       // PlayButtonClickSFX();
         if (sensitivitySettingPanelUI != null)
         {
             sensitivitySettingPanelUI.SetActive(true);
@@ -281,7 +261,6 @@ public class PauseManager : MonoBehaviour
     // サウンドパネル表示/非表示の切り替え (ボタンアクション)
     public void ToggleSoundPanel()
     {
-        PlayButtonClickSFX();
         if (soundPanelUI != null)
         {
             soundPanelUI.SetActive(true);
@@ -312,7 +291,6 @@ public class PauseManager : MonoBehaviour
     // Explanationパネル表示/非表示の切り替え (ボタンアクション)
     public void ToggleExplanationPanel()
     {
-        PlayButtonClickSFX();
         if (explanationPanelUI != null)
         {
             explanationPanelUI.SetActive(true);
@@ -341,7 +319,6 @@ public class PauseManager : MonoBehaviour
     // OperatingInstructionsPanel表示/非表示の切り替え (ボタンアクション)
     public void ToggleOperatingInstructionsPanel()
     {
-        PlayButtonClickSFX();
         if (operatingInstructionsPanelUI != null)
         {
             operatingInstructionsPanelUI.SetActive(true);
@@ -376,7 +353,6 @@ public class PauseManager : MonoBehaviour
     // PlayerExplanationPanel表示/非表示の切り替え (ボタンアクション)
     public void TogglePlayerExplanationPanel()
     {
-        PlayButtonClickSFX();
         if (playerExplanationPanelUI != null)
         {
             playerExplanationPanelUI.SetActive(true);
@@ -414,7 +390,6 @@ public class PauseManager : MonoBehaviour
     // EnemyExplanationPanel表示/非表示の切り替え (ボタンアクション)
     public void ToggleEnemyExplanationPanel()
     {
-        PlayButtonClickSFX();
         if (enemyExplanationPanelUI != null)
         {
             enemyExplanationPanelUI.SetActive(true);
@@ -450,7 +425,6 @@ public class PauseManager : MonoBehaviour
     // ExtraPanel表示/非表示の切り替え (ボタンアクション)
     public void ToggleExtraPanel()
     {
-        PlayButtonClickSFX();
         if (extraPanelUI != null)
         {
             extraPanelUI.SetActive(true);
@@ -487,7 +461,6 @@ public class PauseManager : MonoBehaviour
     /// </summary>
     public void ToggleKeyBordPanel()
     {
-        PlayButtonClickSFX();
         if (KeyBordPanelUI != null)
         {
             KeyBordPanelUI.SetActive(true);
@@ -524,7 +497,6 @@ public class PauseManager : MonoBehaviour
     /// </summary>
     public void ToggleGamePadPanel()
     {
-        PlayButtonClickSFX();
         if (GamePadPanelUI != null)
         {
             GamePadPanelUI.SetActive(true);
@@ -561,7 +533,6 @@ public class PauseManager : MonoBehaviour
     /// </summary>
     public void ToggleBalancePanel()
     {
-        PlayButtonClickSFX();
         if (BalancePanelUI != null)
         {
             BalancePanelUI.SetActive(true);
@@ -598,7 +569,6 @@ public class PauseManager : MonoBehaviour
     /// </summary>
     public void ToggleBusterPanel()
     {
-        PlayButtonClickSFX();
         if (BusterPanelUI != null)
         {
             BusterPanelUI.SetActive(true);
@@ -635,7 +605,6 @@ public class PauseManager : MonoBehaviour
     /// </summary>
     public void ToggleSpeedPanel()
     {
-        PlayButtonClickSFX();
         if (SpeedPanelUI != null)
         {
             SpeedPanelUI.SetActive(true);
@@ -670,7 +639,6 @@ public class PauseManager : MonoBehaviour
     // サブパネルを閉じ、ポーズメニューに戻る (ESCキー、または「戻る」ボタンアクション)
     public void GoToPauseMenu()
     {
-        PlayButtonClickSFX();
         if (soundPanelUI != null) soundPanelUI.SetActive(false);
         if (sensitivitySettingPanelUI != null) sensitivitySettingPanelUI.SetActive(false);
         if (explanationPanelUI != null) explanationPanelUI.SetActive(false);
@@ -695,7 +663,6 @@ public class PauseManager : MonoBehaviour
     // OperatingInstructionsPanel、PlayerExplanationPanel、EnemyExplanationPanel、ExtraPanelを閉じ、ExplanationPanelに戻る
     public void GoToExplanationPanel()
     {
-        PlayButtonClickSFX();
         if (operatingInstructionsPanelUI != null) operatingInstructionsPanelUI.SetActive(false);
         if (playerExplanationPanelUI != null) playerExplanationPanelUI.SetActive(false);
         if (enemyExplanationPanelUI != null) enemyExplanationPanelUI.SetActive(false);
@@ -725,7 +692,6 @@ public class PauseManager : MonoBehaviour
     /// </summary>
     public void GoToOperatingInstructionsPanel()
     {
-        PlayButtonClickSFX();
         if (KeyBordPanelUI != null) KeyBordPanelUI.SetActive(false);
         if (GamePadPanelUI != null) GamePadPanelUI.SetActive(false);
         if (BalancePanelUI != null) BalancePanelUI.SetActive(false);
@@ -754,7 +720,6 @@ public class PauseManager : MonoBehaviour
     /// </summary>
     public void GoToPlayerExplanationPanel()
     {
-        PlayButtonClickSFX();
         // 5階層目のパネルをすべて非表示
         if (BalancePanelUI != null) BalancePanelUI.SetActive(false);
         if (BusterPanelUI != null) BusterPanelUI.SetActive(false);
@@ -783,7 +748,6 @@ public class PauseManager : MonoBehaviour
     /// </summary>
     public void GoToTitle()
     {
-        PlayButtonClickSFX();
         Time.timeScale = 1f; // タイムスケールを元に戻す
 
         // タイトルシーンの名前に置き換えてください
@@ -801,7 +765,6 @@ public class PauseManager : MonoBehaviour
     }
     public void QuitGame()
     {
-        PlayButtonClickSFX();
         Time.timeScale = 1f;
         Application.Quit();
 

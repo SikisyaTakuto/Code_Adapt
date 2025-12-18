@@ -1,8 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 using UnityEngine.UI;
-using UnityEngine.UIElements;
-using Unity.Burst.Intrinsics;
+using UnityEngine.SceneManagement; // シーン遷移に必要
 
 public class VoxController : MonoBehaviour
 {
@@ -26,33 +25,28 @@ public class VoxController : MonoBehaviour
     [SerializeField] private GameObject Arms7;
     [SerializeField] private GameObject Arms8;
 
-    //[Header("Droppable Objects & Effects")]
-    //[SerializeField] private GameObject bombPrefab;         // 落とす爆弾Prefab
-    //[SerializeField] private GameObject[] enemyPrefabs;     // 敵プレハブを配列に変更！
-
-    [SerializeField] private GameObject explosionEffect;    // 爆発エフェクト
-
-    [SerializeField] private GameObject EXexplosionEffect;    // 爆発エフェクト
-
+    [Header("VFX & Prefabs")]
+    [SerializeField] private GameObject explosionEffect;    // アーム破壊用エフェクト
+    [SerializeField] private GameObject EXexplosionEffect;  // ボス撃破用エフェクト
     [SerializeField] private GameObject boxPrefab;          // 落とす箱
 
-    [Header("Movement & Game Params")]
-    [SerializeField] private float dropHeight = -2f;        // アームの位置からどれくらい上に爆弾を出すか (Y座標調整)
-    [SerializeField] private float moveSpeed = 20f;         // Z軸の移動速度
-    [SerializeField] private float rareChance = 0.05f;      // 確率で特殊座標を選ぶ (5%)
-    [SerializeField] private int maxHP = 5;                 // 各アームの初期HP
+    [Header("Movement & Game Params")]
+    [SerializeField] private float dropHeight = -2f;        // 箱生成の高さ調整
+    [SerializeField] private float moveSpeed = 20f;          // Z軸の移動速度
+    [SerializeField] private float rareChance = 0.05f;      // 特殊座標を選ぶ確率
+    [SerializeField] private int maxHP = 5;                  // 各アームの初期HP
+    [SerializeField] private float sceneTransitionDelay = 3.0f; // 撃破からシーン移動までの待ち時間
 
-    // --- プライベートな状態変数 ---
-    private GameObject[] armsArray;                         // アームオブジェクトの配列
-    private float[] targetZs;                               // 各アームの目標Z座標
-    private bool[] isMovingArray;                           // 各アームが移動中か
-    private bool[] hasReachedSpecialZ;                      // 各アームが特殊Zに過去到達済みか
-    private bool[] canDropNow;                              // 特殊Z到達後、物を落とせる状態か
-    private int[] armHPs;                                   // 各アームの現在のHP
-    private bool[] isDestroyed;                             // HP0で動作停止したか
-    private GameObject[] heldBoxes;                         // アームが保持している箱
-    private Animator[] armAnimators;                        // アームアニメーション
-
+    // --- プライベートな状態変数 ---
+    private GameObject[] armsArray;
+    private float[] targetZs;
+    private bool[] isMovingArray;
+    private bool[] hasReachedSpecialZ;
+    private bool[] canDropNow;
+    private int[] armHPs;
+    private bool[] isDestroyed;
+    private GameObject[] heldBoxes;
+    private Animator[] armAnimators;
 
     // 特殊Z座標の定義
     private const float SPECIAL_Z_FAR = -310f;
@@ -62,12 +56,12 @@ public class VoxController : MonoBehaviour
     {
         bossHpBar.gameObject.SetActive(false);
         bossCurrentHP = bossMaxHP;
-        bossHpBar.value = 1;
+        bossHpBar.value = 1f;
 
-        // アームの配列を初期化
-        armsArray = new GameObject[] { Arms1, Arms2, Arms3, Arms4, Arms5, Arms6, Arms7, Arms8 };
-        // 状態配列をアームの数に合わせて初期化
-        int count = armsArray.Length;
+        // アームの配列を初期化
+        armsArray = new GameObject[] { Arms1, Arms2, Arms3, Arms4, Arms5, Arms6, Arms7, Arms8 };
+
+        int count = armsArray.Length;
         targetZs = new float[count];
         isMovingArray = new bool[count];
         hasReachedSpecialZ = new bool[count];
@@ -75,29 +69,25 @@ public class VoxController : MonoBehaviour
         armHPs = new int[count];
         isDestroyed = new bool[count];
         heldBoxes = new GameObject[count];
+        armAnimators = new Animator[count];
 
-        // HPを初期化
-        for (int i = 0; i < count; i++)
+        for (int i = 0; i < count; i++)
         {
             armHPs[i] = maxHP;
             isDestroyed[i] = false;
-            // 初回は物を落とせない状態からスタート
-            hasReachedSpecialZ[i] = false;
+            hasReachedSpecialZ[i] = false;
             canDropNow[i] = false;
+            if (armsArray[i] != null)
+            {
+                armAnimators[i] = armsArray[i].GetComponent<Animator>();
+            }
         }
 
-        armAnimators = new Animator[armsArray.Length];
-        for (int i = 0; i < armsArray.Length; i++)
-        {
-            armAnimators[i] = armsArray[i].GetComponent<Animator>();
-        }
-
-        SetNewTargets(); // 開始時に全アームへランダム目標設定し、移動開始
-    }
+        SetNewTargets();
+    }
 
     void Update()
     {
-        // アクティブ化されたらHPバーを表示
         if (isActivated && !bossHpBar.gameObject.activeSelf)
         {
             bossHpBar.gameObject.SetActive(true);
@@ -105,7 +95,6 @@ public class VoxController : MonoBehaviour
 
         if (isActivated)
         {
-            // 壊れていないアームだけ動かす
             for (int i = 0; i < armsArray.Length; i++)
             {
                 if (!isDestroyed[i])
@@ -114,29 +103,23 @@ public class VoxController : MonoBehaviour
                 }
             }
 
-            // デバッグ用: Kキーで全アームにダメージを与える
+            // デバッグ用: Kキーでダメージ
             if (Input.GetKeyDown(KeyCode.K))
             {
-                for (int i = 0; i < armsArray.Length; i++)
-                {
-                    DamageArm(i, 1);
-                }
+                for (int i = 0; i < armsArray.Length; i++) DamageArm(i, 1);
                 DamageBoss(10);
             }
         }
     }
 
-    // HPを減らす関数（外部からの呼び出し用）
-    public void DamageArm(int index, int damage)
+    public void DamageArm(int index, int damage)
     {
-        // 既に破壊されていたら処理しない
-        if (isDestroyed[index] || armsArray[index] == null) return;
+        if (isDestroyed[index] || armsArray[index] == null) return;
 
         armHPs[index] -= damage;
-        Debug.Log($"{armsArray[index].name} が {damage} ダメージを受けた！残りHP: {armHPs[index]}");
+        Debug.Log($"{armsArray[index].name} HP: {armHPs[index]}");
 
-        // HPが0以下になったら破壊処理へ
-        if (armHPs[index] <= 0)
+        if (armHPs[index] <= 0)
         {
             StartCoroutine(DestroyArm(index));
         }
@@ -144,12 +127,13 @@ public class VoxController : MonoBehaviour
 
     public void DamageBoss(int damage)
     {
+        if (bossCurrentHP <= 0) return; // すでに死亡していたら何もしない
+
         bossCurrentHP -= damage;
         bossCurrentHP = Mathf.Max(bossCurrentHP, 0);
-
-        Debug.Log($"Boss が {damage} ダメージを受けた！残りHP: {bossCurrentHP}");
-
         bossHpBar.value = (float)bossCurrentHP / (float)bossMaxHP;
+
+        Debug.Log($"Boss HP: {bossCurrentHP}");
 
         if (bossCurrentHP <= 0)
         {
@@ -157,190 +141,132 @@ public class VoxController : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// ダメージを受ける共通メソッド
-    /// </summary>
-    /// <param name="damageAmount">ダメージ量</param>
     public void TakeDamage(float damageAmount)
     {
-
-        // これがコンソールに出るか確認
-        Debug.Log($"<color=red>ボスがダメージを受けました！量: {damageAmount}</color>");
-
-        // 浮動小数点のダメージをintに変換（現在のHP変数がint型のため）
-        int dmg = Mathf.CeilToInt(damageAmount);
-
-        // 基本的にはボス本体へダメージを与える
-        DamageBoss(dmg);
-
-        // もし「特定のアームに攻撃が当たった時だけアームのHPを減らしたい」場合は、
-        // 攻撃側の判定（Raycastなど）からアームのインデックスを取得して 
-        // DamageArm(index, dmg) を呼ぶように拡張も可能です。
+        if (damageAmount <= 0) return;
+        Debug.Log($"<color=red>ボス本体ダメージ: {damageAmount}</color>");
+        DamageBoss(Mathf.CeilToInt(damageAmount));
     }
 
-    // ヒットエフェクトなどのためにコライダーの中心を返すプロパティ（必要に応じて）
-    public Vector3 GetCenter()
+    private void BossDefeated()
     {
-        return transform.position; // もしBoxの中心がズレているなら調整
+        Debug.Log("Boss 撃破！数秒後にシーンを切り替えます。");
+
+        // 撃破エフェクト
+        if (EXexplosionEffect != null)
+        {
+            Instantiate(EXexplosionEffect, transform.position, Quaternion.identity);
+        }
+
+        // 全アームの動きを止める
+        isActivated = false;
+
+        // シーン遷移コルーチン開始
+        StartCoroutine(WaitAndLoadScene(sceneTransitionDelay));
     }
 
-
-    // 爆発＆停止処理
-    IEnumerator DestroyArm(int index)
+    IEnumerator WaitAndLoadScene(float waitTime)
     {
-        isDestroyed[index] = true; // 破壊フラグを立て、Updateでの移動を停止
-        GameObject arm = armsArray[index];
+        yield return new WaitForSeconds(waitTime);
+        SceneManager.LoadScene("ClearScene1");
+    }
+
+    IEnumerator DestroyArm(int index)
+    {
+        isDestroyed[index] = true;
+        GameObject arm = armsArray[index];
         if (arm == null) yield break;
 
-        Debug.Log($"{arm.name} が破壊されました！");
-
-        // 爆発エフェクトの生成
-        if (explosionEffect != null)
+        if (explosionEffect != null)
         {
             Instantiate(explosionEffect, arm.transform.position, Quaternion.identity);
         }
 
-        // Rigidbodyがあれば物理挙動を止める（現在の移動制御を上書きしないように）
-        Rigidbody rb = arm.GetComponent<Rigidbody>();
+        Rigidbody rb = arm.GetComponent<Rigidbody>();
         if (rb) rb.isKinematic = true;
 
-        // アームを非表示にする（オリジナルのコードではコメントアウトされているが、物理的な停止と共に非表示にすることも可能）
-        //arm.SetActive(false);
-
-        yield return null;
+        yield return null;
     }
 
-    // 全てのアームに新しい目標Zを設定（初期化時/リトライ時などに使用）
-    void SetNewTargets()
+    void SetNewTargets()
     {
         for (int i = 0; i < armsArray.Length; i++)
         {
-            // 破壊されたアームは移動させない
-            if (isDestroyed[i]) continue;
-
+            if (isDestroyed[i]) continue;
             targetZs[i] = GetRandomTargetZ();
             isMovingArray[i] = true;
-            Debug.Log($"{armsArray[i].name} の新しい目標Z: {targetZs[i]:F2}");
         }
     }
 
-    // 各アームを目標Z座標へ動かす処理
-    void MoveArm(int index)
+    void MoveArm(int index)
     {
         GameObject arm = armsArray[index];
-        // アームがnullか、移動中でない場合は処理しない
-        if (arm == null || !isMovingArray[index]) return;
+        if (arm == null || !isMovingArray[index]) return;
 
         Vector3 pos = arm.transform.position;
         float step = moveSpeed * Time.deltaTime;
-
-        // 目標Zへスムーズに移動
         pos.z = Mathf.MoveTowards(pos.z, targetZs[index], step);
         arm.transform.position = pos;
 
-        // 目標に到達したか判定 (Approximatelyで浮動小数点数の誤差を吸収)
-        if (Mathf.Approximately(pos.z, targetZs[index]))
+        if (Mathf.Approximately(pos.z, targetZs[index]))
         {
             isMovingArray[index] = false;
-            Debug.Log($"{arm.name} が Z={targetZs[index]:F2} に到達！");
 
-            // 特殊Z座標に到達
             if (targetZs[index] == SPECIAL_Z_FAR || targetZs[index] == SPECIAL_Z_NEAR)
             {
                 hasReachedSpecialZ[index] = true;
                 canDropNow[index] = true;
 
-                // ★箱がまだ無い場合のみ生成してアームに保持★
                 if (heldBoxes[index] == null && boxPrefab != null)
                 {
                     Vector3 spawnPos = arm.transform.position + Vector3.up * dropHeight;
                     GameObject box = Instantiate(boxPrefab, spawnPos, Quaternion.identity);
 
-                    // アニメーション開始        
-                    armAnimators[index].SetTrigger("Grap");
+                    if (armAnimators[index] != null) armAnimators[index].SetTrigger("Grap");
 
-                    // アームの子オブジェクトにして保持
                     box.transform.SetParent(arm.transform);
 
-                    // アニメーション開始        
-                    armAnimators[index].SetTrigger("Hold");
+                    if (armAnimators[index] != null) armAnimators[index].SetTrigger("Hold");
 
-                    // 落ちないようにつける
                     Rigidbody rb = box.GetComponent<Rigidbody>();
                     if (rb == null) rb = box.AddComponent<Rigidbody>();
                     rb.useGravity = false;
                     rb.isKinematic = true;
 
                     heldBoxes[index] = box;
-
-                    Debug.Log($"{arm.name} は特殊Zで箱を生成して保持しました。");
                 }
             }
-
-            // 通常Z座標に到達
             else
             {
-                // 特殊Zに行っており、箱を持っている場合 → 落とす
                 if (canDropNow[index] && heldBoxes[index] != null)
                 {
-                    // アニメーション開始        
-                    armAnimators[index].SetTrigger("Drop");
-
-                    // 少し待ってから箱を落とす（アニメに合わせる）
+                    if (armAnimators[index] != null) armAnimators[index].SetTrigger("Drop");
                     StartCoroutine(DropAfterAnimation(index, arm));
-
                     canDropNow[index] = false;
-
-                    // アニメーション開始        
-                    armAnimators[index].SetTrigger("Idle");
+                    if (armAnimators[index] != null) armAnimators[index].SetTrigger("Idle");
                 }
             }
-
-            // 到達したら次の目標設定と移動再開までの待機コルーチンを開始
-            StartCoroutine(WaitAndRetarget(index));
+            StartCoroutine(WaitAndRetarget(index));
         }
     }
 
-    private void BossDefeated()
+    IEnumerator WaitAndRetarget(int index)
     {
-        Debug.Log("Boss 撃破！");
-        // エフェクト・停止処理など自由に追加
-        // 爆発エフェクトの生成
-        if (EXexplosionEffect != null)
+        yield return new WaitForSeconds(2f);
+        if (!isDestroyed[index] && isActivated)
         {
-            Instantiate(EXexplosionEffect, transform.position, Quaternion.identity);
+            targetZs[index] = GetRandomTargetZ();
+            isMovingArray[index] = true;
         }
     }
 
-    // 目標に到達後、少し待機してから次の移動目標を設定
-    IEnumerator WaitAndRetarget(int index)
+    float GetRandomTargetZ()
     {
-        yield return new WaitForSeconds(2f); // 2秒待機
-
-        // 待機中に破壊された場合はスキップ
-        if (isDestroyed[index]) yield break;
-
-        targetZs[index] = GetRandomTargetZ();  // 特殊確率付きの関数で次の目標Zを決定
-        isMovingArray[index] = true;
-        Debug.Log($"{armsArray[index].name} が次の目標Z={targetZs[index]:F2} へ移動開始！");
-    }
-
-    // 低確率 (rareChance) で特殊Zを返す関数
-    float GetRandomTargetZ()
-    {
-        float roll = Random.value; // 0〜1の乱数
-
-        if (roll < rareChance)
+        if (Random.value < rareChance)
         {
-            // 特殊Zのどちらかを選択 (-310f または -50f)
-            return (Random.value < 0.5f) ? SPECIAL_Z_FAR : SPECIAL_Z_NEAR;
+            return (Random.value < 0.5f) ? SPECIAL_Z_FAR : SPECIAL_Z_NEAR;
         }
-        else
-        {
-            // 通常の範囲からランダム (-255fから-110f)
-            // Random.Range(min, max) はfloatの場合、min以上、max以下を返す
-            return Random.Range(-255f, -110f);
-        }
+        return Random.Range(-255f, -110f);
     }
 
     void DropHeldBox(int index, GameObject arm)
@@ -348,22 +274,24 @@ public class VoxController : MonoBehaviour
         GameObject box = heldBoxes[index];
         if (box == null) return;
 
-        // 親子関係を解除
         box.transform.SetParent(null);
-
-        // 落下できるように設定
         Rigidbody rb = box.GetComponent<Rigidbody>();
-        if (rb == null) rb = box.AddComponent<Rigidbody>();
-        rb.useGravity = true;
-        rb.isKinematic = false;
-
+        if (rb)
+        {
+            rb.useGravity = true;
+            rb.isKinematic = false;
+        }
         heldBoxes[index] = null;
     }
 
     IEnumerator DropAfterAnimation(int index, GameObject arm)
     {
-        yield return new WaitForSeconds(0f); // アニメに合わせて調整
-
+        yield return new WaitForSeconds(0.1f);
         DropHeldBox(index, arm);
+    }
+
+    public Vector3 GetCenter()
+    {
+        return transform.position;
     }
 }

@@ -4,68 +4,46 @@ using UnityEngine.UI;
 using System.Linq;
 
 /// <summary>
-/// ターゲットを追跡し、Input Systemのアクションで操作可能な三人称視点（TPS）カメラを制御します。（Input System 使用）
+/// ターゲットを追跡し、Input Systemのアクションで操作可能な三人称視点（TPS）カメラを制御します。
+/// 地面へのめり込み防止と、地面接触時の視線制限機能を含みます。
 /// </summary>
 public class TPSCameraController : MonoBehaviour
 {
     // === 1. 設定: カメラ, 追従, 回転 ===
     [Header("1. Target and Camera Control")]
-    [Tooltip("カメラが追従するターゲット（通常はプレイヤー）のTransform。")]
     public Transform target;
-    [Tooltip("ターゲットの中心からカメラまでの理想的な距離。")]
     public float distance = 5.0f;
-    [Tooltip("ターゲットの中心からカメラまでの相対的な高さ。")]
     public float height = 2.0f;
 
-    // ★ 修正 1: インスペクターから初期値を設定するための変数にリネーム
-    [Tooltip("マウス入力によるカメラの回転速度（感度）の初期値。")]
     public float initialMouseRotationSpeed = 3.0f;
-    [Tooltip("コントローラー入力によるカメラの回転速度（感度）の初期値。")]
     public float initialControllerRotationSpeed = 500.0f;
 
-    // ★ 修正 2: 外部 (UI) からアクセス・変更するための静的プロパティ
     public static float MouseRotationSpeed { get; private set; }
     public static float ControllerRotationSpeed { get; private set; }
 
-    [Tooltip("ターゲット位置と回転に移動する際のスムーズさ（値が大きいほど速い）。")]
     public float smoothSpeed = 10.0f;
-    [Tooltip("垂直方向（上下）のカメラの角度制限。Xが最小値（下）、Yが最大値（上）。")]
     public Vector2 pitchMinMax = new Vector2(-40, 85);
 
     // === 2. 設定: ロックオン ===
     [Header("2. Lock-On Settings")]
-    [Tooltip("ロックオン時のカメラの回転速度。値を増やすと追従が強くなる。")]
     public float lockOnRotationSpeed = 50f;
-    [Tooltip("ロックオンの最大距離。プレイヤーからこの範囲内の敵を検出します。")]
     public float maxLockOnRange = 30f;
-    [Tooltip("ロックオン維持のための最大距離（元の範囲より少し広めに設定）。")]
     public float maxLockOnKeepRange = 40f;
-    [Tooltip("敵オブジェクトのレイヤーマスク。")]
     public LayerMask enemyLayer;
-    [Tooltip("ロックオン試行時、敵がプレイヤーの前方方向から何度までの角度範囲内にいる必要があるか (片側)。")]
     public float lockOnAngleLimit = 60f;
-    [Tooltip("ロックオンが自動的に解除されるまでの時間 (秒)。")]
     public float lockOnDuration = 3.0f;
-    [SerializeField]
-    [Tooltip("ロックオン切り替え時や解除時に、注視点をスムーズに移行させる時間。")]
-    private float _changeDuration = 0.3f;
+    [SerializeField] private float _changeDuration = 0.3f;
 
-    // === 3. 設定: 衝突 & UI ===
-    [Header("3. Collision & UI")]
-    [Tooltip("カメラが衝突をチェックするレイヤー。")]
+    // === 3. 設定: 衝突 & UI & 地面 ===
+    [Header("3. Collision & Ground Settings")]
     public LayerMask collisionLayers;
-    [Tooltip("カメラの上昇を制限するためにチェックする天井のレイヤー。")]
     public LayerMask ceilingLayer;
-    [Tooltip("衝突が発生した際、カメラを押し戻す距離のオフセット。")]
+    public LayerMask groundLayer;      // ★ 地面判定用のレイヤー (Layer: Ground等を設定)
+    public float groundYOffset = 0.5f; // ★ 地面から離す最低距離
     public float collisionOffset = 0.2f;
-    [Tooltip("カメラが壁をすり抜けないようにするための、カメラの仮想的な半径。")]
     public float cameraRadius = 0.3f;
-    [Tooltip("天井衝突判定で、カメラの位置Y座標を天井からどれだけ下に制限するか。")]
     public float ceilingYOffset = 0.5f;
-    [Tooltip("ロックオン時に画面上に表示するUI要素 (RectTransform) をアタッチ")]
     public RectTransform lockOnUIRect;
-
-    // public Slider healthBarSlider; // コメントアウト状態を維持
 
     // === プライベート変数 ===
     private float _yaw = 0.0f;
@@ -80,112 +58,49 @@ public class TPSCameraController : MonoBehaviour
     private Quaternion _fixedTargetRotation;
     private float _fixedViewSmoothSpeed;
     private bool _cursorLockedInitially = false;
-    private bool _isLockOnActive = false;
 
-    // --- Input System 用の変数 ---
     private PlayerInput _playerInput;
     private Vector2 _lookInput = Vector2.zero;
-
-    private float _lockOnTriggerValue = 0f;       // ★ ロックオンボタン/トリガーの値
-    private Vector2 _targetSwitchInput = Vector2.zero; // ★ ターゲット切り替え用 (右スティックのX軸など)
-
-    // ロックオンボタンの状態を保持するためのプライベート変数
+    private float _lockOnTriggerValue = 0f;
+    private Vector2 _targetSwitchInput = Vector2.zero;
     private bool wasControllerLockOnHoldThisFrame = false;
 
+    // --- メッセージレシーバー ---
+    public void OnLook(InputValue value) => _lookInput = value.Get<Vector2>();
+    public void OnLeftTrigger(InputValue value) => _lockOnTriggerValue = value.Get<float>();
+    public void OnTargetSwitch(InputValue value) => _targetSwitchInput = value.Get<Vector2>();
 
-    // プレイヤーインプットからのメッセージレシーバー (Action Name: Look)
-    public void OnLook(InputValue value)
-    {
-        _lookInput = value.Get<Vector2>();
-    }
-
-    // ★ プレイヤーインプットからのメッセージレシーバー (Action Name: LeftTrigger)
-    public void OnLeftTrigger(InputValue value)
-    {
-        // 押されている/トリガーの値 (0.0f から 1.0f) を取得
-        _lockOnTriggerValue = value.Get<float>();
-    }
-
-    // ★ プレイヤーインプットからのメッセージレシーバー (Action Name: TargetSwitch/RightStickClickなど)
-    public void OnTargetSwitch(InputValue value)
-    {
-        // Vector2 (例: 十字キー, 右スティックの押し込み方向など) 
-        _targetSwitchInput = value.Get<Vector2>();
-    }
-
-
-    /// <summary>現在のロックオンターゲットを設定・取得します。設定時にスムーズな切り替えを開始します。</summary>
     public Transform LockOnTarget
     {
         get => _lockOnTarget;
         set
         {
             if (_lockOnTarget == value) return;
-
-            // 1. 古いターゲットのUIを非表示にする
-            if (_lockOnTarget != null)
-            {
-                // 📝 ここは「ScorpionEnemy」コンポーネントが必要です
-                // _lockOnTarget.GetComponent<ScorpionEnemy>()?.ClearHealthBar(); 
-                lockOnUIRect?.gameObject.SetActive(false);
-            }
-
+            if (_lockOnTarget != null) lockOnUIRect?.gameObject.SetActive(false);
             _latestTargetPosition = _lookTargetPosition;
             _lockOnTarget = value;
-            _timer = 0f; // Lerp開始
-
-            // 2. 新しいターゲットのUIを表示し、HPバーを設定する
+            _timer = 0f;
             if (_lockOnTarget != null)
             {
                 _lockOnTimer = lockOnDuration;
-
-                if (lockOnUIRect != null)
-                {
-                    lockOnUIRect.gameObject.SetActive(true);
-                    // 📝 ここは「ScorpionEnemy」コンポーネントが必要です
-                    // _lockOnTarget.GetComponent<ScorpionEnemy>()?.SetHealthBar(healthBarSlider);
-                }
+                if (lockOnUIRect != null) lockOnUIRect.gameObject.SetActive(true);
             }
-            _isLockOnActive = _lockOnTarget != null;
         }
     }
 
-
-    // ★ 修正 3: 外部（UIスクリプト）から感度を設定するための静的メソッド
-    public static void SetMouseSensitivity(float value)
-    {
-        MouseRotationSpeed = value;
-    }
-
-    public static void SetControllerSensitivity(float value)
-    {
-        ControllerRotationSpeed = value;
-    }
-
-    // =======================================================
-    // Unity Lifecycle
-    // =======================================================
+    public static void SetMouseSensitivity(float value) => MouseRotationSpeed = value;
+    public static void SetControllerSensitivity(float value) => ControllerRotationSpeed = value;
 
     void Start()
     {
-        // PlayerInputコンポーネントを取得 (ターゲットまたはその親)
         _playerInput = target?.GetComponentInParent<PlayerInput>();
-        if (_playerInput == null)
-        {
-            Debug.LogError("PlayerInput component not found on the target or its parent. Controller rotation and lock-on will not work.");
-        }
-
-        // ★ 修正 4: Start時に静的プロパティをインスペクターで設定した初期値で初期化
-        // 注意: 他のシーンから来た場合、静的変数は既に値を持っている可能性があります。
-        if (MouseRotationSpeed == 0f || MouseRotationSpeed == initialMouseRotationSpeed)
+        if (MouseRotationSpeed <= 0f)
         {
             MouseRotationSpeed = initialMouseRotationSpeed;
             ControllerRotationSpeed = initialControllerRotationSpeed;
         }
 
-        // Cursor.lockState/visible の初期化ロジックはコメントアウトされた状態を維持
         _cursorLockedInitially = true;
-
         if (target != null)
         {
             _lookTargetPosition = target.position + Vector3.up * 1.5f;
@@ -194,14 +109,11 @@ public class TPSCameraController : MonoBehaviour
             _pitch = transform.eulerAngles.x;
             if (_pitch > 180) _pitch -= 360;
         }
-
-        lockOnUIRect?.gameObject.SetActive(false);
     }
 
     void Update()
     {
         if (_isFixedViewMode || target == null || Time.timeScale <= 0) return;
-
         HandleLockOnTimer();
         HandleLockOnInput();
         HandleTargetSwitching();
@@ -211,161 +123,19 @@ public class TPSCameraController : MonoBehaviour
     {
         if (target == null) return;
 
-        // 注視点の更新
         Vector3 defaultLookPosition = target.position + Vector3.up * height;
         Vector3 targetLookPosition = _lockOnTarget != null ? _lockOnTarget.position + Vector3.up * 1.5f : defaultLookPosition;
         UpdateLookTargetPosition(targetLookPosition);
 
-        if (_isFixedViewMode)
-        {
-            HandleFixedViewMode();
-        }
-        else
-        {
-            HandleTPSViewMode();
-        }
+        if (_isFixedViewMode) HandleFixedViewMode();
+        else HandleTPSViewMode();
 
         UpdateLockOnUIPosition();
-
-        if (_lockOnTarget != null)
-        {
-            RotatePlayerToLockOnTarget();
-        }
+        if (_lockOnTarget != null) RotatePlayerToLockOnTarget();
     }
 
     // =======================================================
-    // Lock-On Management (LT押し続けでロックオン維持)
-    // =======================================================
-
-    private void HandleLockOnTimer()
-    {
-        if (_lockOnTarget == null) return;
-
-        // LTが押されている場合は、自動解除タイマーを無視する
-        const float triggerThreshold = 0.5f;
-        if (_lockOnTriggerValue > triggerThreshold)
-        {
-            _lockOnTimer = lockOnDuration; // タイマーをリセットしてロックオンを維持
-            return;
-        }
-
-        // LTが押されていない、またはマウス右クリックが離された場合にタイマーチェックを行う
-        _lockOnTimer -= Time.deltaTime;
-        if (_lockOnTimer <= 0) LockOnTarget = null;
-    }
-
-    private void HandleLockOnInput()
-    {
-        // 既存のキーボード/マウス入力（変更なし）
-        bool rightClickDown = Input.GetMouseButtonDown(1);
-        bool rightClickUp = Input.GetMouseButtonUp(1);
-
-        // ★ コントローラー入力の判定
-        const float triggerThreshold = 0.5f;
-        // コントローラーのロックオンボタン/トリガーが押されているか
-        bool isControllerLockOnHold = _lockOnTriggerValue > triggerThreshold;
-
-        // コントローラーのロックオンボタン/トリガーが今押された瞬間を検出 (このフレームで閾値を超えた)
-        bool isControllerLockOnDown = isControllerLockOnHold && !wasControllerLockOnHoldThisFrame;
-        // コントローラーのロックオンボタン/トリガーが今離された瞬間を検出
-        bool isControllerLockOnUp = !isControllerLockOnHold && wasControllerLockOnHoldThisFrame;
-
-        // 次のフレームのために現在の状態を保持
-        wasControllerLockOnHoldThisFrame = isControllerLockOnHold;
-
-
-        // ロックオン開始の条件: (マウス右クリックダウン) または (コントローラーボタン/トリガーダウン)
-        if ((rightClickDown || isControllerLockOnDown) && _lockOnTarget == null)
-        {
-            // カメラの水平方向の向きを取得 (Y軸のみ)
-            Vector3 cameraForwardFlat = transform.forward;
-            cameraForwardFlat.y = 0;
-            cameraForwardFlat.Normalize();
-
-            var colliders = Physics.OverlapSphere(target.position, maxLockOnRange, enemyLayer)
-                .Where(col => Vector3.Angle(cameraForwardFlat, col.transform.position - target.position) <= lockOnAngleLimit);
-
-            if (colliders.Any())
-            {
-                // 角度の並べ替え基準もカメラの正面方向 (cameraForwardFlat) に変更
-                Transform nearestTarget = colliders
-                    .OrderBy(col => Vector3.Angle(cameraForwardFlat, col.transform.position - target.position))
-                    .ThenBy(col => Vector3.Distance(target.position, col.transform.position))
-                    .FirstOrDefault()?.transform;
-
-                if (nearestTarget != null) LockOnTarget = nearestTarget;
-            }
-        }
-
-        if (_lockOnTarget != null)
-        {
-            // ロックオン維持のためのチェック (無効化、範囲外)
-            if (!_lockOnTarget.gameObject.activeInHierarchy || _lockOnTarget.gameObject.GetComponent<Collider>() == null ||
-                Vector3.Distance(target.position, _lockOnTarget.position) > maxLockOnKeepRange)
-            {
-                LockOnTarget = null;
-            }
-
-            // ロックオン解除の条件: (マウス右クリックアップ) または (コントローラーボタン/トリガーアップ)
-            if (rightClickUp || isControllerLockOnUp)
-            {
-                // マウス右クリックを離す、またはLTを離すと即座に解除
-                LockOnTarget = null;
-            }
-        }
-    }
-
-
-    private void HandleTargetSwitching()
-    {
-        if (_lockOnTarget == null) return;
-
-        // 既存のキーボード/マウス入力（変更なし）
-        float scroll = Input.GetAxis("Mouse ScrollWheel");
-        bool isMouseScroll = scroll != 0;
-
-        // ★ コントローラー入力の判定
-        // Vector2の入力があったか (例: DPad/右スティックのX軸)
-        bool isControllerSwitch = Mathf.Abs(_targetSwitchInput.x) > 0.5f;
-
-        // マウスホイールまたはコントローラー入力がない場合はスキップ
-        if (!isMouseScroll && !isControllerSwitch) return;
-
-        // 切り替え方向を決定
-        bool switchRight = false;
-        if (isMouseScroll)
-        {
-            switchRight = scroll > 0;
-        }
-        else if (isControllerSwitch)
-        {
-            // コントローラーのX軸入力に基づいて方向を決定
-            switchRight = _targetSwitchInput.x > 0;
-            // 入力を消費 (連続切り替えを防ぐため)
-            _targetSwitchInput = Vector2.zero;
-        }
-
-        Vector3 playerPos = target.position;
-        Vector3 toCurrentTarget = (_lockOnTarget.position - playerPos).normalized;
-
-        Transform nextTarget = Physics.OverlapSphere(playerPos, maxLockOnRange, enemyLayer)
-            .Where(col => col.transform != _lockOnTarget)
-            .Select(col => new
-            {
-                Transform = col.transform,
-                SignedAngle = Vector3.SignedAngle(toCurrentTarget, (col.transform.position - playerPos).normalized, Vector3.up),
-                Angle = Vector3.Angle(toCurrentTarget, (col.transform.position - playerPos).normalized)
-            })
-            // 切り替え方向にいるターゲットに絞る
-            .Where(t => (switchRight && t.SignedAngle > 0) || (!switchRight && t.SignedAngle < 0))
-            .OrderBy(t => t.Angle) // 最も角度が近い敵を選択
-            .FirstOrDefault()?.Transform;
-
-        if (nextTarget != null) LockOnTarget = nextTarget;
-    }
-
-    // =======================================================
-    // Core Camera Logic
+    // TPS View Logic (地面制限付き)
     // =======================================================
 
     private void HandleTPSViewMode()
@@ -373,112 +143,77 @@ public class TPSCameraController : MonoBehaviour
         Quaternion targetRotation;
         float currentRotationSmoothSpeed;
 
+        // 1. 基本回転の計算
         if (_lockOnTarget != null)
         {
-            // ロックオン: ターゲット方向を目標回転とする
             Vector3 directionToTarget = (_lookTargetPosition - transform.position).normalized;
             targetRotation = Quaternion.LookRotation(directionToTarget);
-
-            // ロックオン中は、_yaw/_pitchを直接更新してプレイヤーの回転に反映させる必要がある
             _yaw = targetRotation.eulerAngles.y;
             _pitch = targetRotation.eulerAngles.x;
             if (_pitch > 180) _pitch -= 360;
-
-            // ロックオン時のスムーズ速度
             currentRotationSmoothSpeed = lockOnRotationSpeed;
         }
         else
         {
-            // 通常: マウス/コントローラー入力から回転を計算
             targetRotation = CalculateRotationFromInput();
-            // 通常時のスムーズ速度
             currentRotationSmoothSpeed = smoothSpeed;
         }
 
-        // (中略 - 衝突判定とスムーズな補間ロジックは変更なし)
+        // 2. 理想的な位置を計算
+        Vector3 idealPosition = CalculateTargetPosition(targetRotation);
 
-        Vector3 targetPosition = CalculateTargetPosition(targetRotation);
-        targetPosition = CheckCeilingYConstraint(targetPosition);
+        // 3. 天井制限
+        idealPosition = CheckCeilingYConstraint(idealPosition);
 
-        // 制限された位置に基づき、目標回転を再計算
-        targetRotation = CalculateRotationFromPosition(targetPosition);
+        // 4. 地面・障害物衝突判定を適用して最終位置を決定
+        Vector3 finalPosition = ApplyCollisionCheck(idealPosition);
 
-        // 衝突判定と位置の調整
-        Vector3 finalPosition = ApplyCollisionCheck(targetPosition);
-
-        // スムーズな補間
-        float finalRotationSmoothSpeed = currentRotationSmoothSpeed;
-
-        // ロックオン中の回転減衰 (既存ロジックを維持)
-        if (_lockOnTarget != null)
+        // 5. ★ 地面制限による回転（視線）の補正
+        // カメラが地面の押し上げ（groundYOffset）により、本来のピッチ計算より高い位置にいる場合、
+        // 視線が地面の下を向かないようにプレイヤー頭上を向くように回転を上書きする
+        if (finalPosition.y > idealPosition.y + 0.01f)
         {
-            const float dampingStartAngle = 75.0f;
-            if (_pitch > dampingStartAngle)
+            Vector3 lookDir = (target.position + Vector3.up * height) - finalPosition;
+            if (lookDir != Vector3.zero)
             {
-                float rotationDampingFactor = Mathf.InverseLerp(pitchMinMax.y, dampingStartAngle, _pitch);
-                finalRotationSmoothSpeed = currentRotationSmoothSpeed * (rotationDampingFactor * rotationDampingFactor);
+                targetRotation = Quaternion.LookRotation(lookDir);
+                // 内部変数も更新して、急激な挙動変化を防ぐ
+                _pitch = targetRotation.eulerAngles.x;
+                if (_pitch > 180) _pitch -= 360;
             }
         }
 
-        // カメラ位置と回転をスムーズに更新
+        // 6. 最終的な適用
         transform.position = Vector3.Lerp(transform.position, finalPosition, Time.deltaTime * currentRotationSmoothSpeed);
-        // ★ 修正点: ロックオン解除時の回転のスムーズさを考慮し、スムーズ速度を統一
-        transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * finalRotationSmoothSpeed);
+        transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * currentRotationSmoothSpeed);
     }
 
-    /// <summary>
-    /// マウスとコントローラーの右スティックの入力を分離して処理し、カメラの回転を計算します。
-    /// </summary>
     private Quaternion CalculateRotationFromInput()
     {
-        float deltaYaw = 0;
-        float deltaPitch = 0;
-
-        // 1. 従来のInput Manager (マウス) からの値を取得
-        // ★ 修正 5: 静的プロパティ MouseRotationSpeed を使用
-        float mouseX = Input.GetAxis("Mouse X") * MouseRotationSpeed;
-        float mouseY = Input.GetAxis("Mouse Y") * MouseRotationSpeed;
-
-        // 2. Input Systemからの値を取得
-        float inputSystemX = _lookInput.x;
-        float inputSystemY = _lookInput.y;
-
-        // デバイス判定: PlayerInputコンポーネントの currentControlScheme を利用する
-        bool isGamepad = _playerInput != null &&
-                             _playerInput.currentControlScheme != null &&
-                             _playerInput.currentControlScheme.Contains("Controller");
+        float deltaYaw = 0, deltaPitch = 0;
+        bool isGamepad = _playerInput != null && _playerInput.currentControlScheme != null && _playerInput.currentControlScheme.Contains("Controller");
 
         if (isGamepad)
         {
-            // コントローラー (Gamepad) からの入力: Input Systemの値を採用
-            // ★ 修正 6: 静的プロパティ ControllerRotationSpeed を使用
-            deltaYaw += inputSystemX * ControllerRotationSpeed * Time.deltaTime;
-            deltaPitch += inputSystemY * ControllerRotationSpeed * Time.deltaTime;
+            deltaYaw = _lookInput.x * ControllerRotationSpeed * Time.deltaTime;
+            deltaPitch = _lookInput.y * ControllerRotationSpeed * Time.deltaTime;
         }
         else
         {
-            // キーボードまたはマウスからの入力 (Mouse/Keyboard Scheme)
+            // Input SystemのLookアクション値を使用
+            deltaYaw = _lookInput.x * MouseRotationSpeed;
+            deltaPitch = _lookInput.y * MouseRotationSpeed;
 
-            // a) Input SystemでマウスがLookアクションにバインドされている場合: 
-            if (Mathf.Abs(inputSystemX) > 0.001f || Mathf.Abs(inputSystemY) > 0.001f)
+            // Input Systemからの入力が極端に小さい場合は、従来のInput Managerからも補助的に取る（安全策）
+            if (Mathf.Abs(deltaYaw) < 0.001f && Mathf.Abs(deltaPitch) < 0.001f)
             {
-                // ★ 修正 7: 静的プロパティ MouseRotationSpeed を使用
-                deltaYaw += inputSystemX * MouseRotationSpeed;
-                deltaPitch += inputSystemY * MouseRotationSpeed;
-            }
-            // b) 従来のInput Managerでのみマウスが使用されている場合 (既存コード維持のため):
-            else
-            {
-                // ★ 修正 8: 静的プロパティ MouseRotationSpeed を使用
-                deltaYaw += mouseX;
-                deltaPitch += mouseY;
+                deltaYaw = Input.GetAxis("Mouse X") * MouseRotationSpeed;
+                deltaPitch = Input.GetAxis("Mouse Y") * MouseRotationSpeed;
             }
         }
 
-        // Pitchの調整 (上下の回転)
         _yaw += deltaYaw;
-        _pitch -= deltaPitch; // カメラの上下視点は、通常入力Yと逆になるためマイナス
-
+        _pitch -= deltaPitch;
         _pitch = Mathf.Clamp(_pitch, pitchMinMax.x, pitchMinMax.y);
         return Quaternion.Euler(_pitch, _yaw, 0);
     }
@@ -489,68 +224,101 @@ public class TPSCameraController : MonoBehaviour
         return camCenter - rotation * Vector3.forward * distance;
     }
 
-    private Vector3 CheckCeilingYConstraint(Vector3 targetPosition)
-    {
-        if (ceilingLayer == 0) return targetPosition;
-
-        Vector3 playerPos = target.position;
-        // プレイヤーの頭上付近から真下にRayを飛ばす
-        Vector3 rayStart = playerPos + Vector3.up * (height * 2f);
-
-        if (Physics.Raycast(rayStart, Vector3.down, out RaycastHit hit, 50f, ceilingLayer))
-        {
-            float maxCameraY = hit.point.y - ceilingYOffset;
-            targetPosition.y = Mathf.Min(targetPosition.y, maxCameraY);
-        }
-
-        return targetPosition;
-    }
-
-    private Quaternion CalculateRotationFromPosition(Vector3 targetPosition)
-    {
-        Vector3 camCenter = target.position + Vector3.up * height;
-        Vector3 toTarget = targetPosition - camCenter;
-
-        float horizontalDistance = new Vector3(toTarget.x, 0, toTarget.z).magnitude;
-        float restrictedPitchRad = Mathf.Atan2(toTarget.y, horizontalDistance);
-
-        _pitch = Mathf.Clamp(restrictedPitchRad * Mathf.Rad2Deg, pitchMinMax.x, pitchMinMax.y);
-
-        return Quaternion.Euler(_pitch, _yaw, 0);
-    }
-
     private Vector3 ApplyCollisionCheck(Vector3 initialPosition)
     {
         Vector3 currentTargetPos = target.position + Vector3.up * height;
         Vector3 direction = (initialPosition - currentTargetPos).normalized;
         float travelDistance = Vector3.Distance(currentTargetPos, initialPosition);
 
+        // 壁判定
         if (Physics.SphereCast(currentTargetPos, cameraRadius, direction, out RaycastHit hit, travelDistance, collisionLayers))
         {
-            // 衝突点から cameraRadius + collisionOffset 分だけ手前にカメラを配置
-            float desiredDistance = Mathf.Max(hit.distance - collisionOffset, 0.1f);
-            return currentTargetPos + direction * desiredDistance;
+            initialPosition = currentTargetPos + direction * Mathf.Max(hit.distance - collisionOffset, 0.1f);
         }
 
+        // 地面判定（★追加）
+        if (groundLayer != 0)
+        {
+            float checkHeight = 2.0f;
+            if (Physics.Raycast(initialPosition + Vector3.up * 1f, Vector3.down, out RaycastHit groundHit, checkHeight, groundLayer))
+            {
+                float minAllowedY = groundHit.point.y + groundYOffset;
+                if (initialPosition.y < minAllowedY)
+                {
+                    initialPosition.y = minAllowedY;
+                }
+            }
+        }
         return initialPosition;
     }
 
-    private void UpdateLookTargetPosition(Vector3 targetPosition)
+    // =======================================================
+    // その他補助メソッド (ロックオン・UI等)
+    // =======================================================
+
+    private Vector3 CheckCeilingYConstraint(Vector3 pos)
+    {
+        if (ceilingLayer == 0) return pos;
+        if (Physics.Raycast(target.position + Vector3.up * (height * 2f), Vector3.down, out RaycastHit hit, 50f, ceilingLayer))
+        {
+            pos.y = Mathf.Min(pos.y, hit.point.y - ceilingYOffset);
+        }
+        return pos;
+    }
+
+    private void UpdateLookTargetPosition(Vector3 tp)
     {
         if (_timer < _changeDuration)
         {
             _timer += Time.deltaTime;
-            _lookTargetPosition = Vector3.Lerp(_latestTargetPosition, targetPosition, _timer / _changeDuration);
+            _lookTargetPosition = Vector3.Lerp(_latestTargetPosition, tp, _timer / _changeDuration);
         }
-        else
-        {
-            _lookTargetPosition = targetPosition;
-        }
+        else _lookTargetPosition = tp;
     }
 
-    // =======================================================
-    // Fixed View & Utilities (変更なし)
-    // =======================================================
+    private void HandleLockOnTimer()
+    {
+        if (_lockOnTarget == null) return;
+        if (_lockOnTriggerValue > 0.5f) { _lockOnTimer = lockOnDuration; return; }
+        _lockOnTimer -= Time.deltaTime;
+        if (_lockOnTimer <= 0) LockOnTarget = null;
+    }
+
+    private void HandleLockOnInput()
+    {
+        bool isCtrlHold = _lockOnTriggerValue > 0.5f;
+        bool isCtrlDown = isCtrlHold && !wasControllerLockOnHoldThisFrame;
+        bool isCtrlUp = !isCtrlHold && wasControllerLockOnHoldThisFrame;
+        wasControllerLockOnHoldThisFrame = isCtrlHold;
+
+        if ((Input.GetMouseButtonDown(1) || isCtrlDown) && _lockOnTarget == null)
+        {
+            Vector3 camFwd = transform.forward; camFwd.y = 0; camFwd.Normalize();
+            var enemies = Physics.OverlapSphere(target.position, maxLockOnRange, enemyLayer)
+                .Where(c => Vector3.Angle(camFwd, c.transform.position - target.position) <= lockOnAngleLimit);
+            if (enemies.Any()) LockOnTarget = enemies.OrderBy(c => Vector3.Angle(camFwd, c.transform.position - target.position)).First().transform;
+        }
+        if (_lockOnTarget != null && (Input.GetMouseButtonUp(1) || isCtrlUp)) LockOnTarget = null;
+    }
+
+    private void HandleTargetSwitching()
+    {
+        if (_lockOnTarget == null) return;
+        float scroll = Input.GetAxis("Mouse ScrollWheel");
+        bool isSwitch = Mathf.Abs(_targetSwitchInput.x) > 0.5f;
+        if (scroll == 0 && !isSwitch) return;
+        bool right = scroll > 0 || (isSwitch && _targetSwitchInput.x > 0);
+        if (isSwitch) _targetSwitchInput = Vector2.zero;
+
+        Vector3 pPos = target.position;
+        Vector3 toCur = (_lockOnTarget.position - pPos).normalized;
+        var next = Physics.OverlapSphere(pPos, maxLockOnRange, enemyLayer)
+            .Where(c => c.transform != _lockOnTarget)
+            .Select(c => new { T = c.transform, A = Vector3.SignedAngle(toCur, (c.transform.position - pPos).normalized, Vector3.up) })
+            .Where(t => (right && t.A > 0) || (!right && t.A < 0))
+            .OrderBy(t => Mathf.Abs(t.A)).FirstOrDefault();
+        if (next != null) LockOnTarget = next.T;
+    }
 
     private void HandleFixedViewMode()
     {
@@ -558,129 +326,31 @@ public class TPSCameraController : MonoBehaviour
         transform.rotation = Quaternion.Slerp(transform.rotation, _fixedTargetRotation, Time.unscaledDeltaTime * _fixedViewSmoothSpeed);
     }
 
-    public void SetFixedCameraView(Vector3 position, Quaternion rotation, float smoothSpeedValue)
-    {
-        _isFixedViewMode = true;
-        _fixedTargetPosition = position;
-        _fixedTargetRotation = rotation;
-        _fixedViewSmoothSpeed = smoothSpeedValue;
-
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
-    }
-
-    public void ResetToTPSView(float smoothSpeedValue)
-    {
-        _fixedViewSmoothSpeed = smoothSpeedValue;
-        _isFixedViewMode = false;
-
-        if (_cursorLockedInitially)
-        {
-            // Cursor.lockState/visible の初期化ロジックはコメントアウトされた状態を維持
-        }
-    }
-
-    /// <summary>
-    /// プレイヤーの向きを、WASD入力方向（カメラを基準とする）に合わせるためのメソッド
-    /// </summary>
-    public void RotatePlayerToCameraDirection()
-    {
-        // ロックオン中や固定ビュー中は回転を無効化
-        if (target == null || _isFixedViewMode || _lockOnTarget != null) return;
-
-        // 水平方向の入力を取得
-        float horizontalInput = Input.GetAxisRaw("Horizontal");
-        float verticalInput = Input.GetAxisRaw("Vertical");
-
-        // 入力がなければ回転させない
-        if (horizontalInput == 0 && verticalInput == 0) return;
-
-        // カメラの水平方向の回転 (Y軸) を取得
-        Quaternion cameraRotation = Quaternion.Euler(0, transform.eulerAngles.y, 0);
-
-        // 入力方向をワールド空間のベクトルに変換（カメラの向きが基準）
-        Vector3 inputDirection = cameraRotation * new Vector3(horizontalInput, 0f, verticalInput).normalized;
-
-        // 目標の回転を計算
-        Quaternion targetRotation = Quaternion.LookRotation(inputDirection);
-
-        // スムーズな回転
-        float currentRotationSpeed = smoothSpeed;
-
-        target.rotation = Quaternion.Slerp(target.rotation, targetRotation, Time.deltaTime * currentRotationSpeed);
-    }
-
-    /// <summary>
-    /// カメラからRayを取得するメソッド (カメラの中心からワールドへ)
-    /// </summary>
-    public Ray GetCameraRay()
-    {
-        Camera mainCam = Camera.main;
-        if (mainCam == null)
-        {
-            Debug.LogError("Main Camera not found! Make sure your camera is tagged 'MainCamera'.");
-            return new Ray(transform.position, transform.forward);
-        }
-        return mainCam.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
-    }
-
-    /// <summary>
-    /// カメラの中心点を取得するメソッド (GetCameraRayのRayの原点と同じ)
-    /// </summary>
-    public Vector3 GetCameraCenterPoint()
-    {
-        return GetCameraRay().origin;
-    }
+    public void SetFixedCameraView(Vector3 p, Quaternion r, float s) { _isFixedViewMode = true; _fixedTargetPosition = p; _fixedTargetRotation = r; _fixedViewSmoothSpeed = s; }
+    public void ResetToTPSView(float s) { _fixedViewSmoothSpeed = s; _isFixedViewMode = false; }
 
     private void UpdateLockOnUIPosition()
     {
-        if (_lockOnTarget == null || lockOnUIRect == null)
-        {
-            if (lockOnUIRect != null && lockOnUIRect.gameObject.activeSelf) lockOnUIRect.gameObject.SetActive(false);
-            return;
-        }
-
-        Camera mainCam = Camera.main;
-        if (mainCam == null) return;
-
-        Vector3 targetWorldPosition = _lockOnTarget.position + Vector3.up * 1.5f;
-        Vector3 screenPos = mainCam.WorldToScreenPoint(targetWorldPosition);
-
-        // 画面の後ろにいる場合はUIを非表示にする
-        if (screenPos.z < 0)
-        {
-            if (lockOnUIRect.gameObject.activeSelf) lockOnUIRect.gameObject.SetActive(false);
-            return;
-        }
-
-        // UIを表示
-        if (!lockOnUIRect.gameObject.activeSelf) lockOnUIRect.gameObject.SetActive(true);
-
-        // RectTransformの位置をスクリーン座標に設定
-        lockOnUIRect.position = screenPos;
+        if (_lockOnTarget == null || lockOnUIRect == null) { if (lockOnUIRect != null) lockOnUIRect.gameObject.SetActive(false); return; }
+        Vector3 screenPos = Camera.main.WorldToScreenPoint(_lockOnTarget.position + Vector3.up * 1.5f);
+        if (screenPos.z < 0) { lockOnUIRect.gameObject.SetActive(false); return; }
+        lockOnUIRect.gameObject.SetActive(true); lockOnUIRect.position = screenPos;
     }
 
-    /// <summary>
-    /// ロックオンターゲットの方向へ、プレイヤーのモデルをスムーズに回転させます。
-    /// </summary>
     public void RotatePlayerToLockOnTarget()
     {
         if (target == null || _lockOnTarget == null) return;
+        Vector3 d = _lockOnTarget.position - target.position; d.y = 0;
+        if (d.sqrMagnitude < 0.001f) return;
+        target.rotation = Quaternion.Slerp(target.rotation, Quaternion.LookRotation(d), Time.deltaTime * smoothSpeed * 1.5f);
+    }
 
-        // ターゲットへの方向ベクトルを計算 (Y軸の高さの差を無視し、水平方向のみを考慮)
-        Vector3 targetDirection = _lockOnTarget.position - target.position;
-        targetDirection.y = 0; // 高さは無視
-
-        // 方向がゼロベクトルでないことを確認
-        if (targetDirection.magnitude < 0.001f) return;
-
-        // 目標の回転を計算
-        Quaternion targetRotation = Quaternion.LookRotation(targetDirection.normalized);
-
-        // スムーズな回転
-        // ここでは、PlayerControllerと回転速度を共有するため smoothSpeed を使用
-        float currentRotationSpeed = smoothSpeed * 1.5f; // 必要に応じて調整
-
-        target.rotation = Quaternion.Slerp(target.rotation, targetRotation, Time.deltaTime * currentRotationSpeed);
+    public void RotatePlayerToCameraDirection()
+    {
+        if (target == null || _isFixedViewMode || _lockOnTarget != null) return;
+        float h = Input.GetAxisRaw("Horizontal"), v = Input.GetAxisRaw("Vertical");
+        if (h == 0 && v == 0) return;
+        Vector3 d = Quaternion.Euler(0, transform.eulerAngles.y, 0) * new Vector3(h, 0, v).normalized;
+        target.rotation = Quaternion.Slerp(target.rotation, Quaternion.LookRotation(d), Time.deltaTime * smoothSpeed);
     }
 }

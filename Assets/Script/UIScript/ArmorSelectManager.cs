@@ -1,502 +1,104 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 using System.Collections.Generic;
-using System.Linq;
-using UnityEngine.EventSystems;
-using System.Collections;
-using UnityEngine.Audio;
 
-/// <summary>
-/// アーマー選択シーンの全体管理、UIの更新、モデル表示を制御します。
-/// </summary>
 public class ArmorSelectManager : MonoBehaviour
 {
-    // --- UI/表示設定 ---
+    [Header("Settings")]
+    public int maxSelectable = 2;
+    public string nextSceneName = "GameScene";
+
     [Header("UI References")]
-    public Text descriptionText;// ナビゲーターの吹き出し内の説明文
-    public Button decisionButton; // 決定ボタン (機能は残す)
+    public Button[] armorButtons;      // 0:Normal, 1:Buster, 2:Speed
+    public Image[] buttonBackgrounds;
+    public Button startButton;
 
-    [Header("Armor Buttons")]
-    // アーマーの種類に合わせてサイズを3に設定
-    public Button[] armorButtons = new Button[3];
+    [Header("Explanation UI")]
+    public Text descriptionText;      // ★性能説明用（画面に1つ配置）
 
-    [Tooltip("各アーマーボタンに対応するハイライト/枠線用のImageを設定")]
-    public Image[] armorHighlightImages = new Image[3];
+    [Header("Colors")]
+    public Color selectedColor = Color.yellow;
+    public Color defaultColor = Color.white;
 
-    [Header("3D Model Display")]
-    [Tooltip("Normal(0), Buster(1), Speed(2) の順で設定")]
-    // アーマーの種類に合わせてサイズを3に設定
-    public GameObject[] armorModels = new GameObject[3];
-    public float modelRotationSpeed = 30f; // 3Dモデルの回転速度 (Y軸)
-
-    // ★オーディオ設定
-    [Header("Audio Settings")]
-    [Tooltip("アーマーを選択/解除したときに鳴らす効果音")]
-    public AudioClip selectClickSound;
-    [Tooltip("決定ボタンを押したときに鳴らす効果音")]
-    public AudioClip decisionSound;
-
-    [Tooltip("AudioSourceをルーティングするAudioMixerGroup")]
-    public AudioMixerGroup mixerGroup;
-
-    [Header("ボリューム設定 (Optional)")]
-    [Tooltip("音量をチェックしたいAudioMixerのExposed Parameter名 (例: SFXVolume)")]
-    public string volumeParameterName = "SFXVolume";
-
-    private AudioSource audioSource;
-    private AudioMixer audioMixer; // パラメーターチェックのために使用
-    // --- データと状態 ---
-    private List<int> selectedArmorList = new List<int>();
-
-    // 最大選択数を 2 に設定
-    private const int MaxSelectionCount = 2;
-
-    private List<int> hoveredArmorList = new List<int>();
-    private int currentDisplayIndex = 0;
-    private bool isTutorialSelected = false;
-
-    // アーマーの種類を3つに統一 (Normal, Buster, Speed)
-    private readonly string[] armorNames = { "ノーマル", "バスター", "スピード" };
-    private readonly string[] armorDescriptions =
-    {
-        "【ノーマル】\nバランスの取れた標準的なアーマーです。",
-        "【バスター】\n防御力に特化し、攻撃力が向上します。",
-        "【スピード】\n機動性に優れ、エネルギー回復速度が向上します。"
+    // 各アーマーの詳細説明（1つのTextに流し込む内容）
+    private string[] armorDescriptions = {
+        "【ノーマルアーマー】\n標準的な性能。安定した操作が可能です。\n特殊能力：なし",
+        "【バスターアーマー】\n攻撃特化型。ショットの威力が1.5倍になります。\n特殊能力：チャージ時間の短縮",
+        "【スピードアーマー】\n機動力特化型。移動速度が向上し、空中ダッシュが可能です。\n特殊能力：3段ジャンプ"
     };
 
-    // 初期説明文 (最大選択数2に修正済み)
-    private const string InitialDescription = "クリックしてアーマーを2つまで選びましょう。\n選択されたアーマーは黄色く強調表示されます。\n\n**マウスカーソルを合わせる**と詳細な説明が見られます。";
-
-    // シーン関連の定数を削除
-
-    // Y軸180度の初期回転値をQuaternionで定義
-    private readonly Quaternion initialRotation = Quaternion.Euler(0f, 180f, 0f);
-
-    // 選択されていないときのハイライト色 (グレーまたは薄い色など)
-    private readonly Color unselectedHighlightColor = new Color(0.5f, 0.5f, 0.5f, 1f); // 半透明のグレーを仮設定 (不透明度1)
-
-    [System.Obsolete]
-    void Awake()
-    {
-        // AudioSourceコンポーネントを取得または追加
-        audioSource = GetComponent<AudioSource>();
-        if (audioSource == null)
-        {
-            audioSource = gameObject.AddComponent<AudioSource>();
-            audioSource.playOnAwake = false; // 自動再生はしない
-        }
-
-        // AudioMixerGroupが設定されていればAudioSourceに割り当てる
-        if (mixerGroup != null)
-        {
-            audioSource.outputAudioMixerGroup = mixerGroup;
-            // AudioMixerの参照を取得（音量チェックに使用）
-            audioMixer = mixerGroup.audioMixer;
-        }
-    }
+    private List<int> selectedArmorIds = new List<int>();
 
     void Start()
     {
-        // 【修正点】全てのアーマーモデルを非アクティブにする
-        DisableAllArmorModels();
-        SetArmorButtonsTransparent();
-        UpdateDescriptionTextInitial();
-        UpdateDecisionButtonState();
+        if (startButton != null) startButton.interactable = false;
 
         for (int i = 0; i < armorButtons.Length; i++)
         {
             int index = i;
-            if (armorButtons[i] != null)
-            {
-                armorButtons[i].onClick.RemoveAllListeners();
-                armorButtons[i].onClick.AddListener(() => OnArmorButtonClicked(index));
-
-                // マウスオーバーイベントの設定
-                SetupHoverEvents(armorButtons[i], index);
-            }
+            armorButtons[i].onClick.AddListener(() => OnArmorClick(index));
         }
 
-        if (decisionButton != null)
-        {
-            decisionButton.onClick.RemoveAllListeners();
-            // 決定ボタンは機能だけ残し、シーン遷移ロジックは削除
-            decisionButton.onClick.AddListener(OnDecisionButtonClicked);
-        }
+        if (startButton != null)
+            startButton.onClick.AddListener(StartGame);
 
-        // 【修正点】ボタンの強調表示を初期化（非選択時の色で表示）
-        InitializeUIEmphasis();
-    }
-
-    /// <summary>
-    /// 各ButtonにPointerEnterとPointerExitイベントを設定します。
-    /// </summary>
-    private void SetupHoverEvents(Button button, int index)
-    {
-        // EventTriggerコンポーネントを取得または追加
-        EventTrigger trigger = button.gameObject.GetComponent<EventTrigger>();
-        if (trigger == null)
-        {
-            trigger = button.gameObject.AddComponent<EventTrigger>();
-        }
-
-        // PointerEnterイベントの追加
-        EventTrigger.Entry entryEnter = new EventTrigger.Entry();
-        entryEnter.eventID = EventTriggerType.PointerEnter;
-        entryEnter.callback.AddListener((eventData) => OnArmorPointerEnter(index));
-        trigger.triggers.Add(entryEnter);
-
-        // PointerExitイベントの追加
-        EventTrigger.Entry entryExit = new EventTrigger.Entry();
-        entryExit.eventID = EventTriggerType.PointerExit;
-        entryExit.callback.AddListener((eventData) => OnArmorPointerExit(index));
-        trigger.triggers.Add(entryExit);
-    }
-
-    /// <summary>
-    /// マウスカーソルがボタンに入ったときに呼ばれます。
-    /// </summary>
-    public void OnArmorPointerEnter(int index)
-    {
-        if (!hoveredArmorList.Contains(index))
-        {
-            hoveredArmorList.Add(index);
-        }
-
-        // マウスオーバーしたアーマーの説明を表示
-        UpdateDescriptionText(index);
-
-        // マウスオーバーしたモデルを有効化
-        if (index < armorModels.Length && armorModels[index] != null)
-        {
-            armorModels[index].SetActive(true);
-        }
-    }
-
-    /// <summary>
-    /// マウスカーソルがボタンから出たときに呼ばれます。
-    /// </summary>
-    public void OnArmorPointerExit(int index)
-    {
-        hoveredArmorList.Remove(index);
-
-        // カーソルが離れた後、選択中のアーマーがあればその説明に戻す
-        if (selectedArmorList.Any())
-        {
-            // リストの最後に選択されたアーマーの説明に戻る
-            currentDisplayIndex = selectedArmorList.Last();
-            UpdateDescriptionText(currentDisplayIndex);
-        }
-        else
-        {
-            // 何も選択されていない場合は初期説明文に戻す
-            UpdateDescriptionTextInitial();
-        }
-
-        // マウスオーバーが解除されたとき、そのモデルが選択されていない場合のみ回転を初期化（停止/正面向きに戻す）
-        if (!selectedArmorList.Contains(index))
-        {
-            if (index < armorModels.Length && armorModels[index] != null)
-            {
-                armorModels[index].transform.localRotation = initialRotation;
-                // マウスオーバーが解除されたとき、そのモデルが選択されていない場合のみ非表示にする
-                armorModels[index].SetActive(false);
-            }
-        }
-        // モデルが選択されている場合はそのまま表示・回転維持
-    }
-
-
-    /// <summary>
-    /// アーマーボタンのImageコンポーネントを透明にします。
-    /// </summary>
-    private void SetArmorButtonsTransparent()
-    {
-        // 完全に透明な色 (R=1, G=1, B=1, A=0)
-        Color transparentColor = new Color(1f, 1f, 1f, 0f);
-
-        for (int i = 0; i < armorButtons.Length; i++)
-        {
-            if (armorButtons[i] != null)
-            {
-                Image buttonImage = armorButtons[i].GetComponent<Image>();
-                if (buttonImage != null)
-                {
-                    // 完全に透明にする
-                    buttonImage.color = transparentColor;
-                }
-            }
-        }
-    }
-
-    /// <summary>
-    /// シーン開始時に全てのアーマーモデルを無効化します。（非表示にする）
-    /// </summary>
-    private void DisableAllArmorModels()
-    {
-        for (int i = 0; i < armorModels.Length; i++)
-        {
-            if (armorModels[i] != null)
-            {
-                armorModels[i].SetActive(false); // モデルを非アクティブにする
-                armorModels[i].transform.localRotation = initialRotation;
-            }
-        }
-    }
-
-    void Update()
-    {
-        // 3Dモデルの回転処理
-        for (int i = 0; i < armorModels.Length; i++)
-        {
-            // 【Null参照対策の強化】モデル自体と、そのTransformコンポーネントの両方が有効か確認
-            if (armorModels[i] == null || armorModels[i].transform == null)
-            {
-                // null または transform が存在しない場合は処理をスキップ
-                continue;
-            }
-
-            // 回転させるのは、マウスオーバーされている **かつ** 選択されていないモデルのみ
-            bool isHovered = hoveredArmorList.Contains(i);
-            bool isSelected = selectedArmorList.Contains(i);
-
-            // 選択されていない（黄色ではない）モデルが、マウスオーバーされている場合のみ回転
-            bool shouldRotate = isHovered && !isSelected;
-
-            if (shouldRotate)
-            {
-                // 回転させる 
-                armorModels[i].transform.Rotate(Vector3.up, modelRotationSpeed * Time.deltaTime, Space.World);
-            }
-            // 選択されているモデルは回転を停止/初期回転を維持
-        }
-    }
-
-    /// <summary>
-    /// アーマー選択ボタンがクリックされたときに呼ばれます。
-    /// </summary>
-    /// <param name="index">クリックされたアーマーのインデックス (0～2)</param>
-    public void OnArmorButtonClicked(int index)
-    {
-        // インデックスが有効範囲内であることを確認
-        if (index < 0 || index >= armorButtons.Length)
-        {
-            Debug.LogError($"無効なアーマーインデックスがクリックされました: {index}");
-            return;
-        }
-
-        bool wasPreviouslySelected = selectedArmorList.Contains(index);
-
-        if (wasPreviouslySelected)
-        {
-            // 選択解除 (黄色 -> 非選択色/透明)
-            selectedArmorList.Remove(index);
-
-            // モデルの回転を初期値に戻す (解除されたモデルのみ)
-            if (index < armorModels.Length && armorModels[index] != null)
-            {
-                armorModels[index].transform.localRotation = initialRotation;
-
-                // 選択解除されたモデルは非表示にする
-                armorModels[index].SetActive(false);
-            }
-            Debug.Log($"アーマー {armorNames[index]} を解除しました。残り: {string.Join(", ", selectedArmorList.Select(i => armorNames[i]))}");
-        }
-        else
-        {
-            if (selectedArmorList.Count >= MaxSelectionCount)
-            {
-                // 選択上限に達している場合は何もしない
-                Debug.LogWarning($"選択上限({MaxSelectionCount}個)に達しています。");
-                return;
-            }
-
-            // 選択 (非選択色/透明 -> 黄色)
-            selectedArmorList.Add(index);
-
-            // 選択されたとき（黄色になったとき）にモデルを正面に向かせる
-            if (index < armorModels.Length && armorModels[index] != null)
-            {
-                // 選択された時点で回転を停止し、正面を向かせる
-                armorModels[index].transform.localRotation = initialRotation;
-                // 選択されたモデルは表示させる
-                armorModels[index].SetActive(true);
-            }
-
-            Debug.Log($"アーマー {armorNames[index]} を追加しました。現在: {string.Join(", ", selectedArmorList.Select(i => armorNames[i]))}");
-        }
-
-        // クリック音の再生
-        PlaySound(selectClickSound);
-
-        // 常に最新の選択/解除されたアーマーを説明文に表示する
-        currentDisplayIndex = index;
-        UpdateDescriptionText(currentDisplayIndex);
-
-        // UIの強調表示を更新
-        UpdateUIEmphasis();
-        UpdateDecisionButtonState(); // ボタンの有効/無効状態を更新
-
-        isTutorialSelected = false;
-    }
-
-    /// <summary>
-    /// シーン開始時に選択されていない状態のハイライト色を設定します。
-    /// </summary>
-    private void InitializeUIEmphasis()
-    {
-        for (int i = 0; i < armorHighlightImages.Length; i++)
-        {
-            if (armorHighlightImages[i] != null)
-            {
-                // 選択されていない状態のデフォルトの色 (例: グレー) を設定
-                armorHighlightImages[i].gameObject.SetActive(true);
-                armorHighlightImages[i].color = unselectedHighlightColor;
-            }
-        }
-    }
-
-
-    /// <summary>
-    /// 選択リストに基づいて、強調表示用のImageを制御します。
-    /// </summary>
-    private void UpdateUIEmphasis()
-    {
-        for (int i = 0; i < armorHighlightImages.Length; i++)
-        {
-            if (armorHighlightImages[i] != null)
-            {
-                bool isSelected = selectedArmorList.Contains(i);
-
-                // Imageの色を変更して、光っているように見せます
-                // 選択中は黄色、解除中は初期設定の非選択色に戻す
-                Color targetColor = isSelected ? Color.yellow : unselectedHighlightColor;
-
-                // Imageを有効化し、色を適用
-                armorHighlightImages[i].gameObject.SetActive(true);
-                armorHighlightImages[i].color = targetColor;
-            }
-        }
-    }
-
-
-    /// <summary>
-    /// 吹き出し内の説明文を更新します。（アーマー選択時/マウスオーバー時）
-    /// </summary>
-    private void UpdateDescriptionText(int index)
-    {
-        // 配列の範囲内であることを確認
-        if (descriptionText != null && index >= 0 && index < armorDescriptions.Length)
-        {
-            descriptionText.text = armorDescriptions[index];
-        }
-    }
-
-    /// <summary>
-    /// 吹き出し内の説明文を初期表示用（チュートリアル）に更新します。
-    /// </summary>
-    private void UpdateDescriptionTextInitial()
-    {
+        // 最初のメッセージ
         if (descriptionText != null)
-        {
-            descriptionText.text = InitialDescription;
-        }
+            descriptionText.text = "装備するアーマーを2つまで選んでください。";
+
+        UpdateUI();
     }
 
-    /// <summary>
-    /// 決定ボタンの状態を更新します。（選択リストに一つ以上のアーマーがあるかチェック）
-    /// </summary>
-    private void UpdateDecisionButtonState()
+    void OnArmorClick(int id)
     {
-        if (decisionButton == null) return;
-
-        // 少なくとも1つのアーマーが選択されていれば決定ボタンを有効化
-        bool canProceed = selectedArmorList.Count > 0;
-        decisionButton.interactable = canProceed;
-
-        // デバッグログで格納順を確認
-        if (canProceed)
+        if (selectedArmorIds.Contains(id))
         {
-            Debug.Log($"決定ボタン有効。格納順: {string.Join(", ", selectedArmorList.Select(i => armorNames[i]))}");
+            selectedArmorIds.Remove(id);
         }
         else
         {
-            Debug.Log("決定ボタン無効。アーマーが選択されていません。");
+            if (selectedArmorIds.Count < maxSelectable)
+            {
+                selectedArmorIds.Add(id);
+            }
         }
+
+        // ★クリックされたアーマーの説明を表示する
+        ShowDescription(id);
+
+        UpdateUI();
     }
 
-    /// <summary>
-    /// 決定ボタンがクリックされたときに呼ばれます。（シーン遷移ロジック削除済み）
-    /// </summary>
-    public void OnDecisionButtonClicked()
+    // 説明文を更新する関数
+    void ShowDescription(int id)
     {
-        if (selectedArmorList.Count == 0)
+        if (descriptionText != null && id >= 0 && id < armorDescriptions.Length)
         {
-            Debug.LogWarning("アーマーが選択されていません。");
-            return;
+            descriptionText.text = armorDescriptions[id];
         }
-
-        // 決定音を鳴らし、音が鳴り終わるのを待つ処理（コルーチン）を開始
-        StartCoroutine(WaitForDecisionSound());
     }
 
-    /// <summary>
-    /// コルーチン: 決定音を鳴らし、音が鳴り終わるのを待つ
-    /// </summary>
-    private IEnumerator WaitForDecisionSound()
+    void UpdateUI()
     {
-        bool isSoundMuted = IsVolumeMuted(); // 音量チェック
-
-        // 決定音の再生
-        if (audioSource != null && decisionSound != null && !isSoundMuted)
+        for (int i = 0; i < buttonBackgrounds.Length; i++)
         {
-            audioSource.PlayOneShot(decisionSound);
-
-            // 音が鳴り終わるのを待つ
-            yield return new WaitForSeconds(decisionSound.length);
-        }
-        else if (isSoundMuted)
-        {
-            Debug.Log("決定音はミュートされています。");
+            if (buttonBackgrounds[i] != null)
+            {
+                buttonBackgrounds[i].color = selectedArmorIds.Contains(i) ? selectedColor : defaultColor;
+            }
         }
 
-        // ここに次の処理（シーン遷移以外の）を記述
-        Debug.Log("決定処理が完了しました。");
+        if (startButton != null)
+            startButton.interactable = selectedArmorIds.Count > 0;
     }
 
-
-    /// <summary>
-    /// 指定されたAudioClipを再生します。
-    /// </summary>
-    /// <param name="clip">再生するオーディオクリップ</param>
-    private void PlaySound(AudioClip clip)
+    public void StartGame()
     {
-        if (audioSource != null && clip != null && !IsVolumeMuted())
-        {
-            audioSource.PlayOneShot(clip);
-        }
+        if (selectedArmorIds.Count == 0) return;
+        PlayerPrefs.SetInt("SelectedArmor_Slot0", selectedArmorIds[0]);
+        PlayerPrefs.SetInt("SelectedArmor_Slot1", selectedArmorIds.Count > 1 ? selectedArmorIds[1] : -1);
+        PlayerPrefs.Save();
+        SceneManager.LoadScene(nextSceneName);
     }
-
-    /// <summary>
-    /// AudioMixerのボリュームがミュート状態（-80dB以下）かどうかをチェックします。
-    /// </summary>
-    private bool IsVolumeMuted()
-    {
-        if (audioMixer == null || string.IsNullOrEmpty(volumeParameterName))
-        {
-            return false;
-        }
-
-        float volumeValue;
-        if (audioMixer.GetFloat(volumeParameterName, out volumeValue))
-        {
-            // 非常に小さな値（例: -79dB以下）であればミュートと見なす
-            return volumeValue < -79f;
-        }
-
-        // パラメーターが見つからなかった場合はミュートではないと見なす
-        return false;
-    }
-
-
-    // シーン遷移とデータ引き継ぎに関連する静的メソッドを削除
 }

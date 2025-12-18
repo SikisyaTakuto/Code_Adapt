@@ -3,26 +3,17 @@ using UnityEngine.UI;
 using System;
 using System.Collections.Generic;
 
-/// <summary>
-/// プレイヤーのアーマー/武器モードの設定、およびビジュアル/アイコンの切り替えを制御します。
-/// HP/エネルギー管理ロジックは含まれません。
-/// </summary>
 public class PlayerModesAndVisuals : MonoBehaviour
 {
-    // === Enum Definitions ===
-    public enum WeaponMode { Melee, Beam }
+    public enum WeaponMode { Attack1, Attack2 } // 名前を Attack1/2 に変更
     public enum ArmorMode { Normal = 0, Buster = 1, Speed = 2 }
-    private const string SelectedArmorKey = "SelectedArmorIndex";
 
     [System.Serializable]
     public class ArmorStats
     {
         public string name;
-        [Tooltip("ダメージ軽減率 (例: 1.0 = 変更なし, 0.5 = ダメージ半減)")]
         public float defenseMultiplier = 1.0f;
-        [Tooltip("移動速度補正 (例: 1.5 = 1.5倍速)")]
         public float moveSpeedMultiplier = 1.0f;
-        [Tooltip("エネルギー回復補正")]
         public float energyRecoveryMultiplier = 1.0f;
     }
 
@@ -34,32 +25,25 @@ public class PlayerModesAndVisuals : MonoBehaviour
     public Sprite[] armorSprites;
     public GameObject[] armorModels;
 
-    [Header("Weapon UI")]
-    public Image meleeWeaponIcon;
-    public Text meleeWeaponText;
-    public Image beamWeaponIcon;
-    public Text beamWeaponText;
+    [Header("Weapon UI")] // 変数名も Attack1 / Attack2 に統一
+    public Image attack1Icon;
+    public Text attack1Text;
+    public Image attack2Icon;
+    public Text attack2Text;
     public Color emphasizedColor = Color.white;
     public Color normalColor = new Color(0.5f, 0.5f, 0.5f);
 
-    // === プライベート/キャッシュ変数 ===
-    private ArmorMode _currentArmorMode = ArmorMode.Normal;
-    private ArmorStats _currentArmorStats;
-    private WeaponMode _currentWeaponMode = WeaponMode.Melee;
+    private ArmorStats _currentArmorStats = new ArmorStats();
+    private WeaponMode _currentWeaponMode = WeaponMode.Attack1;
 
-    // === Public Properties (他のコンポーネントからアクセス用) ===
-    public ArmorMode CurrentArmorMode => _currentArmorMode;
     public WeaponMode CurrentWeaponMode => _currentWeaponMode;
     public ArmorStats CurrentArmorStats => _currentArmorStats;
 
-    // =======================================================
-    // Unity Lifecycle
-    // =======================================================
+    private bool _isUsingSlot1 = false; // 現在スロット1を使っているか
 
     void Awake()
     {
-        // 依存コンポーネントがStartで参照できるように、ここでアーマーの初期化を行う
-        LoadAndSwitchArmor(false);
+        LoadAndApplyDualArmor();
     }
 
     void Start()
@@ -67,105 +51,120 @@ public class PlayerModesAndVisuals : MonoBehaviour
         UpdateWeaponUIEmphasis();
     }
 
-    // =======================================================
-    // Initialization
-    // =======================================================
+    // --- PlayerModesAndVisuals.cs 内の修正 ---
 
-    private void LoadAndSwitchArmor(bool shouldLog)
+    public void LoadAndApplyDualArmor()
     {
-        int selectedIndex = PlayerPrefs.GetInt(SelectedArmorKey, (int)ArmorMode.Normal);
+        int slot0 = PlayerPrefs.GetInt("SelectedArmor_Slot0", 0);
+        int slot1 = PlayerPrefs.GetInt("SelectedArmor_Slot1", -1);
 
-        if (Enum.IsDefined(typeof(ArmorMode), selectedIndex) && selectedIndex < armorConfigurations.Count)
+        // ステータスは「常に両方の合計」にする
+        _currentArmorStats.defenseMultiplier = 1.0f;
+        _currentArmorStats.moveSpeedMultiplier = 1.0f;
+        _currentArmorStats.energyRecoveryMultiplier = 1.0f;
+
+        ApplyStatsOnly(slot0);
+        if (slot1 != -1) ApplyStatsOnly(slot1);
+
+        // 見た目はスロット0（1つ目）を初期表示
+        UpdateArmorVisualAndIcon(slot0);
+    }
+
+    // ステータス計算だけを行うメソッド
+    private void ApplyStatsOnly(int index)
+    {
+        if (index < 0 || index >= armorConfigurations.Count) return;
+        _currentArmorStats.defenseMultiplier *= armorConfigurations[index].defenseMultiplier;
+        _currentArmorStats.moveSpeedMultiplier *= armorConfigurations[index].moveSpeedMultiplier;
+        _currentArmorStats.energyRecoveryMultiplier *= armorConfigurations[index].energyRecoveryMultiplier;
+    }
+
+    // 引数に bool showModel を追加
+    private void ApplyStats(int index, bool showModel)
+    {
+        if (index < 0 || index >= armorConfigurations.Count) return;
+
+        // ステータス倍率はどちらのスロットでも計算する
+        _currentArmorStats.defenseMultiplier *= armorConfigurations[index].defenseMultiplier;
+        _currentArmorStats.moveSpeedMultiplier *= armorConfigurations[index].moveSpeedMultiplier;
+        _currentArmorStats.energyRecoveryMultiplier *= armorConfigurations[index].energyRecoveryMultiplier;
+
+        // 見た目（モデル）の表示は showModel が true の時だけ行う
+        if (showModel && index < armorModels.Length && armorModels[index] != null)
         {
-            SwitchArmor((ArmorMode)selectedIndex, shouldLog);
-        }
-        else
-        {
-            SwitchArmor(ArmorMode.Normal, shouldLog);
-            if (shouldLog) Debug.LogWarning($"不正なアーマーインデックス({selectedIndex})が検出されました。Normalモードを適用します。");
+            armorModels[index].SetActive(true);
         }
     }
 
-    // =======================================================
-    // Armor and Weapon Switching
-    // =======================================================
-
-    public void SwitchArmor(ArmorMode newMode, bool shouldLog = true)
-    {
-        int index = (int)newMode;
-        if (index < 0 || index >= armorConfigurations.Count)
-        {
-            Debug.LogError($"アーマーモード {newMode} の設定が見つかりません。");
-            return;
-        }
-
-        if (_currentArmorMode == newMode && _currentArmorStats != null)
-        {
-            if (shouldLog) Debug.Log($"アーマーは既に **{newMode}** です。");
-            return;
-        }
-
-        _currentArmorMode = newMode;
-        _currentArmorStats = armorConfigurations[index];
-
-        PlayerPrefs.SetInt(SelectedArmorKey, index);
-        PlayerPrefs.Save();
-
-        UpdateArmorVisuals(index);
-
-        if (shouldLog)
-        {
-            Debug.Log($"アーマーを切り替えました: **{_currentArmorStats.name}** ");
-        }
-    }
-
-    public void SwitchWeapon()
-    {
-        _currentWeaponMode = (_currentWeaponMode == WeaponMode.Melee) ? WeaponMode.Beam : WeaponMode.Melee;
-        UpdateWeaponUIEmphasis();
-        Debug.Log($"武器を切り替えました: **{_currentWeaponMode}**");
-    }
-
-    // =======================================================
-    // Visual Updates
-    // =======================================================
-
-    private void UpdateArmorVisuals(int index)
+    private void UpdateArmorIcon(int index)
     {
         if (currentArmorIconImage != null && armorSprites != null && index < armorSprites.Length)
         {
             currentArmorIconImage.sprite = armorSprites[index];
             currentArmorIconImage.enabled = true;
         }
+    }
 
-        if (armorModels != null)
-        {
-            for (int i = 0; i < armorModels.Length; i++)
-            {
-                if (armorModels[i] != null)
-                {
-                    armorModels[i].SetActive(i == index);
-                }
-            }
-        }
+    public void SwitchWeapon()
+    {
+        // Attack1 と Attack2 を切り替え
+        _currentWeaponMode = (_currentWeaponMode == WeaponMode.Attack1) ? WeaponMode.Attack2 : WeaponMode.Attack1;
+        UpdateWeaponUIEmphasis();
     }
 
     private void UpdateWeaponUIEmphasis()
     {
-        bool isMelee = (_currentWeaponMode == WeaponMode.Melee);
+        bool isAttack1 = (_currentWeaponMode == WeaponMode.Attack1);
 
-        if (meleeWeaponIcon != null) meleeWeaponIcon.color = isMelee ? emphasizedColor : normalColor;
-        if (beamWeaponIcon != null) beamWeaponIcon.color = isMelee ? normalColor : emphasizedColor;
+        // UIの色の切り替え
+        if (attack1Icon != null) attack1Icon.color = isAttack1 ? emphasizedColor : normalColor;
+        if (attack2Icon != null) attack2Icon.color = isAttack1 ? normalColor : emphasizedColor;
 
-        if (meleeWeaponText != null)
+        if (attack1Text != null)
         {
-            meleeWeaponText.text = "Melee";
-            meleeWeaponText.color = isMelee ? emphasizedColor : normalColor;
+            attack1Text.text = "Attack 1";
+            attack1Text.color = isAttack1 ? emphasizedColor : normalColor;
         }
-        if (beamWeaponText != null)
+        if (attack2Text != null)
         {
-            beamWeaponText.text = "Beam";
-            beamWeaponText.color = isMelee ? normalColor : emphasizedColor;
+            attack2Text.text = "Attack 2";
+            attack2Text.color = isAttack1 ? normalColor : emphasizedColor;
+        }
+    }
+
+    public void SwitchArmor(ArmorMode newMode)
+    {
+        PlayerPrefs.SetInt("SelectedArmor_Slot0", (int)newMode);
+        PlayerPrefs.SetInt("SelectedArmor_Slot1", -1);
+        LoadAndApplyDualArmor();
+    }
+
+    // スロット番号(0か1)を指定してアーマーを切り替える
+    public void ChangeArmorBySlot(int slotNumber)
+    {
+        string key = (slotNumber == 0) ? "SelectedArmor_Slot0" : "SelectedArmor_Slot1";
+        int armorIndex = PlayerPrefs.GetInt(key, -1);
+
+        // スロット1が未設定（-1）の場合は切り替えない
+        if (armorIndex == -1) return;
+
+        // 見た目とアイコンを更新
+        UpdateArmorVisualAndIcon(armorIndex);
+    }
+
+    // 見た目とアイコンだけを更新（ステータス合算は維持）
+    private void UpdateArmorVisualAndIcon(int activeIndex)
+    {
+        if (armorModels != null)
+        {
+            foreach (var m in armorModels) if (m != null) m.SetActive(false);
+            if (activeIndex >= 0 && activeIndex < armorModels.Length && armorModels[activeIndex] != null)
+                armorModels[activeIndex].SetActive(true);
+        }
+
+        if (currentArmorIconImage != null && activeIndex >= 0 && activeIndex < armorSprites.Length)
+        {
+            currentArmorIconImage.sprite = armorSprites[activeIndex];
         }
     }
 }

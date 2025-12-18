@@ -1,24 +1,20 @@
+// ファイル名: VoxPart.cs
 using UnityEngine;
 
 public class VoxPart : MonoBehaviour
 {
-    private VoxController mainBoss;
+    public VoxController mainController; // 親のVoxControllerをインスペクターでアタッチ
+    public int armIndex; // このパーツが何番目のアームか (0?7)
 
-    void Start()
+    public void TakeDamage(float damage)
     {
-        // 親を遡って VoxController を探す
-        mainBoss = GetComponentInParent<VoxController>();
-    }
-
-    public void TakeDamage(float amount)
-    {
-        if (mainBoss != null)
+        if (mainController != null)
         {
-            // 本体へダメージを転送
-            mainBoss.TakeDamage(amount);
+            // アーム自体のHPを減らす
+            mainController.DamageArm(armIndex, Mathf.CeilToInt(damage));
 
-            // ついでにアーム固有のDamageArmも呼びたい場合は、
-            // エディタ側で設定したインデックスを保持させて呼び出せます
+            // 本体にも少し（あるいは全額）ダメージを与える
+            mainController.DamageBoss(Mathf.CeilToInt(damage * 0.01f));
         }
     }
 }

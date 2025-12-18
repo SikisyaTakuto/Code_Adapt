@@ -70,7 +70,8 @@ public class TutoialManager : MonoBehaviour
 
             case TutorialStep.Dash:
                 // Shift移動を検知
-                if (Input.GetKey(KeyCode.LeftShift) && (Mathf.Abs(Input.GetAxis("Horizontal")) > 0.1f))
+                bool hasMovementInput = Mathf.Abs(Input.GetAxis("Horizontal")) > 0.1f || Mathf.Abs(Input.GetAxis("Vertical")) > 0.1f;
+                if (Input.GetKey(KeyCode.LeftShift) && hasMovementInput)
                     OnActionSuccess();
                 break;
 
@@ -113,8 +114,12 @@ public class TutoialManager : MonoBehaviour
                 break;
 
             case TutorialStep.SwitchArmor:
-                if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Alpha3))
+                // ★修正点: 1キーまたは2キーの入力を検知
+                if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Alpha2))
+                {
+                    // プレイヤーが実際にアーマーを切り替える入力をしたら成功
                     OnActionSuccess();
+                }
                 break;
         }
     }
@@ -171,14 +176,13 @@ public class TutoialManager : MonoBehaviour
     {
         string message = "";
 
-        // ステップ開始時のHPを記録（Damageステップの判定用）
         if (playerStatus != null) initialHp = playerStatus.CurrentHP;
 
         switch (currentStep)
         {
-            case TutorialStep.Move: message = "・WASDで移動せよ"; break;
-            case TutorialStep.Dash: message = "・Shiftでダッシュせよ\n　(エネルギーを消費)"; break;
-            case TutorialStep.Fly: message = "・Spaceで上昇せよ"; break;
+            case TutorialStep.Move: message = "・WASDで\n移動せよ"; break;
+            case TutorialStep.Dash: message = "・LeftShift+\nWASDで\nダッシュせよ\n　(エネルギーを消費)"; break;
+            case TutorialStep.Fly: message = "・Spaceで\n上昇せよ"; break;
             case TutorialStep.Damage:
                 message = "・敵の攻撃を受け\n　ダメージを体験せよ";
                 break;
@@ -197,11 +201,12 @@ public class TutoialManager : MonoBehaviour
                 if (_currentEnemy == null) SpawnTutorialEnemy(false);
                 break;
             case TutorialStep.SwitchArmor:
-                message = "・1,2,3キーでアーマー換装";
+                // ★修正点: メッセージを 1, 2キーに変更
+                message = "・1,2キー\nでアーマー換装";
                 break;
             case TutorialStep.Complete:
                 missionText.color = Color.green;
-                checkmarkIcon.SetActive(true); // チェックマークを表示したままにする
+                checkmarkIcon.SetActive(true);
                 message = "・全ミッション完了！";
                 if (_currentEnemy != null) Destroy(_currentEnemy);
                 StartCoroutine(TransitionToClearScene());

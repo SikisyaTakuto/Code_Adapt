@@ -1335,7 +1335,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &70539295
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2451,9 +2451,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 653b12a0d9ef9f24dadc254be5a6b84a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  clickSound: {fileID: 8300000, guid: eb6b652db7f2aa940a2881a4ebd2587a, type: 3}
-  mixerGroup: {fileID: -3739268338962364145, guid: 603ef59b47c94cf428e84434f1b16887, type: 2}
-  volumeParameterName: SFXVolume
 --- !u!1 &130145635
 GameObject:
   m_ObjectHideFlags: 0
@@ -21674,7 +21671,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: "ESC\u30AD\u30FC\u3067\u3044\u3064\u3067\u3082\u8A2D\u5B9A\u753B\u9762\u3092\u958B\u3051\u308C\u308B\u3088"
+  m_Text: "ESC\u30AD\u30FC\u3067\u3044\u3064\u3067\u3082\u8A2D\u5B9A\u753B\u9762\u3092\u958B\u3051\u307E\u3059"
 --- !u!222 &1001332563
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -33706,7 +33703,6 @@ MonoBehaviour:
   SpeedPanelUI: {fileID: 1735485346}
   KeyBordPanelUI: {fileID: 1337852391}
   GamePadPanelUI: {fileID: 1982362543}
-  buttonClickSFX: {fileID: 8300000, guid: eb6b652db7f2aa940a2881a4ebd2587a, type: 3}
 --- !u!114 &1529389652
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -42994,7 +42990,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: -37841629, guid: c91c0acbd85e7ea43a9dadeb2a7f628c, type: 3}
+  m_Sprite: {fileID: -1370115368, guid: c91c0acbd85e7ea43a9dadeb2a7f628c, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -46130,8 +46126,8 @@ SceneRoots:
   m_Roots:
   - {fileID: 1216900682}
   - {fileID: 669658052}
+  - {fileID: 1072231156}
   - {fileID: 129797369}
   - {fileID: 1529389655}
   - {fileID: 636663873}
-  - {fileID: 1072231156}
   - {fileID: 70539296}
