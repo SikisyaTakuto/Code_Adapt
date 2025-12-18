@@ -306,7 +306,7 @@ public class SoliderEnemy : MonoBehaviour
     void LandingLogic()
     {
         if (rb == null) return;
-        rb.velocity = Vector3.down * landingSpeed;
+        rb.linearVelocity = Vector3.down * landingSpeed;
     }
 
     // ===================================
@@ -350,7 +350,7 @@ public class SoliderEnemy : MonoBehaviour
 
         if (rb != null)
         {
-            rb.velocity = Vector3.zero;
+            rb.linearVelocity = Vector3.zero;
             rb.isKinematic = false;
             rb.useGravity = true;
         }
@@ -508,7 +508,7 @@ public class SoliderEnemy : MonoBehaviour
 
             if (rb != null)
             {
-                rb.velocity = Vector3.zero;
+                rb.linearVelocity = Vector3.zero;
 
                 float contactY = collision.contacts[0].point.y;
 
