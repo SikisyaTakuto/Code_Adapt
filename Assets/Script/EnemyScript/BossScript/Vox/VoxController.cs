@@ -2,6 +2,7 @@
 using System.Collections;
 using UnityEngine.UI;
 using UnityEngine.UIElements;
+using Unity.Burst.Intrinsics;
 
 public class VoxController : MonoBehaviour
 {
@@ -29,7 +30,9 @@ public class VoxController : MonoBehaviour
     //[SerializeField] private GameObject bombPrefab;         // 落とす爆弾Prefab
     //[SerializeField] private GameObject[] enemyPrefabs;     // 敵プレハブを配列に変更！
 
-    [SerializeField] private GameObject explosionEffect;    // 爆発エフェクト
+    [SerializeField] private GameObject explosionEffect;    // 爆発エフェクト
+
+    [SerializeField] private GameObject EXexplosionEffect;    // 爆発エフェクト
 
     [SerializeField] private GameObject boxPrefab;          // 落とす箱
 
@@ -253,8 +256,14 @@ public class VoxController : MonoBehaviour
                     Vector3 spawnPos = arm.transform.position + Vector3.up * dropHeight;
                     GameObject box = Instantiate(boxPrefab, spawnPos, Quaternion.identity);
 
+                    // アニメーション開始        
+                    armAnimators[index].SetTrigger("Grap");
+
                     // アームの子オブジェクトにして保持
                     box.transform.SetParent(arm.transform);
+
+                    // アニメーション開始        
+                    armAnimators[index].SetTrigger("Hold");
 
                     // 落ちないようにつける
                     Rigidbody rb = box.GetComponent<Rigidbody>();
@@ -281,6 +290,9 @@ public class VoxController : MonoBehaviour
                     StartCoroutine(DropAfterAnimation(index, arm));
 
                     canDropNow[index] = false;
+
+                    // アニメーション開始        
+                    armAnimators[index].SetTrigger("Idle");
                 }
             }
 
@@ -293,6 +305,11 @@ public class VoxController : MonoBehaviour
     {
         Debug.Log("Boss 撃破！");
         // エフェクト・停止処理など自由に追加
+        // 爆発エフェクトの生成
+        if (EXexplosionEffect != null)
+        {
+            Instantiate(EXexplosionEffect, transform.position, Quaternion.identity);
+        }
     }
 
     // 目標に到達後、少し待機してから次の移動目標を設定
