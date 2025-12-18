@@ -21,7 +21,7 @@ public class ScorpionEnemy : MonoBehaviour
     public float deathAnimationDuration = 3.0f;
 
     [Header("ターゲット設定")]
-    public Transform playerTarget;
+    private Transform playerTarget; // 💡 Tagで自動取得するため private に変更
     public float detectionRange = 15f;
     public Transform beamOrigin;
 
@@ -30,9 +30,9 @@ public class ScorpionEnemy : MonoBehaviour
 
     [Header("攻撃設定")]
     public float attackRate = 1f;
-    public GameObject beamPrefab; // ※このPrefabに付いているスクリプトも修正が必要です
+    public GameObject beamPrefab;
     public float beamSpeed = 30f;
-    public int beamDamage = 20; // ビームのダメージ量を追加
+    public int beamDamage = 20;
 
     private const string WALL_TAG = "Wall";
 
@@ -61,14 +61,23 @@ public class ScorpionEnemy : MonoBehaviour
         agent = GetComponent<NavMeshAgent>();
         animator = GetComponent<Animator>();
 
-        if (playerTarget == null)
-        {
-            GameObject playerObject = GameObject.FindWithTag("Player");
-            if (playerObject != null) playerTarget = playerObject.transform;
-        }
+        // 💡 起動時にプレイヤーをTagで検索
+        FindPlayerWithTag();
 
         lastMoveTime = Time.time;
         Wander();
+    }
+
+    /// <summary>
+    /// 💡 Tag "Player" を持つオブジェクトを検索して設定
+    /// </summary>
+    private void FindPlayerWithTag()
+    {
+        GameObject playerObject = GameObject.FindWithTag("Player");
+        if (playerObject != null)
+        {
+            playerTarget = playerObject.transform;
+        }
     }
 
     private void Update()
@@ -76,10 +85,22 @@ public class ScorpionEnemy : MonoBehaviour
         // デバッグ用: Oキーで即死
         if (Input.GetKeyDown(KeyCode.O)) { TakeDamage(maxHealth); return; }
 
-        if (isDead || playerTarget == null || Time.time < hardStopEndTime)
+        if (isDead || Time.time < hardStopEndTime)
         {
             if (agent != null && agent.enabled) agent.isStopped = true;
             return;
+        }
+
+        // 💡 ターゲットがいない場合は再検索を試みる
+        if (playerTarget == null)
+        {
+            FindPlayerWithTag();
+            if (playerTarget == null)
+            {
+                // ターゲットが不在なら徘徊だけ行う
+                HandleWanderLogic();
+                return;
+            }
         }
 
         if (agent == null || !agent.enabled) return;
@@ -92,6 +113,7 @@ public class ScorpionEnemy : MonoBehaviour
             CheckForWallCollision();
         }
 
+        // --- 索敵・攻撃ロジック ---
         if (distanceToPlayer <= detectionRange)
         {
             agent.isStopped = true;
@@ -105,13 +127,21 @@ public class ScorpionEnemy : MonoBehaviour
         }
         else
         {
-            agent.isStopped = false;
-            bool needNewDestination = !agent.hasPath || agent.remainingDistance < destinationThreshold || (Time.time - lastMoveTime) >= maxIdleTime;
-            if (needNewDestination) Wander();
+            HandleWanderLogic();
         }
     }
 
-    // --- HPバー制御 (TPSCameraController用) ---
+    // 徘徊ロジックを共通化
+    private void HandleWanderLogic()
+    {
+        if (agent == null || !agent.enabled) return;
+
+        agent.isStopped = false;
+        bool needNewDestination = !agent.hasPath || agent.remainingDistance < destinationThreshold || (Time.time - lastMoveTime) >= maxIdleTime;
+        if (needNewDestination) Wander();
+    }
+
+    // --- HPバー制御 ---
     public void SetHealthBar(Slider slider)
     {
         healthBarSlider = slider;
@@ -167,21 +197,17 @@ public class ScorpionEnemy : MonoBehaviour
         Destroy(gameObject);
     }
 
-    // ScorpionEnemy.cs の AttackPlayer 内を以下に差し替え
     private void AttackPlayer()
     {
-        if (beamOrigin == null || beamPrefab == null) return;
+        if (beamOrigin == null || beamPrefab == null || playerTarget == null) return;
 
-        // プレイヤーの方向を計算（中心を狙うように少し上にオフセットすると確実です）
         Vector3 targetPos = playerTarget.position + Vector3.up * 1.0f;
         Vector3 direction = (targetPos - beamOrigin.position).normalized;
         float range = detectionRange + 5f;
 
         RaycastHit hit;
-        // 全てのレイヤーを対象にするか、障害物とプレイヤーのレイヤーを指定
         bool didHit = Physics.Raycast(beamOrigin.position, direction, out hit, range);
 
-        // デバッグ用の線（Sceneビューで確認用）
         Debug.DrawRay(beamOrigin.position, direction * range, Color.red, 1.0f);
 
         Vector3 endPoint = didHit ? hit.point : beamOrigin.position + (direction * range);
@@ -191,19 +217,12 @@ public class ScorpionEnemy : MonoBehaviour
 
         if (beamController != null)
         {
-            // ヒットした相手を渡す
             beamController.Fire(beamOrigin.position, endPoint, didHit, didHit ? hit.collider.gameObject : null);
-
-            if (didHit)
-            {
-                Debug.Log("ビームが的中しました: " + hit.collider.name);
-            }
         }
 
         hardStopEndTime = Time.time + hardStopDuration;
     }
 
-    // --- 移動・索敵ロジック (変更なし) ---
     private void CheckForWallCollision()
     {
         if (agent.isStopped || agent.remainingDistance <= agent.stoppingDistance) return;
@@ -221,6 +240,7 @@ public class ScorpionEnemy : MonoBehaviour
 
     private bool IsPlayerInFrontView()
     {
+        if (playerTarget == null) return false;
         Vector3 directionToTarget = playerTarget.position - transform.position;
         directionToTarget.y = 0;
         float angle = Vector3.Angle(transform.forward, directionToTarget);
@@ -229,6 +249,7 @@ public class ScorpionEnemy : MonoBehaviour
 
     private void LookAtPlayer()
     {
+        if (playerTarget == null) return;
         Vector3 targetDirection = playerTarget.position - transform.position;
         targetDirection.y = 0;
         if (targetDirection != Vector3.zero)
@@ -240,6 +261,7 @@ public class ScorpionEnemy : MonoBehaviour
 
     private void Wander()
     {
+        if (agent == null || !agent.enabled) return;
         Vector3 randomDirection = Random.insideUnitSphere * wanderRadius + transform.position;
         NavMeshHit hit;
         if (NavMesh.SamplePosition(randomDirection, out hit, wanderRadius, NavMesh.AllAreas))
@@ -256,7 +278,6 @@ public class ScorpionEnemy : MonoBehaviour
 
         if (Application.isEditor && transform != null)
         {
-            // 1. 視界角の可視化
             Quaternion leftRayRotation = Quaternion.AngleAxis(-attackAngle / 2, Vector3.up);
             Quaternion rightRayRotation = Quaternion.AngleAxis(attackAngle / 2, Vector3.up);
 
@@ -267,19 +288,8 @@ public class ScorpionEnemy : MonoBehaviour
             Gizmos.DrawRay(transform.position, leftRayDirection * detectionRange);
             Gizmos.DrawRay(transform.position, rightRayDirection * detectionRange);
 
-            // 2. Wandering Radius の可視化
             Gizmos.color = Color.cyan;
             Gizmos.DrawWireSphere(transform.position, wanderRadius);
-
-            // 3. 衝突回避Raycastの可視化
-            if (agent != null && agent.enabled && agent.velocity.sqrMagnitude > 0.01f)
-            {
-                Vector3 movementDirection = agent.velocity.normalized;
-
-                // 衝突回避Rayをマゼンタで表示
-                Gizmos.color = Color.magenta;
-                Gizmos.DrawRay(transform.position, movementDirection * wallAvoidanceDistance);
-            }
         }
     }
 }

@@ -10,8 +10,8 @@ public class SuicideEnemy : MonoBehaviour
     public float maxHP = 100f;
     private float currentHP;
 
-    // プレイヤーのTransform (Inspectorから設定)
-    public Transform playerTarget;
+    // 💡 Tagで自動取得するため private に変更 (Inspectorでの設定は不要になります)
+    private Transform playerTarget;
 
     // NavMeshAgentコンポーネント
     private NavMeshAgent agent;
@@ -63,11 +63,8 @@ public class SuicideEnemy : MonoBehaviour
 
         timer = wanderTimer;
 
-        GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
-        if (playerObj != null)
-        {
-            playerTarget = playerObj.transform;
-        }
+        // 💡 起動時にプレイヤーを検索
+        FindPlayerTarget();
 
         if (obstacleLayer.value == 0)
         {
@@ -75,14 +72,33 @@ public class SuicideEnemy : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// 💡 Tag "Player" を持つオブジェクトを検索して設定します
+    /// </summary>
+    private void FindPlayerTarget()
+    {
+        GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+        if (playerObj != null)
+        {
+            playerTarget = playerObj.transform;
+        }
+    }
+
     void Update()
     {
         if (isSuiciding || agent == null || !agent.enabled) return;
 
+        // 💡 ターゲットがいない、または無効になった場合は再検索
         if (playerTarget == null)
         {
-            Wander();
-            return;
+            FindPlayerTarget();
+
+            // それでも見つからなければ徘徊して終了
+            if (playerTarget == null)
+            {
+                Wander();
+                return;
+            }
         }
 
         float distanceToPlayer = Vector3.Distance(transform.position, playerTarget.position);
@@ -134,8 +150,11 @@ public class SuicideEnemy : MonoBehaviour
         if (timer >= wanderTimer)
         {
             Vector3 newPos = RandomNavSphere(transform.position, wanderRadius, -1);
-            agent.SetDestination(newPos);
-            agent.isStopped = false;
+            if (agent != null && agent.enabled)
+            {
+                agent.SetDestination(newPos);
+                agent.isStopped = false;
+            }
             timer = 0f;
         }
     }
@@ -154,8 +173,12 @@ public class SuicideEnemy : MonoBehaviour
     private bool IsPlayerVisible()
     {
         if (playerTarget == null) return false;
+
         Vector3 direction = playerTarget.position - transform.position;
-        if (Physics.Raycast(transform.position, direction, out RaycastHit hit, direction.magnitude))
+        // 少し高い位置（目線の高さ）からレイを飛ばす
+        Vector3 rayOrigin = transform.position + Vector3.up * 0.5f;
+
+        if (Physics.Raycast(rayOrigin, direction, out RaycastHit hit, direction.magnitude))
         {
             if (hit.collider.CompareTag("Player")) return true;
             return false;
@@ -170,9 +193,6 @@ public class SuicideEnemy : MonoBehaviour
         if (currentHP <= 0) SuicideAttack();
     }
 
-    // -------------------------------------------------------------------
-    // ⭐ 修正ポイント: 3つのコントローラーに対応した自爆ダメージ処理
-    // -------------------------------------------------------------------
     void SuicideAttack()
     {
         if (isSuiciding) return;
@@ -193,12 +213,11 @@ public class SuicideEnemy : MonoBehaviour
         Collider[] hitColliders = Physics.OverlapSphere(transform.position, explosionRadius);
         foreach (var hitCollider in hitColliders)
         {
-            // Tagが"Player"であることを確認
             if (hitCollider.CompareTag("Player"))
             {
                 bool damageApplied = false;
 
-                // 親、自身、子のすべての階層からコントローラーを探す
+                // 3つのコントローラーに対応
                 var blance = hitCollider.GetComponentInParent<BlanceController>() ?? hitCollider.GetComponentInChildren<BlanceController>();
                 if (blance != null)
                 {
@@ -226,7 +245,7 @@ public class SuicideEnemy : MonoBehaviour
                     }
                 }
 
-                if (damageApplied) break; // プレイヤーに当たったらループ終了
+                if (damageApplied) break;
             }
         }
         Destroy(gameObject);

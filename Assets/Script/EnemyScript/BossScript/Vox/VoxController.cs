@@ -14,8 +14,13 @@ public class VoxController : MonoBehaviour
     private int bossCurrentHP;
     public UnityEngine.UI.Slider bossHpBar;
 
+    // --- 本体のメインアーム（攻撃判定用スクリプトへの参照） ---
+    [Header("Main Body Arms Attack")]
+    [SerializeField] private BossMainArmHit leftMainArm;
+    [SerializeField] private BossMainArmHit rightMainArm;
+
     // --- エディタから設定する変数 ---
-    [Header("Arms")]
+    [Header("Flying Arms (Dropping Boxes)")]
     [SerializeField] private GameObject Arms1;
     [SerializeField] private GameObject Arms2;
     [SerializeField] private GameObject Arms3;
@@ -112,6 +117,24 @@ public class VoxController : MonoBehaviour
         }
     }
 
+    // --- メインアームの攻撃判定制御（アニメーションイベントから呼び出し） ---
+
+    // 攻撃開始：判定を有効にする
+    public void EnableArmDamage()
+    {
+        if (leftMainArm != null) leftMainArm.isAttacking = true;
+        if (rightMainArm != null) rightMainArm.isAttacking = true;
+    }
+
+    // 攻撃終了：判定を無効にする
+    public void DisableArmDamage()
+    {
+        if (leftMainArm != null) leftMainArm.isAttacking = false;
+        if (rightMainArm != null) rightMainArm.isAttacking = false;
+    }
+
+    // --- HP・ダメージ関連 ---
+
     public void DamageArm(int index, int damage)
     {
         if (isDestroyed[index] || armsArray[index] == null) return;
@@ -152,6 +175,12 @@ public class VoxController : MonoBehaviour
     {
         Debug.Log("Boss 撃破！数秒後にシーンを切り替えます。");
 
+        // ミッションを完了状態にする
+        if (MissionManager.Instance != null)
+        {
+            MissionManager.Instance.CompleteCurrentMission();
+        }
+
         // 撃破エフェクト
         if (EXexplosionEffect != null)
         {
@@ -170,6 +199,8 @@ public class VoxController : MonoBehaviour
         yield return new WaitForSeconds(waitTime);
         SceneManager.LoadScene("ClearScene1");
     }
+
+    // --- ギミック関連（空飛ぶ腕の制御） ---
 
     IEnumerator DestroyArm(int index)
     {

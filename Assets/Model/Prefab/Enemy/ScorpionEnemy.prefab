@@ -10776,7 +10776,6 @@ MonoBehaviour:
   maxHealth: 100
   explosionPrefab: {fileID: 785919167369076647, guid: d146151354c74be4ba83785a3704370e, type: 3}
   deathAnimationDuration: 3
-  playerTarget: {fileID: 0}
   detectionRange: 15
   beamOrigin: {fileID: 3887350308753574727}
   attackAngle: 30
@@ -10792,7 +10791,7 @@ MonoBehaviour:
   wallAvoidanceDistance: 1.5
   obstacleLayer:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 1024
 --- !u!1 &8845471224577893468
 GameObject:
   m_ObjectHideFlags: 0

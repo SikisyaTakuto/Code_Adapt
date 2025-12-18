@@ -19,8 +19,8 @@ public class SoliderEnemy : MonoBehaviour
     public float reloadTime = 3.0f;
     private bool isReloading = false;
 
-    public float sightRange = 15f;
-    public float viewAngle = 90f;
+    public float sightRange = 40f;
+    public float viewAngle = 120f;
     public float rotationSpeed = 3f;
     public float shootDuration = 1.0f;
     public int bulletsPerBurst = 1;
@@ -41,7 +41,7 @@ public class SoliderEnemy : MonoBehaviour
     private Rigidbody rb;
     private Collider enemyCollider;
     private AudioSource audioSource;
-    private Transform player;
+    private Transform player; // 内部で自動取得
 
     private float nextRotationTime;
     private Quaternion targetIdleRotation;
@@ -51,7 +51,6 @@ public class SoliderEnemy : MonoBehaviour
     private EnemyAI aiA;
     private ChaserAI aiB;
     private JuggernautStaticAI aiOld;
-
 
     void Start()
     {
@@ -64,7 +63,7 @@ public class SoliderEnemy : MonoBehaviour
         enemyCollider = GetComponent<Collider>();
         audioSource = GetComponent<AudioSource>();
 
-        // 物理初期設定: Landing処理のため、最初は物理演算を無効化
+        // 物理初期設定
         if (rb != null)
         {
             rb.isKinematic = true;
@@ -72,22 +71,15 @@ public class SoliderEnemy : MonoBehaviour
             rb.freezeRotation = true;
         }
 
-        // 外部AI参照取得 (現状のコードに合わせて残す)
+        // 外部AI参照取得
         aiA = GetComponent<EnemyAI>();
         aiB = GetComponent<ChaserAI>();
         aiOld = GetComponent<JuggernautStaticAI>();
 
         if (animator == null) Debug.LogError("Animatorがありません。");
 
-        GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
-        if (playerObj != null)
-        {
-            player = playerObj.transform;
-        }
-        else
-        {
-            Debug.LogError("Playerタグのオブジェクトが見つかりません。");
-        }
+        // --- PlayerをTagで取得 ---
+        FindTargetPlayer();
 
         // 初期設定
         targetIdleRotation = transform.rotation;
@@ -95,6 +87,16 @@ public class SoliderEnemy : MonoBehaviour
 
         // 初期状態をLandingにし、着地処理を開始
         TransitionToLanding();
+    }
+
+    // プレイヤーを探す処理を独立（Updateでも再利用可能にする）
+    private void FindTargetPlayer()
+    {
+        GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+        if (playerObj != null)
+        {
+            player = playerObj.transform;
+        }
     }
 
     // ===================================
@@ -111,10 +113,16 @@ public class SoliderEnemy : MonoBehaviour
         }
     }
 
-
     void Update()
     {
-        if (isDead || player == null || animator == null || isReloading) return;
+        if (isDead || animator == null || isReloading) return;
+
+        // プレイヤーがいない場合、再度検索を試みる
+        if (player == null)
+        {
+            FindTargetPlayer();
+            return;
+        }
 
         if (currentState == EnemyState.Landing) return;
 
@@ -151,42 +159,28 @@ public class SoliderEnemy : MonoBehaviour
 
         if (currentHealth <= 0)
         {
-            // 💡 修正: 死亡フラグとHPを即座に設定
             isDead = true;
             currentHealth = 0;
 
-            // ===============================================
-            // 💥 最重要: 全ロジックの即時強制停止
-            // ===============================================
-
-            // 1. タイマー・コルーチンの停止
+            // 全ロジックの即時強制停止
             CancelInvoke();
             StopAllCoroutines();
-
-            // 2. スクリプト駆動の停止
             this.enabled = false;
 
-            // 3. アニメーター駆動の停止 (アニメーションイベントもブロック)
             if (animator != null) animator.enabled = false;
-
-            // 4. 外部AIスクリプトの停止 (念のため)
             if (aiA != null) aiA.enabled = false;
             if (aiB != null) aiB.enabled = false;
+            if (aiOld != null) aiOld.enabled = false;
 
-            // 5. 物理とコライダーの無効化
             if (rb != null) rb.isKinematic = true;
             if (enemyCollider != null) enemyCollider.enabled = false;
 
-            // ===============================================
-
-            // アニメーション再生とオブジェクト無効化の処理に移る
             Die();
         }
     }
 
     void Die()
     {
-        // 💡 修正: isDeadフラグがtrueであることのみ確認 (TakeDamageで設定済み)
         if (!isDead) return;
 
         Debug.Log(gameObject.name + "が停止しました。");
@@ -196,7 +190,6 @@ public class SoliderEnemy : MonoBehaviour
             Instantiate(deathExplosionPrefab, transform.position, Quaternion.identity);
         }
 
-        // アニメーションを再生 (TakeDamageで無効化したAnimatorを一時的に有効化)
         if (animator != null)
         {
             animator.enabled = true;
@@ -206,23 +199,18 @@ public class SoliderEnemy : MonoBehaviour
             animator.SetTrigger("Die");
         }
 
-        // 死亡アニメーションの完了を待ってからオブジェクトを無効化
-        float animationDuration = 2.0f; // ★ 死亡アニメーションの再生時間に合わせる
+        float animationDuration = 2.0f;
         StartCoroutine(DisableObjectAfterDie(animationDuration));
     }
 
-    // 💡 修正: オブジェクトをシーンから完全に削除するコルーチン
     IEnumerator DisableObjectAfterDie(float delay)
     {
-        // アニメーションが再生し終わるまで待機
         yield return new WaitForSeconds(delay);
-
-        // 死亡アニメーション終了後、再起動を防ぐためにオブジェクトをシーンから完全に削除する
-        Destroy(gameObject); // 💥 これでいかなるロジックも再開しない
+        Destroy(gameObject);
     }
 
     // ===================================
-    // 5. AIロジック関数 (変更なし)
+    // 5. AIロジック関数
     // ===================================
 
     bool CheckForPlayer()
@@ -241,7 +229,8 @@ public class SoliderEnemy : MonoBehaviour
         if (angle > viewAngle / 2f) return false;
 
         RaycastHit hit;
-        Vector3 eyePosition = transform.position + Vector3.up * 0.1f;
+        // 少し高い位置（目線）からレイを飛ばす
+        Vector3 eyePosition = transform.position + Vector3.up * 1.0f;
 
         if (Physics.Raycast(eyePosition, directionToPlayer.normalized, out hit, sightRange))
         {
@@ -281,11 +270,16 @@ public class SoliderEnemy : MonoBehaviour
         }
     }
 
+    // --- 5. AIロジック関数の修正 ---
     void AimingLogic(bool playerFound)
     {
         if (player == null) return;
 
-        Vector3 direction = (player.position - transform.position).normalized;
+        // 💡 プレイヤーの足元ではなく、胸の高さ（+1.2m程度）をターゲットにする
+        Vector3 targetPoint = player.position + Vector3.up * 1.2f;
+        Vector3 direction = (targetPoint - transform.position).normalized;
+
+        // 回転は水平方向のみ（Y軸回転）に制限することで、体が傾くのを防ぐ
         Quaternion lookRotation = Quaternion.LookRotation(new Vector3(direction.x, 0, direction.z));
 
         float maxDegreesPerFrame = rotationSpeed * 60f * Time.deltaTime;
@@ -297,10 +291,7 @@ public class SoliderEnemy : MonoBehaviour
             return;
         }
 
-        if (!playerFound)
-        {
-            TransitionToIdle();
-        }
+        if (!playerFound) TransitionToIdle();
     }
 
     void LandingLogic()
@@ -400,8 +391,6 @@ public class SoliderEnemy : MonoBehaviour
     {
         if (isDead) return;
 
-        Debug.Log(gameObject.name + ": 攻撃開始シークエンス！");
-
         if (currentAmmo <= 0)
         {
             StartReload();
@@ -429,7 +418,6 @@ public class SoliderEnemy : MonoBehaviour
 
         isReloading = true;
         currentState = EnemyState.Reload;
-        Debug.Log("リロード開始...");
 
         CancelInvoke("ShootBullet");
         CancelInvoke("TransitionToAiming");
@@ -449,7 +437,6 @@ public class SoliderEnemy : MonoBehaviour
 
         isReloading = false;
         currentAmmo = maxAmmo;
-        Debug.Log("リロード完了！");
 
         if (CheckForPlayer())
         {
@@ -460,44 +447,31 @@ public class SoliderEnemy : MonoBehaviour
             TransitionToIdle();
         }
     }
+
+    // --- 6. 発砲関数の修正 ---
     public void ShootBullet()
     {
         if (isDead || currentAmmo <= 0 || player == null || muzzlePoint == null) return;
 
         currentAmmo--;
+        if (bulletPrefab == null) return;
 
-        if (bulletPrefab == null)
-        {
-            return;
-        }
+        // 💡 ターゲット位置をプレイヤーの中心（胸の高さ）に設定
+        Vector3 targetPosition = player.position + Vector3.up * 1.2f;
 
-        // 1. 🎯 プレイヤーへの正確な方向ベクトルを取得 (Y軸を含む)
-        //    プレイヤーがどこにいても、その中心点を狙います。
-        Vector3 targetPosition = player.position;
+        // 銃口からターゲットへの正確な方向を計算
         Vector3 directionToPlayer = (targetPosition - muzzlePoint.position).normalized;
 
-        // 2. プレイヤーを直接向くための基準回転を取得
-        //    LookRotation(directionToPlayer) は、Y軸を含むプレイヤーへの正確な回転を求めます。
-        Quaternion baseRotation = Quaternion.LookRotation(directionToPlayer);
+        // 正確な方向を向くクォータニオンを作成
+        // verticalAngleOffset (-5f) は削除し、計算された方向をそのまま使います
+        Quaternion shootRotation = Quaternion.LookRotation(directionToPlayer);
 
-        // 3. 垂直方向の角度調整 (下向きの放物線オフセット) を加える
-        //    プレイヤーを狙った回転に対して、さらにX軸周りに -5度回転させ、弾が放物線を描くようにする。
-        //    これにより、プレイヤーがジャンプしても、狙いは外れず、放物線効果が維持されます。
-        float verticalAngleOffset = -5f;
-        Quaternion adjustedRotation = baseRotation * Quaternion.Euler(verticalAngleOffset, 0, 0);
-
-        // 4. 調整された回転で弾を生成
-        GameObject bulletInstance = Instantiate(bulletPrefab, muzzlePoint.position, adjustedRotation);
+        GameObject bulletInstance = Instantiate(bulletPrefab, muzzlePoint.position, shootRotation);
         bulletInstance.transform.parent = null;
 
-        // 弾が重力と初速で放物線を描くのは、Bullet.csのRigidbodyへの速度設定に依存します。
+        // デバッグ用：エディタのSceneビューで射線を確認
+        Debug.DrawRay(muzzlePoint.position, directionToPlayer * 10f, Color.yellow, 0.5f);
     }
-
-    // 弾が重力と初速で放物線を描くのは、Bullet.csのRigidbodyへの速度設定に依存します。
-
-    // ----------------------------------------------------
-    // --- 確実な着地判定 (衝突判定) ---
-    // ----------------------------------------------------
 
     private void OnCollisionEnter(Collision collision)
     {
@@ -509,7 +483,6 @@ public class SoliderEnemy : MonoBehaviour
             if (rb != null)
             {
                 rb.linearVelocity = Vector3.zero;
-
                 float contactY = collision.contacts[0].point.y;
 
                 if (enemyCollider != null)
@@ -518,7 +491,6 @@ public class SoliderEnemy : MonoBehaviour
                     transform.position = new Vector3(transform.position.x, contactY + enemyCollider.bounds.extents.y, transform.position.z);
                 }
             }
-
             StartCoroutine(FinishLandingCoroutine());
         }
     }
