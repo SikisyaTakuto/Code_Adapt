@@ -215,14 +215,14 @@ public class BlanceController : MonoBehaviour
         if (_isStunned) return Vector3.zero;
 
         bool isFlyingUp = (Input.GetKey(KeyCode.Space) || _verticalInput > 0.5f);
-        bool isFlyingDown = (Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt) || _verticalInput < -0.5f);
+        // bool isFlyingDown = (Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt) || _verticalInput < -0.5f);
         bool hasVerticalInput = false;
 
         // ★飛行エネルギーチェックを委譲
         if (canFly && playerStatus.currentEnergy > 0.1f)
         {
             if (isFlyingUp) { _velocity.y = verticalSpeed; hasVerticalInput = true; }
-            else if (isFlyingDown) { _velocity.y = -verticalSpeed; hasVerticalInput = true; }
+            // else if (isFlyingDown) { _velocity.y = -verticalSpeed; hasVerticalInput = true; }
         }
 
         if (hasVerticalInput) playerStatus.ConsumeEnergy(15.0f * Time.deltaTime);
