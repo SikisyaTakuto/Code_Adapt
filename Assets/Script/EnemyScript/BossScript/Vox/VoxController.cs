@@ -4,6 +4,7 @@ using UnityEngine.UI;
 using UnityEngine.UIElements;
 using Unity.Burst.Intrinsics;
 using UnityEngine.SceneManagement;
+using Unity.VisualScripting.Dependencies.Sqlite;
 
 public class VoxController : MonoBehaviour
 {
@@ -201,14 +202,26 @@ public class VoxController : MonoBehaviour
             Instantiate(explosionEffect, arm.transform.position, Quaternion.identity);
         }
 
+        // 特殊Zに行っており、箱を持っている場合 → 落とす
+        if (canDropNow[index] && heldBoxes[index] != null)
+        {
+            // アニメーション開始        
+            armAnimators[index].SetTrigger("Drop");
+
+            // 少し待ってから箱を落とす（アニメに合わせる）
+            StartCoroutine(DropAfterAnimation(index, arm));
+
+            canDropNow[index] = false;
+        }
+
         // Rigidbodyがあれば物理挙動を止める（現在の移動制御を上書きしないように）
         Rigidbody rb = arm.GetComponent<Rigidbody>();
         if (rb) rb.isKinematic = true;
 
-        // アームを非表示にする（オリジナルのコードではコメントアウトされているが、物理的な停止と共に非表示にすることも可能）
-        //arm.SetActive(false);
+        // アームを非表示にする（オリジナルのコードではコメントアウトされているが、物理的な停止と共に非表示にすることも可能）
+        StartCoroutine(ArmDelete(index, arm));
 
-        yield return null;
+        yield return null;
     }
 
     // 全てのアームに新しい目標Zを設定（初期化時/リトライ時などに使用）
@@ -251,7 +264,7 @@ public class VoxController : MonoBehaviour
                 hasReachedSpecialZ[index] = true;
                 canDropNow[index] = true;
 
-                // ★箱がまだ無い場合のみ生成してアームに保持★
+                // 箱がまだ無い場合のみ生成してアームに保持
                 if (heldBoxes[index] == null && boxPrefab != null)
                 {
                     Vector3 spawnPos = arm.transform.position + Vector3.up * dropHeight;
@@ -382,5 +395,13 @@ public class VoxController : MonoBehaviour
         yield return new WaitForSeconds(0f); // アニメに合わせて調整
 
         DropHeldBox(index, arm);
+    }
+
+    IEnumerator ArmDelete(int index, GameObject arm)
+    {
+        yield return new WaitForSeconds(1f);
+
+        // アームを非表示にする（オリジナルのコードではコメントアウトされているが、物理的な停止と共に非表示にすることも可能）
+        arm.SetActive(false);
     }
 }
