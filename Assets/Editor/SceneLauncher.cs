@@ -40,6 +40,12 @@ public class SceneLauncher
         OpenSceneWithSaveCheck("Assets/Scenes/GameScene/ArmorSelectScene/ArmorSelectScene.unity");
     }
 
+    [MenuItem("Launcher/ArmorSelectScene1", priority = 2)]
+    public static void OpenArmorSelectScene1()
+    {
+        OpenSceneWithSaveCheck("Assets/Scenes/GameScene/ArmorSelectScene/ArmorSelectScene 1.unity");
+    }
+
     [MenuItem("Launcher/GameScene1", priority = 4)]
     public static void OpenGameScene1()
     {
