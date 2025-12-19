@@ -41,9 +41,6 @@ public class BusterAnimation : MonoBehaviour
         }
 
         // ˆÚ“®/•¨—ŠÖ˜A‚Ì•Ï”‚Í‘S‚Äíœ
-
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
     }
 
     void Update()

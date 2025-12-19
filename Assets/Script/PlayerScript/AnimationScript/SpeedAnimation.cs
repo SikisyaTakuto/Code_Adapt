@@ -41,9 +41,6 @@ public class SpeedAnimation : MonoBehaviour
             enabled = false;
             return;
         }
-
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
     }
 
     void Update()
