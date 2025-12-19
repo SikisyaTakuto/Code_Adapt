@@ -3,6 +3,7 @@ using System.Collections;
 using UnityEngine.UI;
 using UnityEngine.UIElements;
 using Unity.Burst.Intrinsics;
+using UnityEngine.SceneManagement;
 
 public class VoxController : MonoBehaviour
 {
@@ -304,12 +305,28 @@ public class VoxController : MonoBehaviour
     private void BossDefeated()
     {
         Debug.Log("Boss 撃破！");
+
+        if (MissionManager.Instance != null)
+        {
+            MissionManager.Instance.CompleteCurrentMission();
+        }
+
         // エフェクト・停止処理など自由に追加
         // 爆発エフェクトの生成
         if (EXexplosionEffect != null)
         {
             Instantiate(EXexplosionEffect, transform.position, Quaternion.identity);
         }
+
+        // 爆発を見せるために少し待ちたい場合はコルーチンを使いますが、
+        // 即座に移動する場合は以下の1行を追加します。
+        StartCoroutine(WaitAndLoadScene());
+    }
+
+    IEnumerator WaitAndLoadScene()
+    {
+        yield return new WaitForSeconds(2.0f); // 2秒待つ
+        SceneManager.LoadScene("ClearScene1");
     }
 
     // 目標に到達後、少し待機してから次の移動目標を設定
