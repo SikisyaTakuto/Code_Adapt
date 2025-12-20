@@ -13,6 +13,10 @@ public class DroneEnemy : MonoBehaviour
     [Header("エフェクト設定")]
     public GameObject explosionPrefab;
 
+    [Header("音声設定")]
+    private AudioSource droneAudioSource; // コンポーネント保持用
+    [SerializeField] private AudioClip shotClip;              // 発射音のClip
+
     // --- 索敵用パラメータ ---
     [Header("ターゲット設定")]
     // private に変更し、AwakeでTag検索により設定
@@ -60,6 +64,8 @@ public class DroneEnemy : MonoBehaviour
     {
         currentHealth = maxHealth;
 
+        droneAudioSource = GetComponent<AudioSource>();
+
         // 🎯 修正点: TagでPlayerオブジェクトを検索し、そのTransformを設定
         GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
         if (playerObject != null)
@@ -77,13 +83,6 @@ public class DroneEnemy : MonoBehaviour
 
     private void Update()
     {
-        // デバッグ用コード: OキーでHPを0にする
-        if (Input.GetKeyDown(KeyCode.O))
-        {
-            TakeDamage(maxHealth);
-            return;
-        }
-
         // 死亡中、硬直中、またはターゲットがなければ処理をスキップ
         if (isDead || playerTarget == null || Time.time < hardStopEndTime)
         {
@@ -193,6 +192,11 @@ public class DroneEnemy : MonoBehaviour
         {
             Debug.LogError("発射地点またはPrefabが設定されていません。");
             return;
+        }
+
+        if (droneAudioSource != null && shotClip != null)
+        {
+            droneAudioSource.PlayOneShot(shotClip);
         }
 
         // 銃がすでにPlayerの方向を向いているため、beamOrigin.rotationを使用
@@ -341,9 +345,7 @@ public class DroneEnemy : MonoBehaviour
         if (isDead) return;
 
         isDead = true;
-        Debug.Log(gameObject.name + "は破壊されました！");
 
-        // 爆発エフェクトのインスタンス化と再生
         if (explosionPrefab != null)
         {
             Instantiate(explosionPrefab, transform.position, Quaternion.identity);

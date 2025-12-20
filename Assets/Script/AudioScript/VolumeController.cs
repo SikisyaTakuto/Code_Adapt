@@ -19,11 +19,20 @@ public class VolumeController : MonoBehaviour
     public void SetBGMVolume(float volume)
     {
         // スライダーの値(0?1)をデシベル(-80?20)に変換
-        audioMixer.SetFloat("BGMVol", Mathf.Log10(Mathf.Max(0.0001f, volume)) * 20f);
+        audioMixer.SetFloat("BGMVolume", Mathf.Log10(Mathf.Max(0.0001f, volume)) * 20f);
     }
 
     public void SetSEVolume(float volume)
     {
-        audioMixer.SetFloat("SEVol", Mathf.Log10(Mathf.Max(0.0001f, volume)) * 20f);
+        audioMixer.SetFloat("SEVolume", Mathf.Log10(Mathf.Max(0.0001f, volume)) * 20f);
+    }
+
+    // スライダーから手を離した時に呼び出す関数
+    public void OnSliderPointerUp()
+    {
+        if (SEManager.instance != null)
+        {
+            SEManager.instance.PlaySE();
+        }
     }
 }
