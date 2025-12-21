@@ -1,19 +1,13 @@
+using System.Collections;
 using UnityEngine;
-using UnityEngine.InputSystem;
-using UnityEngine.UI;
 
 public class SpeedController : MonoBehaviour
 {
-    // =======================================================
-    // 依存コンポーネント / 関連オブジェクト
-    // =======================================================
-
+    // ... (フィールド部分は変更なし)
     [Header("Dependencies")]
     private CharacterController _playerController;
     private TPSCameraController _tpsCamController;
     public PlayerModesAndVisuals _modesAndVisuals;
-
-    // ★追加: 共通ステータス管理への参照
     public PlayerStatus playerStatus;
 
     [Header("Vfx & Layers")]
@@ -21,10 +15,6 @@ public class SpeedController : MonoBehaviour
     public Transform[] beamFirePoints;
     public GameObject hitEffectPrefab;
     public LayerMask enemyLayer;
-
-    // =======================================================
-    // 移動・攻撃設定 (ステータス以外)
-    // =======================================================
 
     [Header("Movement Settings")]
     public float baseMoveSpeed = 15.0f;
@@ -46,42 +36,33 @@ public class SpeedController : MonoBehaviour
     public float beamMaxDistance = 100f;
     public float lockOnTargetHeightOffset = 1.0f;
 
-    // HP, Energy, UI, 死亡フラグに関する変数は PlayerStatus へ移動したため削除
-
-    // =======================================================
-    // プライベート/キャッシュ変数
-    // =======================================================
-
     private bool _isAttacking = false;
     private bool _isStunned = false;
     private float _stunTimer = 0.0f;
-
     private Vector3 _velocity;
     private float _moveSpeed;
     private bool _wasGrounded = false;
     private bool _isBoosting = false;
     private float _verticalInput = 0f;
 
-    // =======================================================
-    // Unity Lifecycle
-    // =======================================================
+    [Header("Audio Settings")]
+    public AudioSource audioSource;
+    public AudioClip meleeSwingSound;    // 3連撃の音
+    public AudioClip scratchAttackSound; // ひっかきの音
 
-    void Awake()
-    {
-        InitializeComponents();
-    }
+    // --- Unity Lifecycle ---
+
+    void Awake() { InitializeComponents(); }
 
     void Update()
     {
-        // ★PlayerStatusの死亡判定を参照
         if (playerStatus == null || playerStatus.IsDead) return;
-
         bool isGroundedNow = _playerController.isGrounded;
 
-        // 1. 硬直状態の処理
         HandleStunState(isGroundedNow);
 
-        if (_isStunned)
+        // ★修正: 攻撃中(硬直中)は移動・回転を一切受け付けない
+        if (_isStunned || _isAttacking)
         {
             HandleStunnedVerticalMovement(isGroundedNow);
             _playerController.Move(Vector3.up * _velocity.y * Time.deltaTime);
@@ -89,20 +70,17 @@ public class SpeedController : MonoBehaviour
             return;
         }
 
-        // 2. プレイヤーの向き制御
-        if (_tpsCamController == null || _tpsCamController.LockOnTarget == null)
+        // ロックオン等の向き制御
+        if (_tpsCamController != null)
         {
-            _tpsCamController?.RotatePlayerToCameraDirection();
+            if (_tpsCamController.LockOnTarget == null) _tpsCamController.RotatePlayerToCameraDirection();
+            else RotateTowards(GetLockOnTargetPosition(_tpsCamController.LockOnTarget));
         }
 
-        // 3. 移動計算
         ApplyArmorStats();
-        // HandleEnergy() は PlayerStatus 側で自動実行されるため削除
-
         HandleInput();
         Vector3 finalMove = HandleVerticalMovement(isGroundedNow) + HandleHorizontalMovement();
         _playerController.Move(finalMove * Time.deltaTime);
-
         _wasGrounded = isGroundedNow;
     }
 
@@ -110,27 +88,10 @@ public class SpeedController : MonoBehaviour
     {
         _playerController = GetComponentInParent<CharacterController>();
         _tpsCamController = FindObjectOfType<TPSCameraController>();
-
-        // ★親オブジェクトからPlayerStatusを探す
-        if (playerStatus == null)
-        {
-            playerStatus = GetComponentInParent<PlayerStatus>();
-        }
+        if (playerStatus == null) playerStatus = GetComponentInParent<PlayerStatus>();
     }
 
-    // =======================================================
-    // 硬直 (Stun) 制御
-    // =======================================================
-
-    public void StartLandingStun()
-    {
-        if (_isStunned) return;
-        _isStunned = true;
-        _stunTimer = landStunDuration;
-
-        // 足元を地面に密着させる微調整
-        _velocity = new Vector3(0, -0.1f, 0);
-    }
+    // --- 硬直制御 ---
 
     public void StartAttackStun()
     {
@@ -162,128 +123,87 @@ public class SpeedController : MonoBehaviour
         else _velocity.y = -0.1f;
     }
 
-    // =======================================================
-    // Movement Logic
-    // =======================================================
-
-    private Vector3 HandleHorizontalMovement()
-    {
-        if (_isStunned) return Vector3.zero;
-
-        float h = Input.GetAxis("Horizontal");
-        float v = Input.GetAxis("Vertical");
-        if (h == 0f && v == 0f) return Vector3.zero;
-
-        Vector3 moveDirection;
-        if (_tpsCamController != null)
-        {
-            Quaternion cameraRotation = Quaternion.Euler(0, _tpsCamController.transform.eulerAngles.y, 0);
-            moveDirection = cameraRotation * new Vector3(h, 0, v);
-        }
-        else moveDirection = (transform.right * h + transform.forward * v);
-
-        moveDirection.Normalize();
-
-        float currentSpeed = _moveSpeed;
-
-        // ★エネルギーチェックをPlayerStatusに委譲
-        bool isDashing = (Input.GetKey(KeyCode.LeftShift) || _isBoosting) && playerStatus.currentEnergy > 0.1f;
-
-        if (isDashing)
-        {
-            currentSpeed *= dashMultiplier;
-            playerStatus.ConsumeEnergy(15.0f * Time.deltaTime);
-        }
-
-        return moveDirection * currentSpeed;
-    }
-
-    private Vector3 HandleVerticalMovement(bool isGrounded)
-    {
-        if (!_wasGrounded && isGrounded && _velocity.y < -0.1f && !_isStunned)
-        {
-            StartLandingStun();
-            return Vector3.zero;
-        }
-
-        if (isGrounded && _velocity.y < 0) _velocity.y = -0.1f;
-        if (_isStunned) return Vector3.zero;
-
-        bool isFlyingUp = (Input.GetKey(KeyCode.Space) || _verticalInput > 0.5f);
-        // bool isFlyingDown = (Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt) || _verticalInput < -0.5f);
-        bool hasVerticalInput = false;
-
-        // ★飛行エネルギーチェックを委譲
-        if (canFly && playerStatus.currentEnergy > 0.1f)
-        {
-            if (isFlyingUp) { _velocity.y = verticalSpeed; hasVerticalInput = true; }
-            // else if (isFlyingDown) { _velocity.y = -verticalSpeed; hasVerticalInput = true; }
-        }
-
-        if (hasVerticalInput) playerStatus.ConsumeEnergy(15.0f * Time.deltaTime);
-        else if (!isGrounded)
-        {
-            float fallSpeedMultiplier = (_velocity.y < 0) ? fastFallMultiplier : 1.0f;
-            _velocity.y += gravity * Time.deltaTime * fallSpeedMultiplier;
-        }
-
-        if (playerStatus.currentEnergy <= 0.1f && _velocity.y > 0) _velocity.y = 0;
-
-        return new Vector3(0, _velocity.y, 0);
-    }
-
-    private void ApplyArmorStats()
-    {
-        var stats = _modesAndVisuals.CurrentArmorStats;
-        _moveSpeed = baseMoveSpeed * (stats != null ? stats.moveSpeedMultiplier : 1.0f);
-    }
-
-    // =======================================================
-    // Input & Attack Logic
-    // =======================================================
-
-    private void HandleInput()
-    {
-        if (_isStunned) return;
-        HandleAttackInputs();
-        HandleWeaponSwitchInput();
-        HandleArmorSwitchInput();
-    }
-
-    private void HandleAttackInputs()
-    {
-        if (_isAttacking || _isStunned) return;
-        if (Input.GetMouseButtonDown(0)) PerformAttack();
-    }
+    // --- 攻撃処理 (Coroutines) ---
 
     private void PerformAttack()
     {
-        switch (_modesAndVisuals.CurrentWeaponMode)
-        {
-            case PlayerModesAndVisuals.WeaponMode.Attack1: HandleMeleeAttack(); break;
-            case PlayerModesAndVisuals.WeaponMode.Attack2: HandleBeamAttack(); break;
-        }
+        bool isAttack2 = (_modesAndVisuals.CurrentWeaponMode == PlayerModesAndVisuals.WeaponMode.Attack2);
+        var speedAnim = GetComponentInChildren<SpeedAnimation>(true);
+        if (speedAnim != null && speedAnim.gameObject.activeInHierarchy) speedAnim.PlayAttackAnimation(isAttack2);
+
+        if (isAttack2) StartCoroutine(HandleSpeedCrouchBeamRoutine());
+        else StartCoroutine(HandleSpeedMeleeRoutine());
     }
 
-    private void HandleMeleeAttack()
+    // Attack1: 3連撃 + ひっかき + 下がる
+    private IEnumerator HandleSpeedMeleeRoutine()
     {
+        _isAttacking = true; // 強制硬直フラグON
+        float totalDuration =5f;
         StartAttackStun();
+        _stunTimer = totalDuration;
+
         Transform lockOnTarget = _tpsCamController?.LockOnTarget;
         if (lockOnTarget != null) RotateTowards(GetLockOnTargetPosition(lockOnTarget));
 
-        Collider[] hitColliders = Physics.OverlapSphere(transform.position, meleeAttackRange, enemyLayer);
-        foreach (var hitCollider in hitColliders)
+        // 1～3連撃
+        for (int i = 0; i < 3; i++)
         {
-            if (hitCollider.transform != this.transform) ApplyDamageToEnemy(hitCollider, meleeDamage);
+            PlaySound(meleeSwingSound); // 音を鳴らす
+            ApplyMeleeSphereDamage(meleeDamage);
+            yield return new WaitForSeconds(0.25f); // 攻撃間隔
+        }
+
+        // ひっかき攻撃
+        yield return new WaitForSeconds(0.1f);
+        PlaySound(scratchAttackSound); // ひっかき音
+        ApplyMeleeSphereDamage(meleeDamage * 1.5f);
+
+        // 後方に下がる（この間も硬直扱いで操作不能）
+        float backstepTime = 0.25f;
+        float timer = 0f;
+        while (timer < backstepTime)
+        {
+            _playerController.Move(-transform.forward * 12f * Time.deltaTime);
+            timer += Time.deltaTime;
+            yield return null;
+        }
+
+        _isAttacking = false; // 攻撃終了
+    }
+
+    // Attack2: しゃがみビーム
+    private IEnumerator HandleSpeedCrouchBeamRoutine()
+    {
+        if (!playerStatus.ConsumeEnergy(beamAttackEnergyCost)) yield break;
+
+        _isAttacking = true;
+        float crouchDuration = 1.0f;
+        StartAttackStun();
+        _stunTimer = crouchDuration;
+
+        yield return new WaitForSeconds(0.3f);
+
+        ExecuteBeamLogic();
+
+        yield return new WaitForSeconds(crouchDuration - 0.3f);
+        _isAttacking = false;
+    }
+
+    // 効果音再生用ヘルパー
+    private void PlaySound(AudioClip clip)
+    {
+        if (audioSource != null && clip != null)
+        {
+            audioSource.PlayOneShot(clip);
         }
     }
 
-    private void HandleBeamAttack()
+    // ビーム発射の実体
+    private void ExecuteBeamLogic()
     {
-        if (!playerStatus.ConsumeEnergy(beamAttackEnergyCost)) return;
-        if (beamFirePoints == null || beamFirePoints.Length == 0 || beamPrefab == null) return;
+        if (beamFirePoints == null || beamPrefab == null) return;
 
-        StartAttackStun();
         Transform lockOnTarget = _tpsCamController?.LockOnTarget;
         Vector3 targetPosition = Vector3.zero;
         bool isLockedOn = lockOnTarget != null;
@@ -294,19 +214,15 @@ public class SpeedController : MonoBehaviour
             RotateTowards(targetPosition);
         }
 
-        // ★追加: ロックオンしていない時の基準となる「プレイヤーの正面方向」
         Vector3 playerForward = transform.forward;
 
         foreach (var firePoint in beamFirePoints)
         {
             if (firePoint == null) continue;
             Vector3 origin = firePoint.position;
-
-            // ★修正点: ロックオン時はターゲットへ、そうでない時は「プレイヤーの正面」へ飛ばす
             Vector3 fireDirection = isLockedOn ? (targetPosition - origin).normalized : playerForward;
 
             RaycastHit hit;
-            // プレイヤー自身に当たらないよう、自分自身のレイヤーを除外するか、少し前方から飛ばすのが安全です
             bool didHit = Physics.Raycast(origin, fireDirection, out hit, beamMaxDistance, ~0);
             Vector3 endPoint = didHit ? hit.point : origin + fireDirection * beamMaxDistance;
 
@@ -317,80 +233,102 @@ public class SpeedController : MonoBehaviour
         }
     }
 
+    private void ApplyMeleeSphereDamage(float damage)
+    {
+        // 判定の中心点を調整（高さ+1m、前方+1.5m）
+        Vector3 detectionCenter = transform.position + (Vector3.up * 1.0f) + (transform.forward * 1.5f);
+
+        // 判定の半径（meleeAttackRangeをインスペクターで3～4に広げることを推奨）
+        Collider[] hitColliders = Physics.OverlapSphere(detectionCenter, meleeAttackRange, enemyLayer);
+
+        foreach (var hitCollider in hitColliders)
+        {
+            // プレイヤー自身を除外
+            if (hitCollider.transform.root == transform.root) continue;
+
+            ApplyDamageToEnemy(hitCollider, damage);
+        }
+    }
+
+    // --- その他 (Movement, Input, Utilities) ---
+
+    private Vector3 HandleHorizontalMovement()
+    {
+        if (_isStunned) return Vector3.zero;
+        float h = Input.GetAxis("Horizontal");
+        float v = Input.GetAxis("Vertical");
+        if (h == 0f && v == 0f) return Vector3.zero;
+
+        Vector3 moveDir = (_tpsCamController != null)
+            ? Quaternion.Euler(0, _tpsCamController.transform.eulerAngles.y, 0) * new Vector3(h, 0, v)
+            : (transform.right * h + transform.forward * v);
+
+        float currentSpeed = (Input.GetKey(KeyCode.LeftShift) && playerStatus.currentEnergy > 0.1f)
+            ? _moveSpeed * dashMultiplier : _moveSpeed;
+
+        if (currentSpeed > _moveSpeed) playerStatus.ConsumeEnergy(15.0f * Time.deltaTime);
+
+        return moveDir.normalized * currentSpeed;
+    }
+
+    private Vector3 HandleVerticalMovement(bool isGrounded)
+    {
+        if (isGrounded && _velocity.y < 0) _velocity.y = -0.1f;
+        if (_isStunned) return Vector3.zero;
+
+        bool isFlyingUp = Input.GetKey(KeyCode.Space);
+        if (canFly && isFlyingUp && playerStatus.currentEnergy > 0.1f)
+        {
+            _velocity.y = verticalSpeed;
+            playerStatus.ConsumeEnergy(15.0f * Time.deltaTime);
+        }
+        else if (!isGrounded)
+        {
+            _velocity.y += gravity * Time.deltaTime * ((_velocity.y < 0) ? fastFallMultiplier : 1.0f);
+        }
+        return new Vector3(0, _velocity.y, 0);
+    }
+
+    private void HandleInput()
+    {
+        if (_isStunned) return;
+        if (Input.GetMouseButtonDown(0)) PerformAttack();
+        if (Input.GetKeyDown(KeyCode.E)) _modesAndVisuals.SwitchWeapon();
+        if (Input.GetKeyDown(KeyCode.Alpha1)) _modesAndVisuals.ChangeArmorBySlot(0);
+        if (Input.GetKeyDown(KeyCode.Alpha2)) _modesAndVisuals.ChangeArmorBySlot(1);
+    }
+
+    private void ApplyArmorStats() { var stats = _modesAndVisuals.CurrentArmorStats; _moveSpeed = baseMoveSpeed * (stats != null ? stats.moveSpeedMultiplier : 1.0f); }
+    private void RotateTowards(Vector3 target) { Vector3 dir = (target - transform.position).normalized; transform.rotation = Quaternion.LookRotation(new Vector3(dir.x, 0, dir.z)); }
+    private Vector3 GetLockOnTargetPosition(Transform t, bool offset = false) { if (t.TryGetComponent<Collider>(out var c)) return c.bounds.center; return offset ? t.position + Vector3.up * lockOnTargetHeightOffset : t.position; }
+
     private void ApplyDamageToEnemy(Collider hitCollider, float damageAmount)
     {
-        GameObject target = hitCollider.gameObject;
+        // 当たったオブジェクトそのもの、あるいはその親からコンポーネントを探す
+        GameObject t = hitCollider.gameObject;
         bool isHit = false;
 
-        // 既存の敵判定ロジック
-        if (target.TryGetComponent<SoldierMoveEnemy>(out var s1)) { s1.TakeDamage(damageAmount); isHit = true; }
-        else if (target.TryGetComponent<SoliderEnemy>(out var s2)) { s2.TakeDamage(damageAmount); isHit = true; }
-        else if (target.TryGetComponent<TutorialEnemyController>(out var s3)) { s3.TakeDamage(damageAmount); isHit = true; }
-        else if (target.TryGetComponent<ScorpionEnemy>(out var s4)) { s4.TakeDamage(damageAmount); isHit = true; }
-        else if (target.TryGetComponent<SuicideEnemy>(out var s5)) { s5.TakeDamage(damageAmount); isHit = true; }
-        else if (target.TryGetComponent<DroneEnemy>(out var s6)) { s6.TakeDamage(damageAmount); isHit = true; }
-        // ★追加：本体のパーツ（胴体など）を撃った場合
-        else if (target.TryGetComponent<VoxBodyPart>(out var bodyPart))
-        {
-            bodyPart.TakeDamage(damageAmount);
-            isHit = true;
-        }
-        // ★追加：ボスのパーツ（アームなど）へのヒット
-        else if (target.TryGetComponent<VoxPart>(out var part))
-        {
-            part.TakeDamage(damageAmount);
-            isHit = true;
-        }
+        // 既存の敵リスト（親オブジェクトにスクリプトがある場合を考慮）
+        if (t.GetComponentInParent<SoldierMoveEnemy>()) { t.GetComponentInParent<SoldierMoveEnemy>().TakeDamage(damageAmount); isHit = true; }
+        else if (t.GetComponentInParent<SoliderEnemy>()) { t.GetComponentInParent<SoliderEnemy>().TakeDamage(damageAmount); isHit = true; }
+        else if (t.GetComponentInParent<TutorialEnemyController>()) { t.GetComponentInParent<TutorialEnemyController>().TakeDamage(damageAmount); isHit = true; }
+        else if (t.GetComponentInParent<ScorpionEnemy>()) { t.GetComponentInParent<ScorpionEnemy>().TakeDamage(damageAmount); isHit = true; }
+        else if (t.GetComponentInParent<SuicideEnemy>()) { t.GetComponentInParent<SuicideEnemy>().TakeDamage(damageAmount); isHit = true; }
+        else if (t.GetComponentInParent<DroneEnemy>()) { t.GetComponentInParent<DroneEnemy>().TakeDamage(damageAmount); isHit = true; }
+        else if (t.GetComponentInParent<VoxBodyPart>()) { t.GetComponentInParent<VoxBodyPart>().TakeDamage(damageAmount); isHit = true; }
+        else if (t.GetComponentInParent<VoxPart>()) { t.GetComponentInParent<VoxPart>().TakeDamage(damageAmount); isHit = true; }
+
         if (isHit && hitEffectPrefab != null)
         {
+            // ヒットエフェクトを生成（当たったコライダーの中心位置に）
             Instantiate(hitEffectPrefab, hitCollider.bounds.center, Quaternion.identity);
         }
     }
-
-    public void TakeDamage(float damageAmount)
+    private void OnDrawGizmosSelected()
     {
-        // ★ダメージ計算をPlayerStatusに委譲
-        var stats = _modesAndVisuals.CurrentArmorStats;
-        float defense = (stats != null) ? stats.defenseMultiplier : 1.0f;
-        playerStatus.TakeDamage(damageAmount, defense);
+        Gizmos.color = Color.red;
+        Vector3 previewCenter = transform.position + (Vector3.up * 1.0f) + (transform.forward * 1.5f);
+        Gizmos.DrawWireSphere(previewCenter, meleeAttackRange);
     }
-
-    // =======================================================
-    // Utilities & Input System Events
-    // =======================================================
-
-    private void RotateTowards(Vector3 targetPosition)
-    {
-        Vector3 dir = (targetPosition - transform.position).normalized;
-        transform.rotation = Quaternion.LookRotation(new Vector3(dir.x, 0, dir.z));
-    }
-
-    private Vector3 GetLockOnTargetPosition(Transform target, bool useOffsetIfNoCollider = false)
-    {
-        if (target.TryGetComponent<Collider>(out var col)) return col.bounds.center;
-        return useOffsetIfNoCollider ? target.position + Vector3.up * lockOnTargetHeightOffset : target.position;
-    }
-
-    private void HandleWeaponSwitchInput() { if (Input.GetKeyDown(KeyCode.E)) _modesAndVisuals.SwitchWeapon(); }
-    private void HandleArmorSwitchInput()
-    {
-        // 1キーで最初に選んだアーマーを表示
-        if (Input.GetKeyDown(KeyCode.Alpha1))
-        {
-            _modesAndVisuals.ChangeArmorBySlot(0);
-        }
-        // 2キーで2番目に選んだアーマーを表示
-        else if (Input.GetKeyDown(KeyCode.Alpha2))
-        {
-            _modesAndVisuals.ChangeArmorBySlot(1);
-        }
-    }
-
-    public void OnFlyUp(InputAction.CallbackContext ctx) { if (!playerStatus.IsDead && !_isStunned) _verticalInput = ctx.performed ? 1f : 0f; }
-    public void OnFlyDown(InputAction.CallbackContext ctx) { if (!playerStatus.IsDead && !_isStunned) _verticalInput = ctx.performed ? -1f : 0f; }
-    public void OnBoost(InputAction.CallbackContext ctx) { if (!playerStatus.IsDead && !_isStunned) _isBoosting = ctx.performed; }
-    public void OnAttack(InputAction.CallbackContext ctx) { if (!playerStatus.IsDead && !_isStunned && ctx.started && !_isAttacking) PerformAttack(); }
-    public void OnWeaponSwitch(InputAction.CallbackContext ctx) { if (!playerStatus.IsDead && !_isStunned && ctx.started) _modesAndVisuals.SwitchWeapon(); }
-    public void OnDPad(InputAction.CallbackContext context) { /* 既存のDPad処理 */ }
-
+    public void TakeDamage(float amount) { float def = (_modesAndVisuals.CurrentArmorStats != null) ? _modesAndVisuals.CurrentArmorStats.defenseMultiplier : 1.0f; playerStatus.TakeDamage(amount, def); }
 }

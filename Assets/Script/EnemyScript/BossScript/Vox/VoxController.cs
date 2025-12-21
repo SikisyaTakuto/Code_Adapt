@@ -42,7 +42,22 @@ public class VoxController : MonoBehaviour
     [SerializeField] private float dropHeight = -2f;        // アームの位置からどれくらい上に爆弾を出すか (Y座標調整)
     [SerializeField] private float moveSpeed = 20f;         // Z軸の移動速度
     [SerializeField] private float rareChance = 0.05f;      // 確率で特殊座標を選ぶ (5%)
-    [SerializeField] private int maxHP = 5;                 // 各アームの初期HP
+    [SerializeField] private int maxHP = 5;                 // 各アームの初期HP
+
+    [Header("Player Interaction")]
+    [SerializeField] private Transform playerTransform;
+    [SerializeField] private float attackRange = 15f;
+    [SerializeField] private float attackCooldown = 3f;
+    private float[] lastAttackTime;
+
+    [Header("Enraged Mode")]
+    [SerializeField] private float fastMoveSpeed = 60f; // 高速移動時の速度
+    private bool isEnraged = false; // HP半分以下のフラグ
+
+    [Header("Boss Body Movement")]
+    private float bodyTargetZ;
+    private bool isBodyMoving = false;
+    [SerializeField] private float bodyMoveSpeed = 20f; // 通常時の本体速度
 
     // --- プライベートな状態変数 ---
     private GameObject[] armsArray;                         // アームオブジェクトの配列
@@ -55,6 +70,8 @@ public class VoxController : MonoBehaviour
     private GameObject[] heldBoxes;                         // アームが保持している箱
     private Animator[] armAnimators;                        // アームアニメーション
 
+    // ボス本体のAnimator
+    private Animator bossAnimator;
 
     // 特殊Z座標の定義
     private const float SPECIAL_Z_FAR = -310f;
@@ -62,6 +79,8 @@ public class VoxController : MonoBehaviour
 
     void Start()
     {
+        bossAnimator = GetComponent<Animator>(); // これが必要です
+
         bossHpBar.gameObject.SetActive(false);
         bossCurrentHP = bossMaxHP;
         bossHpBar.value = 1;
@@ -77,12 +96,14 @@ public class VoxController : MonoBehaviour
         armHPs = new int[count];
         isDestroyed = new bool[count];
         heldBoxes = new GameObject[count];
+        lastAttackTime = new float[count]; // ← これが重要！
 
         // HPを初期化
         for (int i = 0; i < count; i++)
         {
             armHPs[i] = maxHP;
             isDestroyed[i] = false;
+            lastAttackTime[i] = -attackCooldown; // 最初から攻撃できるように
             // 初回は物を落とせない状態からスタート
             hasReachedSpecialZ[i] = false;
             canDropNow[i] = false;
@@ -107,13 +128,19 @@ public class VoxController : MonoBehaviour
 
         if (isActivated)
         {
-            // 壊れていないアームだけ動かす
             for (int i = 0; i < armsArray.Length; i++)
             {
-                if (!isDestroyed[i])
+                // --- 修正ポイント1: armsArray[i] が Null でないか、破壊されていないか厳密にチェック ---
+                if (armsArray[i] != null && !isDestroyed[i])
                 {
                     MoveArm(i);
+                    CheckForAttack(i);
                 }
+            }
+
+            if (isEnraged && isBodyMoving)
+            {
+                MoveBossBody();
             }
 
             // デバッグ用: Kキーで全アームにダメージを与える
@@ -126,6 +153,63 @@ public class VoxController : MonoBehaviour
                 DamageBoss(10);
             }
         }
+    }
+
+    // --- 修正ポイント2: 内部変数の Null チェックを強化 ---
+    void CheckForAttack(int index)
+    {
+        // 修正ポイント: プレイヤーがInspectorでセットされていない、またはアームが欠けている場合のガード
+        if (playerTransform == null || armsArray[index] == null) return;
+
+        float distance = Vector3.Distance(this.transform.position, playerTransform.position);
+
+        if (distance <= attackRange )
+        {
+            // L3(2), L4(3), R1(4), R2(5) は除外
+            if (index == 2 || index == 3 || index == 4 || index == 5) return;
+
+            PerformAttack(index);
+        }
+    }
+
+    void PerformAttack(int index)
+    {
+        lastAttackTime[index] = Time.time;
+
+        // ボス本体のAnimatorに対して "Attack" トリガーのみを作動させる
+        if (bossAnimator != null)
+        {
+            bossAnimator.SetTrigger("Attack");
+            Debug.Log($"<color=orange>ボス本体のAttackトリガーを作動: {armsArray[index].name} が検知</color>");
+        }
+    }
+
+    void MoveBossBody()
+    {
+        Vector3 pos = transform.position;
+        // 発狂時は fastMoveSpeed を使用
+        float step = fastMoveSpeed * Time.deltaTime;
+
+        pos.z = Mathf.MoveTowards(pos.z, bodyTargetZ, step);
+        transform.position = pos;
+
+        // 到達したら次の目標を決める
+        if (Mathf.Approximately(pos.z, bodyTargetZ))
+        {
+            StartCoroutine(WaitAndRetargetBody());
+        }
+    }
+
+    IEnumerator WaitAndRetargetBody()
+    {
+        isBodyMoving = false;
+        yield return new WaitForSeconds(1f); // 本体は1秒待機して次へ
+
+        // Z座標 +-100 の範囲などでランダムに設定
+        // 現在のZ位置からではなく、特定の中心点から +-100 したい場合はその値を。
+        // ここでは GetRandomTargetZ を流用するか、独自に設定します。
+        bodyTargetZ = Random.Range(-200f, -150f);
+        isBodyMoving = true;
     }
 
     // HPを減らす関数（外部からの呼び出し用）
@@ -149,13 +233,36 @@ public class VoxController : MonoBehaviour
         bossCurrentHP -= damage;
         bossCurrentHP = Mathf.Max(bossCurrentHP, 0);
 
-        Debug.Log($"Boss が {damage} ダメージを受けた！残りHP: {bossCurrentHP}");
-
         bossHpBar.value = (float)bossCurrentHP / (float)bossMaxHP;
+
+        // --- 追加：HPが半分以下（発狂モード）の判定 ---
+        if (!isEnraged && bossCurrentHP <= bossMaxHP / 2)
+        {
+            isEnraged = true;
+            moveSpeed = fastMoveSpeed; // 全体速度を高速化
+
+            bodyTargetZ = Random.Range(-200f, -150f);
+            isBodyMoving = true;
+            Debug.Log("<color=red>HP半分以下：発狂モード突入！速度アップ ＆ 移動範囲拡大！</color>");
+
+            // 現在の移動を中断して、即座に新しい広い範囲の目標へ向かわせる
+            ForceRetargetAll();
+        }
 
         if (bossCurrentHP <= 0)
         {
             BossDefeated();
+        }
+    }
+
+    // 即座に全アームに再ターゲットさせる
+    private void ForceRetargetAll()
+    {
+        for (int i = 0; i < armsArray.Length; i++)
+        {
+            if (armsArray[i] == null || isDestroyed[i]) continue;
+            targetZs[i] = GetRandomTargetZ();
+            isMovingArray[i] = true;
         }
     }
 

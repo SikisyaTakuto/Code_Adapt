@@ -15,6 +15,10 @@ public class PlayerModesAndVisuals : MonoBehaviour
         public float defenseMultiplier = 1.0f;
         public float moveSpeedMultiplier = 1.0f;
         public float energyRecoveryMultiplier = 1.0f;
+
+        // ★追加：技名の設定項目
+        public string attack1Name = "Attack 1";
+        public string attack2Name = "Attack 2";
     }
 
     [Header("Armor Settings")]
@@ -32,6 +36,9 @@ public class PlayerModesAndVisuals : MonoBehaviour
     public Text attack2Text;
     public Color emphasizedColor = Color.white;
     public Color normalColor = new Color(0.5f, 0.5f, 0.5f);
+
+    // キャッシュ用に現在の表示アーマーのインデックスを保持
+    private int _currentVisibleArmorIndex = 0;
 
     private ArmorStats _currentArmorStats = new ArmorStats();
     private WeaponMode _currentWeaponMode = WeaponMode.Attack1;
@@ -116,18 +123,22 @@ public class PlayerModesAndVisuals : MonoBehaviour
     {
         bool isAttack1 = (_currentWeaponMode == WeaponMode.Attack1);
 
+        // 現在表示されているアーマーのステータスを取得
+        ArmorStats activeStats = armorConfigurations[_currentVisibleArmorIndex];
+
         // UIの色の切り替え
         if (attack1Icon != null) attack1Icon.color = isAttack1 ? emphasizedColor : normalColor;
         if (attack2Icon != null) attack2Icon.color = isAttack1 ? normalColor : emphasizedColor;
 
+        // ★技名のテキストをアーマーの設定から取得して表示
         if (attack1Text != null)
         {
-            attack1Text.text = "Attack 1";
+            attack1Text.text = activeStats.attack1Name; // "Attack 1" ではなくアーマー固有の名前
             attack1Text.color = isAttack1 ? emphasizedColor : normalColor;
         }
         if (attack2Text != null)
         {
-            attack2Text.text = "Attack 2";
+            attack2Text.text = activeStats.attack2Name; // "Attack 2" ではなくアーマー固有の名前
             attack2Text.color = isAttack1 ? normalColor : emphasizedColor;
         }
     }
@@ -155,6 +166,8 @@ public class PlayerModesAndVisuals : MonoBehaviour
     // 見た目とアイコンだけを更新（ステータス合算は維持）
     private void UpdateArmorVisualAndIcon(int activeIndex)
     {
+        _currentVisibleArmorIndex = activeIndex; // ★現在のインデックスを保存
+
         if (armorModels != null)
         {
             foreach (var m in armorModels) if (m != null) m.SetActive(false);
@@ -166,5 +179,8 @@ public class PlayerModesAndVisuals : MonoBehaviour
         {
             currentArmorIconImage.sprite = armorSprites[activeIndex];
         }
+
+        // ★アーマーが変わったので、技名表示も更新する
+        UpdateWeaponUIEmphasis();
     }
 }

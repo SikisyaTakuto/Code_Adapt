@@ -1,9 +1,10 @@
 // ファイル名: BlanceController.cs
-using UnityEngine;
-using UnityEngine.UI;
-using UnityEngine.InputSystem;
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.UI;
 
 /// <summary>
 /// プレイヤーの移動、攻撃、およびInput Systemからの入力を制御します。
@@ -46,12 +47,25 @@ public class BlanceController : MonoBehaviour
     public float landStunDuration = 0.2f;
 
     [Header("Attack Settings")]
+    public GameObject swordObject; // インスペクターで剣のオブジェクトをアサインしてください
     public float meleeAttackRange = 2.0f;
     public float meleeDamage = 50.0f;
     public float beamDamage = 50.0f;
     public float beamAttackEnergyCost = 30.0f;
     public float beamMaxDistance = 100f;
     public float lockOnTargetHeightOffset = 1.0f;
+
+    [Header("Timing Settings")]
+    [Tooltip("剣の3連撃にかかる時間（この後にビームが出る）")]
+    public float swordComboTime = 1.5f;
+    [Tooltip("ビームを撃っている時間")]
+    public float beamFiringTime = 1.0f;
+    [Tooltip("2丁拳銃モードの硬直時間")]
+    public float doubleGunDuration = 1.2f; // ← この行を追加
+
+    [Header("Audio Settings")]
+    public AudioSource audioSource;
+    public AudioClip swordSwingSound; // 剣を振る音をアサイン
 
     // HP, Energy, UI, 死亡フラグに関する変数は PlayerStatus へ移動したため削除
 
@@ -80,14 +94,16 @@ public class BlanceController : MonoBehaviour
 
     void Update()
     {
-        // ★PlayerStatusの死亡判定を参照
         if (playerStatus == null || playerStatus.IsDead) return;
 
-        bool isGroundedNow = _playerController.isGrounded;
+        // ★修正：攻撃中(硬直中)でも武器切り替え(E)とアーマー切り替え(1,2)だけは先に処理する
+        HandleWeaponSwitchInput();
+        HandleArmorSwitchInput();
 
-        // 1. 硬直状態の処理
+        bool isGroundedNow = _playerController.isGrounded;
         HandleStunState(isGroundedNow);
 
+        // 硬直中は移動と攻撃入力をスキップ
         if (_isStunned)
         {
             HandleStunnedVerticalMovement(isGroundedNow);
@@ -96,20 +112,20 @@ public class BlanceController : MonoBehaviour
             return;
         }
 
-        // 2. プレイヤーの向き制御
-        if (_tpsCamController == null || _tpsCamController.LockOnTarget == null)
+        // プレイヤーの回転
+        if (_tpsCamController != null)
         {
-            _tpsCamController?.RotatePlayerToCameraDirection();
+            if (_tpsCamController.LockOnTarget == null)
+                _tpsCamController.RotatePlayerToCameraDirection();
+            else
+                RotateTowards(GetLockOnTargetPosition(_tpsCamController.LockOnTarget));
         }
 
-        // 3. 移動計算
         ApplyArmorStats();
-        // HandleEnergy() は PlayerStatus 側で自動実行されるため削除
+        HandleAttackInputs(); // 攻撃入力
 
-        HandleInput();
         Vector3 finalMove = HandleVerticalMovement(isGroundedNow) + HandleHorizontalMovement();
         _playerController.Move(finalMove * Time.deltaTime);
-
         _wasGrounded = isGroundedNow;
     }
 
@@ -139,11 +155,12 @@ public class BlanceController : MonoBehaviour
         _velocity = new Vector3(0, -0.1f, 0);
     }
 
-    public void StartAttackStun()
+    // 硬直開始メソッドを拡張（時間を指定可能に）
+    public void StartAttackStun(float duration)
     {
         _isAttacking = true;
         _isStunned = true;
-        _stunTimer = attackFixedDuration;
+        _stunTimer = duration; // 指定されたアニメーション時間に合わせる
         _velocity.y = 0f;
     }
 
@@ -209,7 +226,7 @@ public class BlanceController : MonoBehaviour
     {
         if (!_wasGrounded && isGrounded && _velocity.y < -0.1f && !_isStunned)
         {
-            StartLandingStun();
+           // StartLandingStun();
             return Vector3.zero;
         }
 
@@ -265,55 +282,133 @@ public class BlanceController : MonoBehaviour
 
     private void PerformAttack()
     {
+        // 1. 現在のモードが Attack2 かどうかを判定
+        bool isAttack2 = (_modesAndVisuals.CurrentWeaponMode == PlayerModesAndVisuals.WeaponMode.Attack2);
+
+        // 2. 子供のオブジェクトからアニメーションスクリプトを探す
+        // 引数に (true) を入れることで、非アクティブなアーマーも含めて検索できます
+        BalanceAnimation balAnim = GetComponentInChildren<BalanceAnimation>(true);
+        BusterAnimation busAnim = GetComponentInChildren<BusterAnimation>(true);
+
+        // 見つかった方のスクリプトの再生メソッドを呼ぶ
+        if (balAnim != null && balAnim.gameObject.activeInHierarchy)
+        {
+            balAnim.PlayAttackAnimation(isAttack2);
+        }
+        else if (busAnim != null && busAnim.gameObject.activeInHierarchy)
+        {
+            busAnim.PlayAttackAnimation(isAttack2);
+        }
+
+        // 3. ★修正：実際の攻撃処理の呼び出し（定義されているメソッド名に変更）
         switch (_modesAndVisuals.CurrentWeaponMode)
         {
-            case PlayerModesAndVisuals.WeaponMode.Attack1: HandleMeleeAttack(); break;
-            case PlayerModesAndVisuals.WeaponMode.Attack2: HandleBeamAttack(); break;
+            case PlayerModesAndVisuals.WeaponMode.Attack1:
+                // コルーチンなので StartCoroutine で呼ぶ必要があります
+                StartCoroutine(HandleComboAttackRoutine());
+                break;
+            case PlayerModesAndVisuals.WeaponMode.Attack2:
+                // こちらは内部でコルーチンを呼んでいるため、そのまま呼び出し
+                HandleDoubleGunAttack();
+                break;
         }
     }
 
-    private void HandleMeleeAttack()
+    // パターン1: 剣の3連撃 -> 剣を消す -> ビームを出す
+    private IEnumerator HandleComboAttackRoutine()
     {
-        StartAttackStun();
+        // 1. 攻撃開始と硬直の設定
+        float totalDuration = swordComboTime + beamFiringTime;
+        StartAttackStun(totalDuration);
+
+        // 向きの調整
         Transform lockOnTarget = _tpsCamController?.LockOnTarget;
         if (lockOnTarget != null) RotateTowards(GetLockOnTargetPosition(lockOnTarget));
 
+        // ★ 2. 剣の3連撃音を再生（コルーチン内でタイミングを制御）
+        StartCoroutine(PlayMeleeSwingSounds());
+
+        // 剣の攻撃判定（判定の発生タイミングは音と合わせるのが理想ですが、一旦ここで一括判定）
+        Debug.Log("Sword Combo Start");
         Collider[] hitColliders = Physics.OverlapSphere(transform.position, meleeAttackRange, enemyLayer);
         foreach (var hitCollider in hitColliders)
         {
-            if (hitCollider.transform != this.transform) ApplyDamageToEnemy(hitCollider, meleeDamage);
+            if (hitCollider.transform != this.transform) ApplyDamageToEnemy(hitCollider, meleeDamage * 3);
+        }
+
+        // 3. 剣を振っている時間だけ待機
+        yield return new WaitForSeconds(swordComboTime);
+
+        // 4. 剣を非表示にしてビームを撃つ
+        if (swordObject != null) swordObject.SetActive(false);
+
+        Debug.Log("Beam Attack Start");
+        FireDualBeams();
+
+        // 5. ビームを撃ち終わるまで待機
+        yield return new WaitForSeconds(beamFiringTime);
+
+        // 6. 剣を再表示する
+        if (swordObject != null) swordObject.SetActive(true);
+    }
+
+    // ★ 3連撃の音を鳴らすためのサブ・コルーチン
+    private IEnumerator PlayMeleeSwingSounds()
+    {
+        float interval = swordComboTime / 3f; // 3連撃なので時間を3分割
+        for (int i = 0; i < 3; i++)
+        {
+            if (audioSource != null && swordSwingSound != null)
+            {
+                audioSource.PlayOneShot(swordSwingSound);
+            }
+            yield return new WaitForSeconds(interval);
         }
     }
 
-    private void HandleBeamAttack()
+    // パターン2: 2丁の銃で打つだけ（ここも剣を隠す処理を追加）
+    private void HandleDoubleGunAttack()
     {
         if (!playerStatus.ConsumeEnergy(beamAttackEnergyCost)) return;
+
+        StartCoroutine(DoubleGunRoutine());
+    }
+
+    private IEnumerator DoubleGunRoutine()
+    {
+        StartAttackStun(doubleGunDuration);
+
+        if (swordObject != null) swordObject.SetActive(false);
+
+        Transform lockOnTarget = _tpsCamController?.LockOnTarget;
+        if (lockOnTarget != null) RotateTowards(GetLockOnTargetPosition(lockOnTarget));
+
+        FireDualBeams();
+
+        yield return new WaitForSeconds(doubleGunDuration);
+
+        if (swordObject != null) swordObject.SetActive(true);
+    }
+
+    // 共通処理: 2丁の銃からビームを発射
+    private void FireDualBeams()
+    {
         if (beamFirePoints == null || beamFirePoints.Length == 0 || beamPrefab == null) return;
 
-        StartAttackStun();
         Transform lockOnTarget = _tpsCamController?.LockOnTarget;
         Vector3 targetPosition = Vector3.zero;
         bool isLockedOn = lockOnTarget != null;
+        if (isLockedOn) targetPosition = GetLockOnTargetPosition(lockOnTarget, true);
 
-        if (isLockedOn)
-        {
-            targetPosition = GetLockOnTargetPosition(lockOnTarget, true);
-            RotateTowards(targetPosition);
-        }
-
-        // ★追加: ロックオンしていない時の基準となる「プレイヤーの正面方向」
         Vector3 playerForward = transform.forward;
 
         foreach (var firePoint in beamFirePoints)
         {
             if (firePoint == null) continue;
             Vector3 origin = firePoint.position;
-
-            // ★修正点: ロックオン時はターゲットへ、そうでない時は「プレイヤーの正面」へ飛ばす
             Vector3 fireDirection = isLockedOn ? (targetPosition - origin).normalized : playerForward;
 
             RaycastHit hit;
-            // プレイヤー自身に当たらないよう、自分自身のレイヤーを除外するか、少し前方から飛ばすのが安全です
             bool didHit = Physics.Raycast(origin, fireDirection, out hit, beamMaxDistance, ~0);
             Vector3 endPoint = didHit ? hit.point : origin + fireDirection * beamMaxDistance;
 
@@ -392,12 +487,4 @@ public class BlanceController : MonoBehaviour
             _modesAndVisuals.ChangeArmorBySlot(1);
         }
     }
-
-    public void OnFlyUp(InputAction.CallbackContext ctx) { if (!playerStatus.IsDead && !_isStunned) _verticalInput = ctx.performed ? 1f : 0f; }
-    public void OnFlyDown(InputAction.CallbackContext ctx) { if (!playerStatus.IsDead && !_isStunned) _verticalInput = ctx.performed ? -1f : 0f; }
-    public void OnBoost(InputAction.CallbackContext ctx) { if (!playerStatus.IsDead && !_isStunned) _isBoosting = ctx.performed; }
-    public void OnAttack(InputAction.CallbackContext ctx) { if (!playerStatus.IsDead && !_isStunned && ctx.started && !_isAttacking) PerformAttack(); }
-    public void OnWeaponSwitch(InputAction.CallbackContext ctx) { if (!playerStatus.IsDead && !_isStunned && ctx.started) _modesAndVisuals.SwitchWeapon(); }
-    public void OnDPad(InputAction.CallbackContext context) { /* 既存のDPad処理 */ }
-
 }

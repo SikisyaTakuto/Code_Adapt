@@ -2,20 +2,25 @@ using UnityEngine;
 using System.Collections.Generic;
 
 /// <summary>
-/// 現在の目標Transformを管理し、目標の変更を通知するシングルトンクラス。
+/// 目標の管理とシーケンス（順番）の実行を統合したクラス。
+/// シーン内の空のオブジェクト（例：Manager）にアタッチしてください。
 /// </summary>
 public class TargetManager : MonoBehaviour
 {
     // シングルトンインスタンス
     public static TargetManager Instance { get; private set; }
 
-    // 現在の目標（TargetMarkerUIが追いかける対象）
+    [Header("Objective Sequence")]
+    [Tooltip("目標を達成する順番に、シーン内のオブジェクトをドラッグ＆ドロップしてください。")]
+    [SerializeField] private List<Transform> objectiveSequence = new List<Transform>();
+
+    // 現在の目標
     public Transform CurrentTarget { get; private set; }
 
     // 目標の変更を通知するイベント
     public event System.Action<Transform> OnTargetChanged;
 
-    // ★ 追加: 目標のキュー (順番待ちリスト) ★
+    // 内部管理用のキュー
     private Queue<Transform> objectiveQueue = new Queue<Transform>();
 
     private void Awake()
@@ -26,54 +31,53 @@ public class TargetManager : MonoBehaviour
             return;
         }
         Instance = this;
-        DontDestroyOnLoad(gameObject); // シーンをまたいでも永続化する場合
+        // シーンをまたぐ場合はコメントを解除
+        // DontDestroyOnLoad(gameObject); 
+    }
+
+    private void Start()
+    {
+        // インスペクターで設定されたリストがある場合、自動的にキューを開始
+        if (objectiveSequence != null && objectiveSequence.Count > 0)
+        {
+            StartNewSequence(objectiveSequence);
+        }
     }
 
     /// <summary>
-    /// 新しい単一の目標を設定します。
+    /// 新しい目標シーケンスを開始します（外部から新しいリストを渡すことも可能）
+    /// </summary>
+    public void StartNewSequence(List<Transform> objectives)
+    {
+        objectiveQueue = new Queue<Transform>(objectives);
+        CompleteCurrentObjective(); // 最初の目標を取り出す
+    }
+
+    /// <summary>
+    /// 現在の目標を完了し、次の目標へ進みます。
+    /// </summary>
+    public void CompleteCurrentObjective()
+    {
+        if (objectiveQueue.Count > 0)
+        {
+            CurrentTarget = objectiveQueue.Dequeue();
+            OnTargetChanged?.Invoke(CurrentTarget);
+            Debug.Log($"<color=cyan>次の目標:</color> {CurrentTarget.name}");
+        }
+        else
+        {
+            CurrentTarget = null;
+            OnTargetChanged?.Invoke(null);
+            Debug.Log("<color=green>すべての目標が完了しました！</color>");
+        }
+    }
+
+    /// <summary>
+    /// (既存互換用) 単一のターゲットを強制的に設定する場合
     /// </summary>
     public void SetTarget(Transform newTarget)
     {
         CurrentTarget = newTarget;
         OnTargetChanged?.Invoke(CurrentTarget);
-
-        if (newTarget != null)
-        {
-            Debug.Log($"新しい目標が設定されました: {newTarget.name}");
-        }
-        else
-        {
-            Debug.Log("目標がすべて完了しました。");
-        }
-    }
-
-    // ★ 追加: 複数の目標を順番に設定するキュー ★
-    /// <summary>
-    /// 複数の目標を順番に処理するためのキューを設定し、最初の目標を開始します。
-    /// </summary>
-    public void SetNewObjectiveQueue(List<Transform> objectives)
-    {
-        objectiveQueue = new Queue<Transform>(objectives);
-        CompleteCurrentObjective(); // キューの先頭から最初の目標を取り出す
-    }
-
-    /// <summary>
-    /// 現在の目標を完了し、キューから次の目標があればそれを設定します。
-    /// </summary>
-    public void CompleteCurrentObjective()
-    {
-        // ログはTargetObject側で出力されるため、ここでは省略
-
-        if (objectiveQueue.Count > 0)
-        {
-            // キューから次の目標を取り出し、CurrentTargetに設定
-            Transform nextTarget = objectiveQueue.Dequeue();
-            SetTarget(nextTarget);
-        }
-        else
-        {
-            // キューが空になったら、目標をnullに設定
-            SetTarget(null);
-        }
     }
 }

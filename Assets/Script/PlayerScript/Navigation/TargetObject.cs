@@ -14,12 +14,15 @@ public class TargetObject : MonoBehaviour
     [Header("Input")]
     public KeyCode interactKey = KeyCode.F;
 
+    [Header("Audio")] // ★オーディオ設定を追加
+    public AudioSource audioSource;
+    public AudioClip leverSound; // レバーを倒す時の音
+
     private bool isActivated = false;
     private bool isPlayerInRange = false;
 
     private void Update()
     {
-        // プレイヤーが範囲内にいて、まだ未起動で、かつタグが "Lever" の場合のみFキー入力を監視
         if (isPlayerInRange && !isActivated && gameObject.CompareTag("Lever"))
         {
             if (Input.GetKeyDown(interactKey))
@@ -36,13 +39,11 @@ public class TargetObject : MonoBehaviour
         {
             isPlayerInRange = true;
 
-            // 1. タグが "TargetCheck" の場合は触れた瞬間に自動実行
             if (gameObject.CompareTag("TargetCheck") && !isActivated)
             {
                 Debug.Log("TargetCheckに接触：自動で更新します");
                 ExecuteLogic();
             }
-            // 2. タグが "Lever" の場合はログを出すだけ（UpdateでFキーを待つ）
             else if (gameObject.CompareTag("Lever") && !isActivated)
             {
                 Debug.Log("Leverに接触：Fキーを押してください");
@@ -62,6 +63,12 @@ public class TargetObject : MonoBehaviour
     {
         if (isActivated) return;
         isActivated = true;
+
+        // ★ 0. 効果音の再生
+        if (audioSource != null && leverSound != null)
+        {
+            audioSource.PlayOneShot(leverSound);
+        }
 
         // 1. アニメーション再生
         if (animator != null)
@@ -90,7 +97,8 @@ public class TargetObject : MonoBehaviour
         // 5. 最後のターゲットなら消去
         if (isLastTarget)
         {
-            Destroy(gameObject, 1.0f);
+            // 音が途切れないよう、Destoryの時間を少し余裕を持たせます
+            Destroy(gameObject, 1.5f);
         }
 
         Debug.Log($"{gameObject.name} の処理が完了しました。");

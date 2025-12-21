@@ -51,8 +51,12 @@ public class BusterAnimation : MonoBehaviour
         // 物理/移動処理を削除し、入力とアニメーション制御のみに特化
         HandleMovementAnimationInput();
         HandleAirAnimationInput();
-        HandleAttackInput();
-        HandleOtherInput();
+    }
+
+    public void PlayAttackAnimation(bool isModeTwo)
+    {
+        int attackHash = isModeTwo ? Attack2TriggerHash : Attack1TriggerHash;
+        animator.SetTrigger(attackHash);
     }
 
     // ----------------------------------------------------
@@ -167,12 +171,12 @@ public class BusterAnimation : MonoBehaviour
     {
         if (Input.GetMouseButtonDown(0))
         {
-            // 地上でのみ攻撃を許可する判定 (RaycastによるisGroundedを使用)
-            if (!isGrounded)
-            {
-                Debug.Log("Attempted Aerial Attack. (No aerial attack implemented)");
-                return;
-            }
+            //// 地上でのみ攻撃を許可する判定 (RaycastによるisGroundedを使用)
+            //if (!isGrounded)
+            //{
+            //    Debug.Log("Attempted Aerial Attack. (No aerial attack implemented)");
+            //    return;
+            //}
 
             int attackHash = isWeaponModeTwo ? Attack2TriggerHash : Attack1TriggerHash;
             string attackName = isWeaponModeTwo ? "Attack2" : "Attack1";

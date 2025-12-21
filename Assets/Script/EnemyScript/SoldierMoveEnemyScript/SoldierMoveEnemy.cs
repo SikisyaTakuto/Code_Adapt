@@ -55,6 +55,8 @@ public class SoldierMoveEnemy : MonoBehaviour
     [SerializeField] private GameObject bulletPrefab;
     public Transform muzzlePoint;
 
+    [Header("オーディオ設定")]
+    public AudioClip shootSound; // ★サブマシンガンの音をアサインしてください
     // ====================================================================
     // --- 3. コンポーネントと初期化 ---
     // ====================================================================
@@ -524,6 +526,14 @@ public class SoldierMoveEnemy : MonoBehaviour
         if (isDead || currentAmmo <= 0 || player == null || muzzlePoint == null || bulletPrefab == null) return;
 
         currentAmmo--;
+
+        // --- 音の再生を追加 ---
+        if (audioSource != null && shootSound != null)
+        {
+            // PlayOneShotを使うことで、連射しても音が途切れず重なって再生されます
+            audioSource.PlayOneShot(shootSound);
+        }
+
         Vector3 targetPosition = player.position;
         Vector3 directionToPlayer = (targetPosition - muzzlePoint.position).normalized;
         Quaternion baseRotation = Quaternion.LookRotation(directionToPlayer);
