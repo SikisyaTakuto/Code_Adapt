@@ -4,7 +4,6 @@ using UnityEngine.UI;
 using UnityEngine.UIElements;
 using Unity.Burst.Intrinsics;
 using UnityEngine.SceneManagement;
-using Unity.VisualScripting.Dependencies.Sqlite;
 
 public class VoxController : MonoBehaviour
 {
@@ -424,22 +423,50 @@ public class VoxController : MonoBehaviour
 
     private void BossDefeated()
     {
-        Debug.Log("Boss 撃破！");
+        Debug.Log("<color=red>Boss 撃破！全機能停止します。</color>");
 
+        // 1. 全体のアクティブフラグをオフにする（Update内の処理が止まる）
+        isActivated = false;
+        isBodyMoving = false; // 本体の移動停止
+
+        // 2. 全アームの移動とアニメーションを停止
+        for (int i = 0; i < armsArray.Length; i++)
+        {
+            isMovingArray[i] = false;
+
+            // アニメーションをIdleにするか、Speedを0にして固める
+            if (armAnimators[i] != null)
+            {
+                armAnimators[i].speed = 0; // その場で動きを凍結させる場合
+                                           // または armAnimators[i].SetTrigger("Idle");
+            }
+
+            // もし箱を持っていたら物理的に切り離す（お好みで）
+            if (heldBoxes[i] != null)
+            {
+                DropHeldBox(i, armsArray[i]);
+            }
+        }
+
+        // 3. ボス本体のアニメーターも停止
+        if (bossAnimator != null)
+        {
+            bossAnimator.speed = 0; // 撃破時のポーズで固める場合
+        }
+
+        // 4. ミッション完了通知
         if (MissionManager.Instance != null)
         {
             MissionManager.Instance.CompleteCurrentMission();
         }
 
-        // エフェクト・停止処理など自由に追加
-        // 爆発エフェクトの生成
-        if (EXexplosionEffect != null)
+        // 5. 撃破エフェクト
+        if (EXexplosionEffect != null)
         {
             Instantiate(EXexplosionEffect, transform.position, Quaternion.identity);
         }
 
-        // 爆発を見せるために少し待ちたい場合はコルーチンを使いますが、
-        // 即座に移動する場合は以下の1行を追加します。
+        // 6. クリアシーンへ
         StartCoroutine(WaitAndLoadScene());
     }
 
