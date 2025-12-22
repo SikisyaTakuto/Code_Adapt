@@ -25,6 +25,10 @@ public class TutorialEnemyController : MonoBehaviour
     public float attackAngle = 45f;
     public float hardStopDuration = 0.5f;
 
+    [Header("待機設定")]
+    public float startDelay = 5.0f;      // ★出現から攻撃までの猶予時間
+    private float canShootAfterTime;     // ★この時刻を過ぎるまで撃てない
+
     [Header("ターゲット")]
     private Transform playerTarget;
     public float rotationSpeed = 5f;
@@ -37,30 +41,14 @@ public class TutorialEnemyController : MonoBehaviour
         currentHealth = maxHealth;
         FindPlayer();
 
+        // ★現在の時刻に待機時間を足して、攻撃開始可能時間を設定
+        canShootAfterTime = Time.time + startDelay;
+
         // 出現時にUIを強調表示する演出を開始
         if (highlightUI != null)
         {
             StartCoroutine(HighlightOnSpawn());
         }
-    }
-
-    /// <summary>
-    /// 出現時にUIを点滅させて強調する演出
-    /// </summary>
-    IEnumerator HighlightOnSpawn()
-    {
-        float elapsed = 0;
-        highlightUI.SetActive(true);
-
-        while (elapsed < blinkDuration)
-        {
-            // 0.2秒ごとに表示・非表示を切り替えて点滅させる
-            highlightUI.SetActive(!highlightUI.activeSelf);
-            yield return new WaitForSeconds(0.2f);
-            elapsed += 0.2f;
-        }
-
-        highlightUI.SetActive(true); // 最後は表示状態にする
     }
 
     void Update()
@@ -75,13 +63,13 @@ public class TutorialEnemyController : MonoBehaviour
 
         LookAtPlayer();
 
-        // UIを常にプレイヤー（カメラ）の方向に向ける（Billboard処理）
         if (highlightUI != null && highlightUI.activeSelf)
         {
             highlightUI.transform.LookAt(Camera.main.transform);
         }
 
-        if (canShootBeam && Time.time >= hardStopEndTime)
+        // ★canShootAfterTime（出現から5秒後）を過ぎているかチェックを追加
+        if (canShootBeam && Time.time >= canShootAfterTime && Time.time >= hardStopEndTime)
         {
             float distanceToPlayer = Vector3.Distance(transform.position, playerTarget.position);
             if (distanceToPlayer <= detectionRange && IsPlayerInFrontView())
@@ -93,6 +81,23 @@ public class TutorialEnemyController : MonoBehaviour
                 }
             }
         }
+    }
+
+    // --- 以下、既存のメソッド（FindPlayer, LookAtPlayer, AttackPlayerなどは変更なし） ---
+
+    IEnumerator HighlightOnSpawn()
+    {
+        float elapsed = 0;
+        highlightUI.SetActive(true);
+
+        while (elapsed < blinkDuration)
+        {
+            highlightUI.SetActive(!highlightUI.activeSelf);
+            yield return new WaitForSeconds(0.2f);
+            elapsed += 0.2f;
+        }
+
+        highlightUI.SetActive(true);
     }
 
     private void FindPlayer()
@@ -152,7 +157,7 @@ public class TutorialEnemyController : MonoBehaviour
     {
         if (isDead) return;
         isDead = true;
-        if (highlightUI != null) highlightUI.SetActive(false); // 死亡時にUIを消す
+        if (highlightUI != null) highlightUI.SetActive(false);
         onDeath?.Invoke();
         Destroy(gameObject);
     }

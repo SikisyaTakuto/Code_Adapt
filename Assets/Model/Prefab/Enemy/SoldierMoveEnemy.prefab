@@ -2841,7 +2841,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cc22e7bc5f25f5e40b3c6f275012db21, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxHealth: 100
+  maxHealth: 500
   currentHealth: 0
   deathExplosionPrefab: {fileID: 785919167369076647, guid: d146151354c74be4ba83785a3704370e, type: 3}
   currentState: 0
@@ -2863,6 +2863,7 @@ MonoBehaviour:
   reloadTime: 3
   bulletPrefab: {fileID: 1877806789679844970, guid: 4b58e66d44c5e66408f91609aab1bad4, type: 3}
   muzzlePoint: {fileID: 5804395362486650614}
+  shootSound: {fileID: 0}
 --- !u!82 &-802470600375251652
 AudioSource:
   m_ObjectHideFlags: 0

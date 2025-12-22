@@ -325,16 +325,22 @@ public class BusterController : MonoBehaviour
 
     private IEnumerator FullBurstRoutine()
     {
+        // --- 攻撃開始: 硬直フラグを立てる ---
+        _isAttacking = true;
+        _isStunned = true;
+
         // 1. バックステップ
         Vector3 backDir = -transform.forward;
         _velocity = backDir * backstepForce + Vector3.up * 2f;
-        StartAttackStun();
+
+        // 攻撃アニメーションの長さに合わせてスタンの残り時間をリセット
+        // (UpdateのHandleStunStateで勝手に解けないように長めに設定するか、手動で管理)
+        _stunTimer = 5.0f;
 
         // 共通ターゲット情報
         Transform lockOnTarget = _tpsCamController?.LockOnTarget;
         bool isLockedOn = lockOnTarget != null;
 
-        // 初回のターゲット位置計算
         Vector3 initialTargetPos = isLockedOn
             ? GetLockOnTargetPosition(lockOnTarget, true)
             : transform.position + transform.forward * beamMaxDistance;
@@ -353,27 +359,31 @@ public class BusterController : MonoBehaviour
         {
             for (int i = 0; i < gatlingBurstCount; i++)
             {
-                // ロックオン対象が破壊された場合などのために null チェック
-                isLockedOn = (lockOnTarget != null);
+                // 連射中も硬直を維持
+                _isStunned = true;
+                _stunTimer = 1.0f;
 
+                isLockedOn = (lockOnTarget != null);
                 Vector3 currentTargetPos;
                 if (isLockedOn)
                 {
                     currentTargetPos = GetLockOnTargetPosition(lockOnTarget, true);
-                    RotateTowards(currentTargetPos); // 体をターゲットに向ける
+                    RotateTowards(currentTargetPos);
                 }
                 else
                 {
-                    // ロックオンがない、または敵が消えた場合は「自分の正面」を狙う
                     currentTargetPos = transform.position + transform.forward * beamMaxDistance;
                 }
 
-                // ガトリング発射（currentTargetPos を確実に渡す）
                 FireSpecificGuns(false, true, currentTargetPos, isLockedOn);
-
                 yield return new WaitForSeconds(gatlingFireRate);
             }
         }
+
+        // --- 攻撃終了: 硬直を解除 ---
+        // 少し余韻（硬直）を残すなら 0.2f 程度、すぐ動かしたいなら 0.0f
+        _stunTimer =6f;
+        // _isAttacking = false; // これは HandleStunState で _stunTimer が 0 になったら自動で false になります
     }
 
     // 特定の武器種だけを撃つヘルパー

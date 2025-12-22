@@ -224,23 +224,27 @@ public class TPSCameraController : MonoBehaviour
         return camCenter - rotation * Vector3.forward * distance;
     }
 
+    // 衝突判定と地面埋まり防止の統合修正版
     private Vector3 ApplyCollisionCheck(Vector3 initialPosition)
     {
         Vector3 currentTargetPos = target.position + Vector3.up * height;
         Vector3 direction = (initialPosition - currentTargetPos).normalized;
         float travelDistance = Vector3.Distance(currentTargetPos, initialPosition);
 
-        // 壁判定
+        // 1. 壁・障害物判定 (SphereCastでカメラの大きさを考慮)
         if (Physics.SphereCast(currentTargetPos, cameraRadius, direction, out RaycastHit hit, travelDistance, collisionLayers))
         {
-            initialPosition = currentTargetPos + direction * Mathf.Max(hit.distance - collisionOffset, 0.1f);
+            initialPosition = currentTargetPos + direction * Mathf.Max(hit.distance, 0.1f);
         }
 
-        // 地面判定（★追加）
+        // 2. 地面判定の強化
         if (groundLayer != 0)
         {
-            float checkHeight = 2.0f;
-            if (Physics.Raycast(initialPosition + Vector3.up * 1f, Vector3.down, out RaycastHit groundHit, checkHeight, groundLayer))
+            // 地面判定を「カメラの少し上」から下へ飛ばす (埋まっていても検知できるように)
+            float rayLength = groundYOffset + 1.0f;
+            Vector3 rayStart = initialPosition + Vector3.up * 0.5f; // 0.5m上からチェック開始
+
+            if (Physics.Raycast(rayStart, Vector3.down, out RaycastHit groundHit, rayLength, groundLayer))
             {
                 float minAllowedY = groundHit.point.y + groundYOffset;
                 if (initialPosition.y < minAllowedY)
@@ -259,9 +263,23 @@ public class TPSCameraController : MonoBehaviour
     private Vector3 CheckCeilingYConstraint(Vector3 pos)
     {
         if (ceilingLayer == 0) return pos;
-        if (Physics.Raycast(target.position + Vector3.up * (height * 2f), Vector3.down, out RaycastHit hit, 50f, ceilingLayer))
+
+        // ターゲットの頭上からカメラ位置に向かって天井がないかチェック
+        Vector3 checkStart = target.position + Vector3.up * height;
+        float distToCam = Vector3.Distance(checkStart, pos);
+        Vector3 dirToCam = (pos - checkStart).normalized;
+
+        // 天井レイヤーに対して球体判定
+        if (Physics.SphereCast(checkStart, cameraRadius, dirToCam, out RaycastHit hit, distToCam, ceilingLayer))
         {
-            pos.y = Mathf.Min(pos.y, hit.point.y - ceilingYOffset);
+            // 天井にぶつかるなら、その手前で止める
+            pos = checkStart + dirToCam * Mathf.Max(hit.distance - 0.1f, 0.2f);
+
+            // さらに絶対的な高さ制限
+            if (pos.y > hit.point.y - ceilingYOffset)
+            {
+                pos.y = hit.point.y - ceilingYOffset;
+            }
         }
         return pos;
     }

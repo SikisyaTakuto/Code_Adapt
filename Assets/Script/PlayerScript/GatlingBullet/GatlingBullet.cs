@@ -44,12 +44,39 @@ public class GatlingBullet : MonoBehaviour
         Destroy(gameObject);
     }
 
-    private void ApplyBulletDamage(Collider col)
+    private void ApplyBulletDamage(Collider hitCollider)
     {
-        // BusterControllerのApplyDamageToEnemyと同様のダメージ処理
-        // (VoxPartや敵のスクリプトをチェックしてダメージを与える)
-        if (col.TryGetComponent<VoxPart>(out var part)) part.TakeDamage(damage);
-        else if (col.TryGetComponent<VoxBodyPart>(out var body)) body.TakeDamage(damage);
-        // 他の敵スクリプト(SoldierEnemy等)も必要に応じて追加
+        GameObject target = hitCollider.gameObject;
+        bool isHit = false;
+
+        // --- 指定された敵判定ロジックの統合 ---
+        if (target.TryGetComponent<SoldierMoveEnemy>(out var s1)) { s1.TakeDamage(damage); isHit = true; }
+        else if (target.TryGetComponent<SoliderEnemy>(out var s2)) { s2.TakeDamage(damage); isHit = true; }
+        else if (target.TryGetComponent<TutorialEnemyController>(out var s3)) { s3.TakeDamage(damage); isHit = true; }
+        else if (target.TryGetComponent<ScorpionEnemy>(out var s4)) { s4.TakeDamage(damage); isHit = true; }
+        else if (target.TryGetComponent<SuicideEnemy>(out var s5)) { s5.TakeDamage(damage); isHit = true; }
+        else if (target.TryGetComponent<DroneEnemy>(out var s6)) { s6.TakeDamage(damage); isHit = true; }
+        // 本体のパーツ（胴体など）
+        else if (target.TryGetComponent<VoxBodyPart>(out var bodyPart))
+        {
+            bodyPart.TakeDamage(damage);
+            isHit = true;
+        }
+        // ボスのパーツ（アームなど）
+        else if (target.TryGetComponent<VoxPart>(out var part))
+        {
+            part.TakeDamage(damage);
+            isHit = true;
+        }
+
+        // ダメージが入った場合のみエフェクトを生成
+        if (isHit)
+        {
+            Debug.Log($"Gatling hit: {target.name} - Damage: {damage}");
+            if (hitEffect != null)
+            {
+                Instantiate(hitEffect, hitCollider.bounds.center, Quaternion.identity);
+            }
+        }
     }
 }
