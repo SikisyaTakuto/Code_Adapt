@@ -140,52 +140,72 @@ public class TPSCameraController : MonoBehaviour
 
     private void HandleTPSViewMode()
     {
-        Quaternion targetRotation;
-        float currentRotationSmoothSpeed;
+        float currentSmoothSpeed = (_lockOnTarget != null) ? lockOnRotationSpeed : smoothSpeed;
 
-        // 1. 基本回転の計算
+        // 1. 回転の計算
+        Quaternion targetRotation;
         if (_lockOnTarget != null)
         {
-            Vector3 directionToTarget = (_lookTargetPosition - transform.position).normalized;
-            targetRotation = Quaternion.LookRotation(directionToTarget);
+            Vector3 dir = (_lookTargetPosition - transform.position).normalized;
+            targetRotation = Quaternion.LookRotation(dir);
             _yaw = targetRotation.eulerAngles.y;
             _pitch = targetRotation.eulerAngles.x;
             if (_pitch > 180) _pitch -= 360;
-            currentRotationSmoothSpeed = lockOnRotationSpeed;
         }
         else
         {
             targetRotation = CalculateRotationFromInput();
-            currentRotationSmoothSpeed = smoothSpeed;
         }
+        transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * currentSmoothSpeed);
 
-        // 2. 理想的な位置を計算
-        Vector3 idealPosition = CalculateTargetPosition(targetRotation);
+        // 2. 支点の計算
+        Vector3 anchorPos = target.position + Vector3.up * height;
 
-        // 3. 天井制限
-        idealPosition = CheckCeilingYConstraint(idealPosition);
-
-        // 4. 地面・障害物衝突判定を適用して最終位置を決定
-        Vector3 finalPosition = ApplyCollisionCheck(idealPosition);
-
-        // 5. ★ 地面制限による回転（視線）の補正
-        // カメラが地面の押し上げ（groundYOffset）により、本来のピッチ計算より高い位置にいる場合、
-        // 視線が地面の下を向かないようにプレイヤー頭上を向くように回転を上書きする
-        if (finalPosition.y > idealPosition.y + 0.01f)
+        // --- 天井の先行チェック ---
+        // プレイヤーの頭上(anchorPos)から真上に天井がないか確認し、あれば支点そのものを下げる
+        // これをしないと、支点自体が天井に埋まっている場合にSphereCastが機能しません
+        if (Physics.Raycast(target.position + Vector3.up * 0.5f, Vector3.up, out RaycastHit headHit, height + ceilingYOffset, ceilingLayer))
         {
-            Vector3 lookDir = (target.position + Vector3.up * height) - finalPosition;
-            if (lookDir != Vector3.zero)
-            {
-                targetRotation = Quaternion.LookRotation(lookDir);
-                // 内部変数も更新して、急激な挙動変化を防ぐ
-                _pitch = targetRotation.eulerAngles.x;
-                if (_pitch > 180) _pitch -= 360;
-            }
+            float safeHeight = headHit.point.y - (target.position.y + ceilingYOffset);
+            anchorPos.y = target.position.y + Mathf.Max(safeHeight, 0.5f); // 支点を天井の下に押し込める
         }
 
-        // 6. 最終的な適用
-        transform.position = Vector3.Lerp(transform.position, finalPosition, Time.deltaTime * currentRotationSmoothSpeed);
-        transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * currentRotationSmoothSpeed);
+        // 3. カメラ位置の計算 (SphereCast)
+        LayerMask allObstacles = collisionLayers | groundLayer | ceilingLayer;
+        float finalDistance = distance;
+
+        // 支点からカメラの後ろ方向へSphereCast
+        if (Physics.SphereCast(anchorPos, cameraRadius, -transform.forward, out RaycastHit hit, distance, allObstacles))
+        {
+            finalDistance = Mathf.Max(hit.distance - collisionOffset, 0.1f);
+        }
+
+        Vector3 resultPosition = anchorPos - transform.forward * finalDistance;
+
+        // 4. 【最終防衛線】 真上と真下の押し返し
+        resultPosition = PushBackFromCeilingAndGround(resultPosition, anchorPos, allObstacles);
+
+        // 5. 適用
+        transform.position = Vector3.Lerp(transform.position, resultPosition, Time.deltaTime * currentSmoothSpeed * 2.0f);
+    }
+
+    private Vector3 PushBackFromCeilingAndGround(Vector3 currentPos, Vector3 anchor, LayerMask mask)
+    {
+        // --- 天井からの押し返し ---
+        // カメラの少し下から「真上」にRayを飛ばす
+        float checkDist = cameraRadius + ceilingYOffset;
+        if (Physics.Raycast(currentPos + Vector3.down * 0.1f, Vector3.up, out RaycastHit hit, checkDist, ceilingLayer | collisionLayers))
+        {
+            currentPos.y = hit.point.y - checkDist;
+        }
+
+        // --- 地面からの押し返し ---
+        if (Physics.Raycast(currentPos + Vector3.up * 0.1f, Vector3.down, out RaycastHit gHit, cameraRadius + groundYOffset, groundLayer | collisionLayers))
+        {
+            currentPos.y = gHit.point.y + (cameraRadius + groundYOffset);
+        }
+
+        return currentPos;
     }
 
     private Quaternion CalculateRotationFromInput()
