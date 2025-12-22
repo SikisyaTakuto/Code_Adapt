@@ -20,7 +20,6 @@ public class SniperEnemy : MonoBehaviour
     private bool isReloading = false;
 
     [Header("着地設定")]
-    public float initialWaitTime = 1.0f;
     public float landingSpeed = 2.0f;
     public string groundTag = "Ground";
 
@@ -28,10 +27,12 @@ public class SniperEnemy : MonoBehaviour
     public float chargeTime = 2.5f;
     public float postShotPause = 1.5f;
 
-    [Header("索敵設定")]
+    [Header("索敵・角度制限設定")]
     public float sightRange = 80f;
     public float rotationSpeed = 3f;
-    public float tooCloseDistance = 5f;
+    public float tooCloseDistance = 8f;   // 💡 少し離れた距離でキャンセル
+    public float maxUpwardAngle = 45f;   // 💡 頭上（45度以上）にいたらキャンセル
+    public float maxDownwardAngle = 30f; // 💡 足元（30度以下）にいたらキャンセル
 
     [Header("参照オブジェクト")]
     [SerializeField] private GameObject bulletPrefab;
@@ -40,12 +41,10 @@ public class SniperEnemy : MonoBehaviour
     private Transform player;
 
     [Header("ターゲット調整")]
-    public float targetHeightOffset = 1.2f; // 💡 プレイヤーの足元からどれくらい上（胸・頭）を狙うか
+    public float targetHeightOffset = 1.2f;
 
     private Animator animator;
     private Rigidbody rb;
-
-    // 💡 バグ防止用の追加フラグ
     private bool isShooting = false;
 
     void Start()
@@ -68,6 +67,8 @@ public class SniperEnemy : MonoBehaviour
     {
         if (isDead || player == null || currentState == EnemyState.Landing) return;
 
+        float distance = Vector3.Distance(transform.position, player.position);
+
         if (isReloading)
         {
             LookAtPlayer();
@@ -76,30 +77,18 @@ public class SniperEnemy : MonoBehaviour
 
         bool playerFound = CheckForPlayer();
 
-        // --- 状態遷移の整理 ---
         if (playerFound)
         {
             LookAtPlayer();
-
-            // 射撃中でなければエイム状態へ
-            if (!isShooting && currentState == EnemyState.Idle)
-            {
-                TransitionToAiming();
-            }
-
-            // エイム中のみ射撃ロジックを実行
-            if (currentState == EnemyState.Aiming)
-            {
-                AimingLogic();
-            }
+            if (!isShooting && currentState == EnemyState.Idle) TransitionToAiming();
+            if (currentState == EnemyState.Aiming) AimingLogic();
         }
         else
         {
-            // プレイヤーを見失い、かつ射撃中でなければ待機へ
-            if (!isShooting && currentState != EnemyState.Idle)
-            {
-                TransitionToIdle();
-            }
+            // 近すぎる、または角度外でも射程内なら体だけは向ける
+            if (distance <= sightRange) LookAtPlayer();
+
+            if (!isShooting && currentState != EnemyState.Idle) TransitionToIdle();
         }
 
         UpdateLaserPosition(playerFound);
@@ -109,33 +98,45 @@ public class SniperEnemy : MonoBehaviour
     {
         Vector3 dir = (player.position - transform.position).normalized;
         if (dir == Vector3.zero) return;
+
+        // 左右の回転のみ適用
         Quaternion lookRot = Quaternion.LookRotation(new Vector3(dir.x, 0, dir.z));
         transform.rotation = Quaternion.Slerp(transform.rotation, lookRot, rotationSpeed * Time.deltaTime);
     }
 
     bool CheckForPlayer()
     {
+        Vector3 dirToPlayer = (player.position - transform.position).normalized;
         float distance = Vector3.Distance(transform.position, player.position);
+
+        // 1. 距離チェック
         if (distance < tooCloseDistance || distance > sightRange) return false;
 
+        // 2. 上下の角度チェック（仰角を計算）
+        float verticalAngle = Mathf.Asin(dirToPlayer.y) * Mathf.Rad2Deg;
+        if (verticalAngle > maxUpwardAngle || verticalAngle < -maxDownwardAngle) return false;
+
+        // 3. 障害物チェック
         RaycastHit hit;
         Vector3 rayStart = transform.position + Vector3.up * 1.5f;
-        Vector3 rayDir = ((player.position + Vector3.up) - rayStart).normalized;
+        Vector3 targetPos = player.position + Vector3.up * targetHeightOffset;
+        Vector3 rayDir = (targetPos - rayStart).normalized;
+
         if (Physics.Raycast(rayStart, rayDir, out hit, sightRange))
             if (hit.collider.CompareTag("Player")) return true;
+
         return false;
     }
 
     void AimingLogic()
     {
-        // 既に射撃中なら何もしない（二重起動防止）
         if (isShooting) return;
 
         Vector3 dir = (player.position - transform.position).normalized;
-        float angle = Quaternion.Angle(transform.rotation, Quaternion.LookRotation(new Vector3(dir.x, 0, dir.z)));
+        float horizontalAngle = Quaternion.Angle(transform.rotation, Quaternion.LookRotation(new Vector3(dir.x, 0, dir.z)));
 
-        // 正面を向いたら射撃開始
-        if (angle < 5f) StartCoroutine(FlashAndShootSequence());
+        // 正面（左右5度以内）を向いたら射撃開始
+        if (horizontalAngle < 5f) StartCoroutine(FlashAndShootSequence());
     }
 
     private IEnumerator FlashAndShootSequence()
@@ -148,9 +149,23 @@ public class SniperEnemy : MonoBehaviour
         float timer = 0;
         while (timer < chargeTime)
         {
+            // 💡 リアルタイム角度・距離チェック
+            Vector3 currentDir = (player.position - transform.position).normalized;
+            float vAngle = Mathf.Asin(currentDir.y) * Mathf.Rad2Deg;
+            float dist = Vector3.Distance(transform.position, player.position);
+            float hAngle = Vector3.Angle(transform.forward, new Vector3(currentDir.x, 0, currentDir.z));
+
+            // 無理な角度や距離になったら即中断
+            if (dist < tooCloseDistance || vAngle > maxUpwardAngle || vAngle < -maxDownwardAngle || hAngle > 60f)
+            {
+                CancelShooting();
+                yield break;
+            }
+
             timer += Time.deltaTime;
             float blinkSpeed = (timer / chargeTime) > 0.7f ? 20f : 10f;
             if (laserLine) laserLine.enabled = (Mathf.FloorToInt(timer * blinkSpeed) % 2 == 0);
+
             yield return null;
         }
 
@@ -159,20 +174,19 @@ public class SniperEnemy : MonoBehaviour
 
         ShootBullet();
 
-        // 撃った後の硬直（クールタイム）
         yield return new WaitForSeconds(postShotPause);
 
         isShooting = false;
+        if (CheckForPlayer()) TransitionToAiming();
+        else TransitionToIdle();
+    }
 
-        // 💡 撃ち終わった後、まだプレイヤーが射程内にいるならAimingを維持する
-        if (CheckForPlayer())
-        {
-            TransitionToAiming();
-        }
-        else
-        {
-            TransitionToIdle();
-        }
+    void CancelShooting()
+    {
+        if (laserLine) laserLine.enabled = false;
+        isShooting = false;
+        if (animator) animator.SetBool("IsAiming", false);
+        currentState = EnemyState.Idle;
     }
 
     public void ShootBullet()
@@ -181,7 +195,11 @@ public class SniperEnemy : MonoBehaviour
         currentAmmo--;
 
         Vector3 spawnPos = muzzlePoint ? muzzlePoint.position : transform.position + transform.forward;
-        Instantiate(bulletPrefab, spawnPos, Quaternion.LookRotation((player.position - spawnPos).normalized));
+        Vector3 targetPos = player.position + Vector3.up * targetHeightOffset;
+        Vector3 targetDir = (targetPos - spawnPos).normalized;
+
+        // 💡 弾の向き修正（必要に応じてEulerを調整）
+        Instantiate(bulletPrefab, spawnPos, Quaternion.LookRotation(targetDir));
 
         if (currentAmmo <= 0) StartCoroutine(ReloadRoutine());
     }
@@ -192,9 +210,7 @@ public class SniperEnemy : MonoBehaviour
         isReloading = true;
         currentState = EnemyState.Reload;
         if (animator) animator.SetBool("IsReloading", true);
-
         yield return new WaitForSeconds(reloadTime);
-
         currentAmmo = maxAmmo;
         isReloading = false;
         if (animator) animator.SetBool("IsReloading", false);
@@ -207,21 +223,45 @@ public class SniperEnemy : MonoBehaviour
     void UpdateLaserPosition(bool playerFound)
     {
         if (laserLine == null) return;
-        // 待機中・リロード中は消す
-        if (!playerFound || currentState == EnemyState.Idle || isReloading) { laserLine.enabled = false; return; }
+        if (!playerFound || currentState == EnemyState.Idle || isReloading)
+        {
+            if (!isShooting) { laserLine.enabled = false; return; }
+        }
 
-        // 射撃シーケンス（点滅）中でなければ常時点灯
         if (!isShooting) laserLine.enabled = true;
 
-        laserLine.SetPosition(0, muzzlePoint.position);
-        laserLine.SetPosition(1, player.position + Vector3.up);
+        Vector3 startPos = muzzlePoint ? muzzlePoint.position : transform.position + Vector3.up * 1.5f;
+        Vector3 targetPos = player.position + Vector3.up * targetHeightOffset;
+
+        laserLine.SetPosition(0, startPos);
+        laserLine.SetPosition(1, targetPos);
     }
 
     // --- 着地・死亡ロジック ---
-    void TransitionToLanding() { currentState = EnemyState.Landing; Invoke("StartFalling", 1f); }
+    void TransitionToLanding()
+    {
+        currentState = EnemyState.Landing;
+        if (animator) animator.SetTrigger("StartLanding"); // 💡 AnyState用ではなくトリガーにする
+        Invoke("StartFalling", 1f);
+    }
     void StartFalling() { if (rb) { rb.isKinematic = false; rb.useGravity = false; } }
     void FixedUpdate() { if (currentState == EnemyState.Landing && rb != null) rb.velocity = Vector3.down * landingSpeed; }
-    private void OnCollisionEnter(Collision c) { if (c.gameObject.CompareTag(groundTag)) { if (rb) rb.useGravity = true; TransitionToIdle(); } }
+
+    private void OnCollisionEnter(Collision c)
+    {
+        if (currentState == EnemyState.Landing && c.gameObject.CompareTag(groundTag))
+        {
+            if (rb) rb.useGravity = true;
+            TransitionToIdle();
+        }
+    }
+
     public void TakeDamage(float d) { currentHealth -= d; if (currentHealth <= 0) Die(); }
-    void Die() { isDead = true; if (animator) animator.SetTrigger("Die"); Destroy(gameObject, 2f); }
+    void Die()
+    {
+        if (isDead) return;
+        isDead = true;
+        if (animator) animator.SetTrigger("Die");
+        Destroy(gameObject, 2f);
+    }
 }
