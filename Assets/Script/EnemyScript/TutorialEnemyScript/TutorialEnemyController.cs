@@ -1,6 +1,7 @@
 using UnityEngine;
 using System;
 using System.Collections;
+using UnityEngine.UI;
 
 public class TutorialEnemyController : MonoBehaviour
 {
@@ -14,6 +15,13 @@ public class TutorialEnemyController : MonoBehaviour
     public float maxHealth = 100f;
     private float currentHealth;
     private bool isDead = false;
+
+    // --- HPバー用の変数 (追加) ---
+    [Header("HPバー設定")]
+    public Slider healthSlider;        // Slider本体
+    public GameObject healthBarCanvas; // HPバーのCanvas
+    public Image healthBarFillImage;   // SliderのFill(中身)のImage
+    public Gradient healthGradient;    // HPに応じた色の変化設定
 
     [Header("攻撃設定")]
     public bool canShootBeam = false;
@@ -39,12 +47,18 @@ public class TutorialEnemyController : MonoBehaviour
     void Start()
     {
         currentHealth = maxHealth;
-        FindPlayer();
 
-        // ★現在の時刻に待機時間を足して、攻撃開始可能時間を設定
+        // --- HPバーの初期化 (追加) ---
+        if (healthSlider != null)
+        {
+            healthSlider.maxValue = maxHealth;
+            healthSlider.value = maxHealth;
+            UpdateHealthBarColor();
+        }
+
+        FindPlayer();
         canShootAfterTime = Time.time + startDelay;
 
-        // 出現時にUIを強調表示する演出を開始
         if (highlightUI != null)
         {
             StartCoroutine(HighlightOnSpawn());
@@ -54,6 +68,12 @@ public class TutorialEnemyController : MonoBehaviour
     void Update()
     {
         if (isDead) return;
+
+        // --- ビルボード処理: HPバーを常にカメラに向ける (追加) ---
+        if (healthBarCanvas != null && Camera.main != null)
+        {
+            healthBarCanvas.transform.rotation = Camera.main.transform.rotation;
+        }
 
         if (playerTarget == null)
         {
@@ -146,10 +166,29 @@ public class TutorialEnemyController : MonoBehaviour
         return angle <= attackAngle / 2f;
     }
 
+    // --- HPバー更新メソッド (追加) ---
+    private void UpdateHealthBarColor()
+    {
+        if (healthBarFillImage != null && healthSlider != null)
+        {
+            float healthRatio = currentHealth / maxHealth;
+            healthBarFillImage.color = healthGradient.Evaluate(healthRatio);
+        }
+    }
+
+    // --- ダメージ・死亡処理 (修正) ---
     public void TakeDamage(float damageAmount)
     {
         if (isDead) return;
         currentHealth -= damageAmount;
+
+        // HPバーの値を更新
+        if (healthSlider != null)
+        {
+            healthSlider.value = currentHealth;
+            UpdateHealthBarColor();
+        }
+
         if (currentHealth <= 0) Die();
     }
 
@@ -157,7 +196,11 @@ public class TutorialEnemyController : MonoBehaviour
     {
         if (isDead) return;
         isDead = true;
+
+        // すべてのUI（強調表示とHPバー）を非表示にする
         if (highlightUI != null) highlightUI.SetActive(false);
+        if (healthBarCanvas != null) healthBarCanvas.SetActive(false);
+
         onDeath?.Invoke();
         Destroy(gameObject);
     }

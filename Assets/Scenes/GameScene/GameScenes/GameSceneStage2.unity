@@ -2057,14 +2057,20 @@ MonoBehaviour:
     defenseMultiplier: 1
     moveSpeedMultiplier: 1
     energyRecoveryMultiplier: 1
+    attack1Name: Attack 1
+    attack2Name: Attack 2
   - name: Bustar
     defenseMultiplier: 0.8
     moveSpeedMultiplier: 0.8
     energyRecoveryMultiplier: 0.8
+    attack1Name: Attack 1
+    attack2Name: Attack 2
   - name: Speed
     defenseMultiplier: 1.4
     moveSpeedMultiplier: 1.4
     energyRecoveryMultiplier: 1.4
+    attack1Name: Attack 1
+    attack2Name: Attack 2
   currentArmorIconImage: {fileID: 1590178509}
   armorSprites:
   - {fileID: 1875917484, guid: d85e3939b710b044b98b1e16b54c531d, type: 3}
@@ -2089,7 +2095,7 @@ Transform:
   m_GameObject: {fileID: 34653007}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 1, z: 0, w: 0}
-  m_LocalPosition: {x: 24.369995, y: 0, z: 10.889999}
+  m_LocalPosition: {x: 24.369995, y: 0, z: -193.51}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -15849,7 +15855,7 @@ Transform:
   m_GameObject: {fileID: 365936063}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 1, z: 0, w: 0}
-  m_LocalPosition: {x: 28, y: 3, z: 20}
+  m_LocalPosition: {x: 28, y: 3, z: -184.4}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -15911,6 +15917,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1ac6f31ce0558ce41a81850c6bf5f32f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  objectiveSequence: []
 --- !u!4 &369130212
 Transform:
   m_ObjectHideFlags: 0
@@ -21918,12 +21925,18 @@ MonoBehaviour:
   fastFallMultiplier: 3
   attackFixedDuration: 0.8
   landStunDuration: 0.2
+  swordObject: {fileID: 0}
   meleeAttackRange: 2
   meleeDamage: 50
   beamDamage: 50
   beamAttackEnergyCost: 30
   beamMaxDistance: 100
   lockOnTargetHeightOffset: 1
+  swordComboTime: 1.5
+  beamFiringTime: 1
+  doubleGunDuration: 1.2
+  audioSource: {fileID: 0}
+  swordSwingSound: {fileID: 0}
 --- !u!114 &492959664
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -37622,7 +37635,7 @@ Transform:
   m_GameObject: {fileID: 857512256}
   serializedVersion: 2
   m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: 27.97998, y: 3.6959999, z: 18.729996}
+  m_LocalPosition: {x: 27.97998, y: 3.6959999, z: -185.67}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -40988,12 +41001,18 @@ MonoBehaviour:
   fastFallMultiplier: 3
   attackFixedDuration: 0.8
   landStunDuration: 0.2
+  swordObject: {fileID: 0}
   meleeAttackRange: 2
   meleeDamage: 50
   beamDamage: 50
   beamAttackEnergyCost: 30
   beamMaxDistance: 100
   lockOnTargetHeightOffset: 1
+  swordComboTime: 1.5
+  beamFiringTime: 1
+  doubleGunDuration: 1.2
+  audioSource: {fileID: 0}
+  swordSwingSound: {fileID: 0}
 --- !u!114 &925611553
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -43885,6 +43904,8 @@ MonoBehaviour:
   animator: {fileID: 0}
   animationTrigger: Activate
   interactKey: 102
+  audioSource: {fileID: 0}
+  leverSound: {fileID: 0}
 --- !u!1 &982972794 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1682016307699833807, guid: 324f2a5232c3ab4488fe817c9ea94b63, type: 3}
@@ -54790,6 +54811,8 @@ MonoBehaviour:
   playerStatus: {fileID: 0}
   beamPrefab: {fileID: 7068210006117006437, guid: d929e84277a2fe84bb469fb55f1cf446, type: 3}
   beamFirePoints: []
+  gatlingFirePoints: []
+  gatlingBulletPrefab: {fileID: 0}
   hitEffectPrefab: {fileID: 5487502716189772801, guid: f919715fc7c57da4d8706548cade6c75, type: 3}
   enemyLayer:
     serializedVersion: 2
@@ -54808,6 +54831,10 @@ MonoBehaviour:
   beamAttackEnergyCost: 30
   beamMaxDistance: 100
   lockOnTargetHeightOffset: 1
+  backstepForce: 20
+  gatlingFireRate: 0.05
+  gatlingBurstCount: 10
+  gatlingEnergyCostTotal: 10
 --- !u!114 &1174235248
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -60367,9 +60394,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 85797ff5d6e75f546ab3a17afd02cc14, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  objectiveSequence:
-  - {fileID: 1292693918}
-  - {fileID: 980602562}
 --- !u!114 &1292693918
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -60387,6 +60411,8 @@ MonoBehaviour:
   animator: {fileID: 1292693915}
   animationTrigger: Activate
   interactKey: 102
+  audioSource: {fileID: 0}
+  leverSound: {fileID: 0}
 --- !u!1 &1294989505
 GameObject:
   m_ObjectHideFlags: 0
@@ -68206,6 +68232,9 @@ MonoBehaviour:
   beamAttackEnergyCost: 30
   beamMaxDistance: 100
   lockOnTargetHeightOffset: 1
+  audioSource: {fileID: 0}
+  meleeSwingSound: {fileID: 0}
+  scratchAttackSound: {fileID: 0}
 --- !u!114 &1467296190
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -72310,6 +72339,9 @@ MonoBehaviour:
   beamAttackEnergyCost: 30
   beamMaxDistance: 100
   lockOnTargetHeightOffset: 1
+  audioSource: {fileID: 0}
+  meleeSwingSound: {fileID: 0}
+  scratchAttackSound: {fileID: 0}
 --- !u!114 &1548129584
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -93671,6 +93703,8 @@ MonoBehaviour:
   playerStatus: {fileID: 34653010}
   beamPrefab: {fileID: 7068210006117006437, guid: d929e84277a2fe84bb469fb55f1cf446, type: 3}
   beamFirePoints: []
+  gatlingFirePoints: []
+  gatlingBulletPrefab: {fileID: 0}
   hitEffectPrefab: {fileID: 5487502716189772801, guid: f919715fc7c57da4d8706548cade6c75, type: 3}
   enemyLayer:
     serializedVersion: 2
@@ -93689,6 +93723,10 @@ MonoBehaviour:
   beamAttackEnergyCost: 30
   beamMaxDistance: 100
   lockOnTargetHeightOffset: 1
+  backstepForce: 20
+  gatlingFireRate: 0.05
+  gatlingBurstCount: 10
+  gatlingEnergyCostTotal: 10
 --- !u!114 &1991783213
 MonoBehaviour:
   m_ObjectHideFlags: 0

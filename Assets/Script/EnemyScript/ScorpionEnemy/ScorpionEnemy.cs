@@ -11,7 +11,11 @@ public class ScorpionEnemy : MonoBehaviour
     private float currentHealth;
     private bool isDead = false;
 
-    private Slider healthBarSlider;
+    [Header("UI設定")]
+    public Slider healthSlider;        // Slider本体をアサイン
+    public GameObject healthBarCanvas; // Canvasをアサイン
+    public Image healthBarFillImage;   // SliderのFill(中身)のImageをアサイン
+    public Gradient healthGradient;    // インスペクターで色を設定
 
     // VFX設定
     [Header("エフェクト設定")]
@@ -61,9 +65,15 @@ public class ScorpionEnemy : MonoBehaviour
         agent = GetComponent<NavMeshAgent>();
         animator = GetComponent<Animator>();
 
-        // 💡 起動時にプレイヤーをTagで検索
-        FindPlayerWithTag();
+        // HPバーの初期化
+        if (healthSlider != null)
+        {
+            healthSlider.maxValue = maxHealth;
+            healthSlider.value = maxHealth;
+            UpdateHealthBarColor(); // 初期色の設定
+        }
 
+        FindPlayerWithTag();
         lastMoveTime = Time.time;
         Wander();
     }
@@ -82,13 +92,16 @@ public class ScorpionEnemy : MonoBehaviour
 
     private void Update()
     {
-        // デバッグ用: Oキーで即死
-        if (Input.GetKeyDown(KeyCode.O)) { TakeDamage(maxHealth); return; }
-
         if (isDead || Time.time < hardStopEndTime)
         {
             if (agent != null && agent.enabled) agent.isStopped = true;
             return;
+        }
+
+        // --- ビルボード処理 (HPバーを常にプレイヤーに向ける) ---
+        if (healthBarCanvas != null && Camera.main != null)
+        {
+            healthBarCanvas.transform.rotation = Camera.main.transform.rotation;
         }
 
         // 💡 ターゲットがいない場合は再検索を試みる
@@ -97,7 +110,6 @@ public class ScorpionEnemy : MonoBehaviour
             FindPlayerWithTag();
             if (playerTarget == null)
             {
-                // ターゲットが不在なら徘徊だけ行う
                 HandleWanderLogic();
                 return;
             }
@@ -141,52 +153,46 @@ public class ScorpionEnemy : MonoBehaviour
         if (needNewDestination) Wander();
     }
 
-    // --- HPバー制御 ---
-    public void SetHealthBar(Slider slider)
-    {
-        healthBarSlider = slider;
-        if (healthBarSlider != null)
-        {
-            healthBarSlider.maxValue = maxHealth;
-            healthBarSlider.value = currentHealth;
-            healthBarSlider.gameObject.SetActive(true);
-        }
-    }
-
-    public void UpdateHealthBarValue()
-    {
-        if (healthBarSlider != null) healthBarSlider.value = currentHealth;
-    }
-
-    public void ClearHealthBar()
-    {
-        if (healthBarSlider != null)
-        {
-            healthBarSlider.gameObject.SetActive(false);
-            healthBarSlider = null;
-        }
-    }
-
     // --- ダメージ・死亡処理 ---
     public void TakeDamage(float damageAmount)
     {
         if (isDead) return;
         currentHealth -= damageAmount;
-        UpdateHealthBarValue();
+
+        // Sliderと色の更新
+        if (healthSlider != null)
+        {
+            healthSlider.value = currentHealth;
+            UpdateHealthBarColor();
+        }
+
         if (currentHealth <= 0) Die();
+    }
+
+    private void UpdateHealthBarColor()
+    {
+        if (healthBarFillImage != null && healthSlider != null)
+        {
+            float healthRatio = currentHealth / maxHealth;
+            healthBarFillImage.color = healthGradient.Evaluate(healthRatio);
+        }
     }
 
     private void Die()
     {
         if (isDead) return;
         isDead = true;
+
+        // 死亡時にHPバーを隠す
+        if (healthBarCanvas != null) healthBarCanvas.SetActive(false);
+
         if (animator != null) animator.SetBool("Dead", true);
         if (agent != null && agent.enabled)
         {
             agent.isStopped = true;
             agent.enabled = false;
         }
-        ClearHealthBar();
+
         StartCoroutine(DeathSequence(deathAnimationDuration));
     }
 

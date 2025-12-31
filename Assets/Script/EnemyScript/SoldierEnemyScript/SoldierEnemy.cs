@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections; // コルーチンのために必要
+using UnityEngine.UI;
 
 public class SoliderEnemy : MonoBehaviour
 {
@@ -10,6 +11,12 @@ public class SoliderEnemy : MonoBehaviour
     public float currentHealth;
     public GameObject deathExplosionPrefab;
     private bool isDead = false;
+
+    [Header("UI Settings")]
+    public Slider healthSlider;        // Slider本体
+    public GameObject healthBarCanvas; // HPバーのCanvas
+    public Image healthBarFillImage;   // SliderのFill(中身)のImage
+    public Gradient healthGradient;    // HPに応じた色の変化設定
 
     public enum EnemyState { Landing, Idle, Aiming, Attack, Reload }
     public EnemyState currentState = EnemyState.Landing;
@@ -56,6 +63,13 @@ public class SoliderEnemy : MonoBehaviour
     {
         currentHealth = maxHealth;
         currentAmmo = maxAmmo;
+
+        if (healthSlider != null)
+        {
+            healthSlider.maxValue = maxHealth;
+            healthSlider.value = maxHealth;
+            UpdateHealthBarColor();
+        }
 
         // コンポーネント取得
         animator = GetComponent<Animator>();
@@ -115,9 +129,11 @@ public class SoliderEnemy : MonoBehaviour
 
     void Update()
     {
-        if (isDead || animator == null || isReloading) return;
+        if (healthBarCanvas != null && Camera.main != null)
+        {
+            healthBarCanvas.transform.rotation = Camera.main.transform.rotation;
+        }
 
-        // プレイヤーがいない場合、再度検索を試みる
         if (player == null)
         {
             FindTargetPlayer();
@@ -155,7 +171,12 @@ public class SoliderEnemy : MonoBehaviour
         if (isDead) return;
 
         currentHealth -= damage;
-        Debug.Log(gameObject.name + "ダメージ: " + currentHealth);
+
+        if (healthSlider != null)
+        {
+            healthSlider.value = currentHealth;
+            UpdateHealthBarColor();
+        }
 
         if (currentHealth <= 0)
         {
@@ -176,6 +197,15 @@ public class SoliderEnemy : MonoBehaviour
             if (enemyCollider != null) enemyCollider.enabled = false;
 
             Die();
+        }
+    }
+
+    private void UpdateHealthBarColor()
+    {
+        if (healthBarFillImage != null && healthSlider != null)
+        {
+            float healthRatio = currentHealth / maxHealth;
+            healthBarFillImage.color = healthGradient.Evaluate(healthRatio);
         }
     }
 

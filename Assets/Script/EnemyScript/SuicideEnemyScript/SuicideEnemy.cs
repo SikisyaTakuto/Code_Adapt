@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using UnityEngine.AI;
 using System.Collections;
+using UnityEngine.UI;
 
 public class SuicideEnemy : MonoBehaviour
 {
@@ -9,6 +10,12 @@ public class SuicideEnemy : MonoBehaviour
     [Tooltip("敵の最大HP")]
     public float maxHP = 100f;
     private float currentHP;
+
+    [Header("UI Settings")]
+    public Slider healthSlider;        // Slider本体
+    public GameObject healthBarCanvas; // HPバーのCanvas
+    public Image healthBarFillImage;   // SliderのFill(中身)のImage
+    public Gradient healthGradient;    // HPに応じた色の変化設定
 
     // 💡 Tagで自動取得するため private に変更 (Inspectorでの設定は不要になります)
     private Transform playerTarget;
@@ -55,21 +62,22 @@ public class SuicideEnemy : MonoBehaviour
     void Start()
     {
         currentHP = maxHP;
-        agent = GetComponent<NavMeshAgent>();
-        if (agent != null)
+
+        // --- HPバーの初期化 (追加) ---
+        if (healthSlider != null)
         {
-            agent.speed = moveSpeed;
+            healthSlider.maxValue = maxHP;
+            healthSlider.value = maxHP;
+            UpdateHealthBarColor();
         }
+
+        agent = GetComponent<NavMeshAgent>();
+        if (agent != null) agent.speed = moveSpeed;
 
         timer = wanderTimer;
-
-        // 💡 起動時にプレイヤーを検索
         FindPlayerTarget();
 
-        if (obstacleLayer.value == 0)
-        {
-            obstacleLayer = LayerMask.GetMask("Default");
-        }
+        if (obstacleLayer.value == 0) obstacleLayer = LayerMask.GetMask("Default");
     }
 
     /// <summary>
@@ -88,17 +96,16 @@ public class SuicideEnemy : MonoBehaviour
     {
         if (isSuiciding || agent == null || !agent.enabled) return;
 
-        // 💡 ターゲットがいない、または無効になった場合は再検索
+        // --- ビルボード処理: HPバーを常にカメラに向ける (追加) ---
+        if (healthBarCanvas != null && Camera.main != null)
+        {
+            healthBarCanvas.transform.rotation = Camera.main.transform.rotation;
+        }
+
         if (playerTarget == null)
         {
             FindPlayerTarget();
-
-            // それでも見つからなければ徘徊して終了
-            if (playerTarget == null)
-            {
-                Wander();
-                return;
-            }
+            if (playerTarget == null) { Wander(); return; }
         }
 
         float distanceToPlayer = Vector3.Distance(transform.position, playerTarget.position);
@@ -111,18 +118,11 @@ public class SuicideEnemy : MonoBehaviour
         }
         else
         {
-            // 20f以上の距離、または視界外なら徘徊
-            if (distanceToPlayer > 20f || !IsPlayerVisible())
-            {
-                Wander();
-            }
+            if (distanceToPlayer > 20f || !IsPlayerVisible()) Wander();
             else
             {
-                if (agent != null && agent.enabled)
-                {
-                    agent.isStopped = false;
-                    agent.SetDestination(playerTarget.position);
-                }
+                agent.isStopped = false;
+                agent.SetDestination(playerTarget.position);
             }
         }
     }
@@ -190,13 +190,32 @@ public class SuicideEnemy : MonoBehaviour
     {
         if (isSuiciding) return;
         currentHP -= damageAmount;
+
+        if (healthSlider != null)
+        {
+            healthSlider.value = currentHP;
+            UpdateHealthBarColor();
+        }
+
         if (currentHP <= 0) SuicideAttack();
+    }
+
+    private void UpdateHealthBarColor()
+    {
+        if (healthBarFillImage != null && healthSlider != null)
+        {
+            float healthRatio = currentHP / maxHP;
+            healthBarFillImage.color = healthGradient.Evaluate(healthRatio);
+        }
     }
 
     void SuicideAttack()
     {
         if (isSuiciding) return;
         isSuiciding = true;
+
+        // --- 自爆時にHPバーを即座に隠す (追加) ---
+        if (healthBarCanvas != null) healthBarCanvas.SetActive(false);
 
         if (agent != null)
         {

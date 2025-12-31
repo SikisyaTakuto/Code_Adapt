@@ -2,6 +2,7 @@
 using System.Collections;
 using System;
 using UnityEngine.AI;
+using UnityEngine.UI;
 
 public class SoldierMoveEnemy : MonoBehaviour
 {
@@ -11,6 +12,12 @@ public class SoldierMoveEnemy : MonoBehaviour
     public float maxHealth = 100f;
     public float currentHealth;
     public GameObject deathExplosionPrefab;
+
+    [Header("UI Settings")]
+    public Slider healthSlider;        // Slider本体
+    public GameObject healthBarCanvas; // HPバーのCanvas
+    public Image healthBarFillImage;   // SliderのFill(中身)のImage
+    public Gradient healthGradient;    // HPに応じた色の変化設定
 
     private bool isDead = false;
     private bool isJumping = false;
@@ -74,6 +81,13 @@ public class SoldierMoveEnemy : MonoBehaviour
     {
         currentHealth = maxHealth;
 
+        if (healthSlider != null)
+        {
+            healthSlider.maxValue = maxHealth;
+            healthSlider.value = maxHealth;
+            UpdateHealthBarColor();
+        }
+
         // --- コンポーネント取得 ---
         animator = GetComponent<Animator>();
         rb = GetComponent<Rigidbody>();
@@ -115,6 +129,18 @@ public class SoldierMoveEnemy : MonoBehaviour
             // デバッグログは頻出しすぎないよう注意
             Debug.LogWarning(gameObject.name + ": Playerタグが見つかりません。");
         }
+    }
+
+    void Update()
+    {
+        // --- ビルボード処理: HPバーを常にカメラに向ける (追加) ---
+        if (healthBarCanvas != null && Camera.main != null)
+        {
+            healthBarCanvas.transform.rotation = Camera.main.transform.rotation;
+        }
+
+        // 死亡時は以下のロジックをスキップ
+        if (isDead) return;
     }
 
     // ====================================================================
@@ -200,8 +226,12 @@ public class SoldierMoveEnemy : MonoBehaviour
         if (isDead) return;
 
         currentHealth -= damage;
-        Debug.Log(gameObject.name + "がダメージを受けました。残り体力: " + currentHealth);
 
+        if (healthSlider != null)
+        {
+            healthSlider.value = currentHealth;
+            UpdateHealthBarColor();
+        }
         // ダメージを受けた際にプレイヤーがいなければ即座に検索
         if (player == null) FindPlayerWithTag();
 
@@ -215,11 +245,31 @@ public class SoldierMoveEnemy : MonoBehaviour
         }
     }
 
+    private void UpdateHealthBarColor()
+    {
+        if (healthBarFillImage != null && healthSlider != null)
+        {
+            float healthRatio = currentHealth / maxHealth;
+            healthBarFillImage.color = healthGradient.Evaluate(healthRatio);
+        }
+    }
+
     void Die()
     {
         if (isDead) return;
         isDead = true;
         currentHealth = 0;
+
+        if (healthBarCanvas != null) healthBarCanvas.SetActive(false);
+
+        if (animator != null)
+        {
+            if (!animator.enabled) animator.enabled = true;
+            animator.SetBool("IsAiming", false);
+            animator.SetBool("IsRunning", false);
+            animator.SetBool("IsFloating", false);
+            animator.SetTrigger("Die");
+        }
 
         if (animator != null)
         {

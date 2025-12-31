@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 using System.Collections;
 
 public class DroneEnemy : MonoBehaviour
@@ -8,6 +9,12 @@ public class DroneEnemy : MonoBehaviour
     public float maxHealth = 100f; // 最大HP
     private float currentHealth;    // 現在のHP
     private bool isDead = false;    // 死亡フラグ
+
+    [Header("UI設定")]
+    public Slider healthSlider;        // Slider本体をアサイン
+    public GameObject healthBarCanvas; // Canvasをアサイン
+    public Image healthBarFillImage; // SliderのFill(中身)のImageをアサイン
+    public Gradient healthGradient;  // インスペクターで色を設定
 
     // 爆発エフェクトのPrefab
     [Header("エフェクト設定")]
@@ -60,33 +67,47 @@ public class DroneEnemy : MonoBehaviour
     private Vector3 currentDriftTarget;
     private bool isAttacking = false;
 
+    // --- 内部メソッド: 色を更新する ---
+    private void UpdateHealthBarColor()
+    {
+        if (healthBarFillImage != null && healthSlider != null)
+        {
+            // 現在のHPの割合(0.0 ~ 1.0)を計算
+            float healthRatio = currentHealth / maxHealth;
+            // グラデーションから対応する色を取得して適用
+            healthBarFillImage.color = healthGradient.Evaluate(healthRatio);
+        }
+    }
+
     private void Awake()
     {
         currentHealth = maxHealth;
 
+        // Sliderの初期設定
+        if (healthSlider != null)
+        {
+            healthSlider.maxValue = maxHealth;
+            healthSlider.value = maxHealth;
+        }
+
+        // 初回の色設定
+        UpdateHealthBarColor();
+
+        // --- 既存のAwake処理 ---
         droneAudioSource = GetComponent<AudioSource>();
-
-        // 🎯 修正点: TagでPlayerオブジェクトを検索し、そのTransformを設定
         GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
-        if (playerObject != null)
-        {
-            playerTarget = playerObject.transform;
-        }
-        else
-        {
-            // Player Tagを設定し忘れた場合の警告
-            Debug.LogError("Player Tagを持つオブジェクトが見つかりません。PlayerオブジェクトにTagを設定してください。", gameObject);
-        }
-
+        if (playerObject != null) playerTarget = playerObject.transform;
         SetNewDriftTarget();
     }
 
     private void Update()
     {
-        // 死亡中、硬直中、またはターゲットがなければ処理をスキップ
-        if (isDead || playerTarget == null || Time.time < hardStopEndTime)
+        if (isDead || playerTarget == null || Time.time < hardStopEndTime) return;
+
+        // HPバーを常にカメラに向ける（ビルボード）
+        if (healthBarCanvas != null)
         {
-            return;
+            healthBarCanvas.transform.rotation = Camera.main.transform.rotation;
         }
 
         // 移動前に障害物チェックと目標地点のリセット
@@ -326,13 +347,20 @@ public class DroneEnemy : MonoBehaviour
 
         currentHealth -= damageAmount;
 
+        if (healthSlider != null)
+        {
+            healthSlider.value = currentHealth;
+        }
+
+        // ダメージ時に色を更新
+        UpdateHealthBarColor();
+
         if (currentHealth <= 0)
         {
             Die();
         }
         else
         {
-            // ダメージを受けた際の硬直処理
             hardStopEndTime = Time.time + hardStopDuration;
         }
     }
@@ -343,18 +371,17 @@ public class DroneEnemy : MonoBehaviour
     private void Die()
     {
         if (isDead) return;
-
         isDead = true;
+
+        // 死亡時にHPバーを非表示にする
+        if (healthBarCanvas != null) healthBarCanvas.SetActive(false);
 
         if (explosionPrefab != null)
         {
             Instantiate(explosionPrefab, transform.position, Quaternion.identity);
         }
 
-        // コルーチンを全て停止
         StopAllCoroutines();
-
-        // 0.1秒後にドローン本体のGameObjectを削除
         Destroy(gameObject, 0.1f);
     }
 
