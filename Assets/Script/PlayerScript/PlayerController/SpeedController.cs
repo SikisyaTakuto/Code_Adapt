@@ -3,7 +3,6 @@ using UnityEngine;
 
 public class SpeedController : MonoBehaviour
 {
-    // ... (フィールド部分は変更なし)
     [Header("Dependencies")]
     private CharacterController _playerController;
     private TPSCameraController _tpsCamController;
@@ -50,8 +49,8 @@ public class SpeedController : MonoBehaviour
     public AudioClip meleeSwingSound;    // 3連撃の音
     public AudioClip scratchAttackSound; // ひっかきの音
 
-    // --- Unity Lifecycle ---
-
+    private float _debuffMoveMultiplier = 1.0f;
+    private float _debuffJumpMultiplier = 1.0f;
     void Awake() { InitializeComponents(); }
 
     void Update()
@@ -266,6 +265,8 @@ public class SpeedController : MonoBehaviour
         float currentSpeed = (Input.GetKey(KeyCode.LeftShift) && playerStatus.currentEnergy > 0.1f)
             ? _moveSpeed * dashMultiplier : _moveSpeed;
 
+        currentSpeed *= _debuffMoveMultiplier;
+
         if (currentSpeed > _moveSpeed) playerStatus.ConsumeEnergy(15.0f * Time.deltaTime);
 
         return moveDir.normalized * currentSpeed;
@@ -279,7 +280,7 @@ public class SpeedController : MonoBehaviour
         bool isFlyingUp = Input.GetKey(KeyCode.Space);
         if (canFly && isFlyingUp && playerStatus.currentEnergy > 0.1f)
         {
-            _velocity.y = verticalSpeed;
+            _velocity.y = verticalSpeed * _debuffJumpMultiplier;
             playerStatus.ConsumeEnergy(15.0f * Time.deltaTime);
         }
         else if (!isGrounded)
@@ -331,4 +332,16 @@ public class SpeedController : MonoBehaviour
         Gizmos.DrawWireSphere(previewCenter, meleeAttackRange);
     }
     public void TakeDamage(float amount) { float def = (_modesAndVisuals.CurrentArmorStats != null) ? _modesAndVisuals.CurrentArmorStats.defenseMultiplier : 1.0f; playerStatus.TakeDamage(amount, def); }
+
+    public void SetDebuff(float moveMult, float jumpMult)
+    {
+        _debuffMoveMultiplier = moveMult;
+        _debuffJumpMultiplier = jumpMult;
+    }
+
+    public void ResetDebuff()
+    {
+        _debuffMoveMultiplier = 1.0f;
+        _debuffJumpMultiplier = 1.0f;
+    }
 }

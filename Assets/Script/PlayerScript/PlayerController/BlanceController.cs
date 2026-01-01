@@ -67,12 +67,6 @@ public class BlanceController : MonoBehaviour
     public AudioSource audioSource;
     public AudioClip swordSwingSound; // 剣を振る音をアサイン
 
-    // HP, Energy, UI, 死亡フラグに関する変数は PlayerStatus へ移動したため削除
-
-    // =======================================================
-    // プライベート/キャッシュ変数
-    // =======================================================
-
     private bool _isAttacking = false;
     private bool _isStunned = false;
     private float _stunTimer = 0.0f;
@@ -83,9 +77,8 @@ public class BlanceController : MonoBehaviour
     private bool _isBoosting = false;
     private float _verticalInput = 0f;
 
-    // =======================================================
-    // Unity Lifecycle
-    // =======================================================
+    private float _debuffMoveMultiplier = 1.0f;
+    private float _debuffJumpMultiplier = 1.0f;
 
     void Awake()
     {
@@ -208,7 +201,7 @@ public class BlanceController : MonoBehaviour
 
         moveDirection.Normalize();
 
-        float currentSpeed = _moveSpeed;
+        float currentSpeed = _moveSpeed * _debuffMoveMultiplier;
 
         // ★エネルギーチェックをPlayerStatusに委譲
         bool isDashing = (Input.GetKey(KeyCode.LeftShift) || _isBoosting) && playerStatus.currentEnergy > 0.1f;
@@ -240,8 +233,11 @@ public class BlanceController : MonoBehaviour
         // ★飛行エネルギーチェックを委譲
         if (canFly && playerStatus.currentEnergy > 0.1f)
         {
-            if (isFlyingUp) { _velocity.y = verticalSpeed; hasVerticalInput = true; }
-            // else if (isFlyingDown) { _velocity.y = -verticalSpeed; hasVerticalInput = true; }
+            if (isFlyingUp)
+            {
+                _velocity.y = verticalSpeed * _debuffJumpMultiplier; // デバフを掛ける
+                hasVerticalInput = true;
+            }
         }
 
         if (hasVerticalInput) playerStatus.ConsumeEnergy(15.0f * Time.deltaTime);
@@ -455,6 +451,18 @@ public class BlanceController : MonoBehaviour
         var stats = _modesAndVisuals.CurrentArmorStats;
         float defense = (stats != null) ? stats.defenseMultiplier : 1.0f;
         playerStatus.TakeDamage(damageAmount, defense);
+    }
+    public void SetDebuff(float moveMult, float jumpMult)
+    {
+        _debuffMoveMultiplier = moveMult;
+        _debuffJumpMultiplier = jumpMult;
+    }
+
+    // デバフを解除する
+    public void ResetDebuff()
+    {
+        _debuffMoveMultiplier = 1.0f;
+        _debuffJumpMultiplier = 1.0f;
     }
 
     // =======================================================

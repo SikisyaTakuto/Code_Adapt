@@ -73,9 +73,8 @@ public class BusterController : MonoBehaviour
     private bool _isBoosting = false;
     private float _verticalInput = 0f;
 
-    // =======================================================
-    // Unity Lifecycle
-    // =======================================================
+    private float _debuffMoveMultiplier = 1.0f;
+    private float _debuffJumpMultiplier = 1.0f;
 
     void Awake()
     {
@@ -213,7 +212,7 @@ public class BusterController : MonoBehaviour
 
         moveDirection.Normalize();
 
-        float currentSpeed = _moveSpeed;
+        float currentSpeed = _moveSpeed * _debuffMoveMultiplier;
 
         // ★エネルギーチェックをPlayerStatusに委譲
         bool isDashing = (Input.GetKey(KeyCode.LeftShift) || _isBoosting) && playerStatus.currentEnergy > 0.1f;
@@ -245,8 +244,11 @@ public class BusterController : MonoBehaviour
         // ★飛行エネルギーチェックを委譲
         if (canFly && playerStatus.currentEnergy > 0.1f)
         {
-            if (isFlyingUp) { _velocity.y = verticalSpeed; hasVerticalInput = true; }
-            // else if (isFlyingDown) { _velocity.y = -verticalSpeed; hasVerticalInput = true; }
+            if (isFlyingUp)
+            {
+                _velocity.y = verticalSpeed * _debuffJumpMultiplier; // デバフ適用
+                hasVerticalInput = true;
+            }
         }
 
         if (hasVerticalInput) playerStatus.ConsumeEnergy(15.0f * Time.deltaTime);
@@ -544,5 +546,17 @@ public class BusterController : MonoBehaviour
         {
             _modesAndVisuals.ChangeArmorBySlot(1);
         }
+    }
+
+    public void SetDebuff(float moveMult, float jumpMult)
+    {
+        _debuffMoveMultiplier = moveMult;
+        _debuffJumpMultiplier = jumpMult;
+    }
+
+    public void ResetDebuff()
+    {
+        _debuffMoveMultiplier = 1.0f;
+        _debuffJumpMultiplier = 1.0f;
     }
 }
