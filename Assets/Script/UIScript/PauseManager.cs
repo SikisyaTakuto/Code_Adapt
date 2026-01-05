@@ -79,10 +79,6 @@ public class PauseManager : MonoBehaviour
             // 初期状態はポーズ解除
             ResumeGame();
         }
-        else
-        {
-            Debug.LogError("PauseManager: pauseMenuUIがInspectorに設定されていません。ポーズ機能は動作しません。");
-        }
     }
 
     // --- Update: ESCキーでのポーズ切り替え ---
@@ -198,9 +194,7 @@ public class PauseManager : MonoBehaviour
         if (BalancePanelUI != null) BalancePanelUI.SetActive(false);
         if (BusterPanelUI != null) BusterPanelUI.SetActive(false);
         if (SpeedPanelUI != null) SpeedPanelUI.SetActive(false);
-
         if (pauseMenuUI != null) pauseMenuUI.SetActive(true);
-
         if (pauseMenuCanvasGroup != null)
         {
             pauseMenuCanvasGroup.interactable = true;
@@ -228,11 +222,9 @@ public class PauseManager : MonoBehaviour
         {
             sensitivitySettingPanelUI.SetActive(true);
             sensitivitySettingPanelUI.transform.SetAsLastSibling();
-
             // 他の2階層目のパネルを閉じる
             if (soundPanelUI != null) soundPanelUI.SetActive(false);
             if (explanationPanelUI != null) explanationPanelUI.SetActive(false);
-
             // 3階層目以下のパネルもすべて閉じる
             if (operatingInstructionsPanelUI != null) operatingInstructionsPanelUI.SetActive(false);
             if (playerExplanationPanelUI != null) playerExplanationPanelUI.SetActive(false);
@@ -243,14 +235,7 @@ public class PauseManager : MonoBehaviour
             if (BalancePanelUI != null) BalancePanelUI.SetActive(false);
             if (BusterPanelUI != null) BusterPanelUI.SetActive(false);
             if (SpeedPanelUI != null) SpeedPanelUI.SetActive(false);
-
             if (pauseMenuUI != null) pauseMenuUI.SetActive(false); // メインポーズメニューを非表示
-
-            Debug.Log("SensitivitySettingPanelUI を開きました。");
-        }
-        else
-        {
-            Debug.LogError("感度設定パネルが設定されていません。");
         }
     }
 
@@ -278,10 +263,6 @@ public class PauseManager : MonoBehaviour
 
             Debug.Log("SoundPanelUI を開きました。");
         }
-        else
-        {
-            Debug.LogError("サウンドパネルが設定されていません。");
-        }
     }
 
     // Explanationパネル表示/非表示の切り替え (ボタンアクション)
@@ -305,10 +286,6 @@ public class PauseManager : MonoBehaviour
             if (pauseMenuUI != null) pauseMenuUI.SetActive(false);
 
             Debug.Log("ExplanationPanelUI を開きました。");
-        }
-        else
-        {
-            Debug.LogError("操作説明パネル (ExplanationPanelUI) が設定されていません。");
         }
     }
 
@@ -337,12 +314,6 @@ public class PauseManager : MonoBehaviour
             if (sensitivitySettingPanelUI != null) sensitivitySettingPanelUI.SetActive(false);
             if (explanationPanelUI != null) explanationPanelUI.SetActive(true); // 親は表示状態を維持
             if (pauseMenuUI != null) pauseMenuUI.SetActive(false);
-
-            Debug.Log("OperatingInstructionsPanelUI を開きました。");
-        }
-        else
-        {
-            Debug.LogError("操作手順パネル (OperatingInstructionsPanelUI) が設定されていません。");
         }
     }
 
@@ -374,12 +345,6 @@ public class PauseManager : MonoBehaviour
             if (sensitivitySettingPanelUI != null) sensitivitySettingPanelUI.SetActive(false);
             if (explanationPanelUI != null) explanationPanelUI.SetActive(true); // 親は表示状態を維持
             if (pauseMenuUI != null) pauseMenuUI.SetActive(false);
-
-            Debug.Log("PlayerExplanationPanelUI を開きました。");
-        }
-        else
-        {
-            Debug.LogError("プレイヤー説明パネル (PlayerExplanationPanelUI) が設定されていません。");
         }
     }
 
@@ -409,12 +374,6 @@ public class PauseManager : MonoBehaviour
             if (sensitivitySettingPanelUI != null) sensitivitySettingPanelUI.SetActive(false);
             if (explanationPanelUI != null) explanationPanelUI.SetActive(true); // 親は表示状態を維持
             if (pauseMenuUI != null) pauseMenuUI.SetActive(false);
-
-            Debug.Log("EnemyExplanationPanelUI を開きました。");
-        }
-        else
-        {
-            Debug.LogError("エネミー説明パネル (EnemyExplanationPanelUI) が設定されていません。");
         }
     }
 
@@ -444,12 +403,6 @@ public class PauseManager : MonoBehaviour
             if (sensitivitySettingPanelUI != null) sensitivitySettingPanelUI.SetActive(false);
             if (explanationPanelUI != null) explanationPanelUI.SetActive(true); // 親は表示状態を維持
             if (pauseMenuUI != null) pauseMenuUI.SetActive(false);
-
-            Debug.Log("ExtraPanelUI を開きました。");
-        }
-        else
-        {
-            Debug.LogError("追加情報パネル (ExtraPanelUI) が設定されていません。");
         }
     }
     /// <summary>
@@ -480,12 +433,6 @@ public class PauseManager : MonoBehaviour
             if (operatingInstructionsPanelUI != null) operatingInstructionsPanelUI.SetActive(true);
             if (explanationPanelUI != null) explanationPanelUI.SetActive(true);
             if (pauseMenuUI != null) pauseMenuUI.SetActive(false);
-
-            Debug.Log("KeyBordPanelUI を開きました。");
-        }
-        else
-        {
-            Debug.LogError("キーボードパネル (KeyBordPanelUI) が設定されていません。");
         }
     }
     /// <summary>
@@ -516,12 +463,6 @@ public class PauseManager : MonoBehaviour
             if (operatingInstructionsPanelUI != null) operatingInstructionsPanelUI.SetActive(true);
             if (explanationPanelUI != null) explanationPanelUI.SetActive(true);
             if (pauseMenuUI != null) pauseMenuUI.SetActive(false);
-
-            Debug.Log("GamePadPanelUI を開きました。");
-        }
-        else
-        {
-            Debug.LogError("ゲームパッドパネル (GamePadPanelUI) が設定されていません。");
         }
     }
     /// <summary>
@@ -551,12 +492,6 @@ public class PauseManager : MonoBehaviour
             if (sensitivitySettingPanelUI != null) sensitivitySettingPanelUI.SetActive(false);
             if (explanationPanelUI != null) explanationPanelUI.SetActive(true);
             if (pauseMenuUI != null) pauseMenuUI.SetActive(false);
-
-            Debug.Log("BalancePanelUI を開きました。");
-        }
-        else
-        {
-            Debug.LogError("バランスパネル (BalancePanelUI) が設定されていません。");
         }
     }
 
@@ -587,12 +522,6 @@ public class PauseManager : MonoBehaviour
             if (sensitivitySettingPanelUI != null) sensitivitySettingPanelUI.SetActive(false);
             if (explanationPanelUI != null) explanationPanelUI.SetActive(true);
             if (pauseMenuUI != null) pauseMenuUI.SetActive(false);
-
-            Debug.Log("BusterPanelUI を開きました。");
-        }
-        else
-        {
-            Debug.LogError("バスターパネル (BusterPanelUI) が設定されていません。");
         }
     }
 
@@ -623,12 +552,6 @@ public class PauseManager : MonoBehaviour
             if (sensitivitySettingPanelUI != null) sensitivitySettingPanelUI.SetActive(false);
             if (explanationPanelUI != null) explanationPanelUI.SetActive(true);
             if (pauseMenuUI != null) pauseMenuUI.SetActive(false);
-
-            Debug.Log("SpeedPanelUI を開きました。");
-        }
-        else
-        {
-            Debug.LogError("スピードパネル (SpeedPanelUI) が設定されていません。");
         }
     }
 
@@ -679,8 +602,6 @@ public class PauseManager : MonoBehaviour
             // ★ 修正: 2階層目の他のパネルも閉じる
             if (soundPanelUI != null) soundPanelUI.SetActive(false);
             if (sensitivitySettingPanelUI != null) sensitivitySettingPanelUI.SetActive(false);
-
-            Debug.Log("詳細パネルを閉じ、操作説明パネルに戻りました。");
         }
     }
     /// <summary>

@@ -38,6 +38,7 @@ public class SpeedController : MonoBehaviour
     private bool _isAttacking = false;
     private bool _isStunned = false;
     private float _stunTimer = 0.0f;
+    private Quaternion _originalRotation;
     private Vector3 _velocity;
     private float _moveSpeed;
     private bool _wasGrounded = false;
@@ -169,9 +170,12 @@ public class SpeedController : MonoBehaviour
 
     private void PerformAttack()
     {
+        // ★重要: 敵を向く「前」に、現在の回転（スタート時の向き）を記憶する
+        _originalRotation = transform.rotation;
+
         bool isAttack2 = (_modesAndVisuals.CurrentWeaponMode == PlayerModesAndVisuals.WeaponMode.Attack2);
 
-        // ★攻撃開始の瞬間にオートエイムターゲットを探して振り向く
+        // オートエイムで振り向く
         Vector3 targetPos = GetAutoAimTargetPosition();
         RotateTowards(targetPos);
 
@@ -187,7 +191,6 @@ public class SpeedController : MonoBehaviour
     private IEnumerator HandleSpeedMeleeRoutine()
     {
         _isAttacking = true;
-        // 動作全体の硬直時間を長めに確保
         float totalDuration = 1.5f;
         StartAttackStun();
         _stunTimer = totalDuration;
@@ -195,22 +198,19 @@ public class SpeedController : MonoBehaviour
         // 1～3連撃
         for (int i = 0; i < 3; i++)
         {
-            // ★各攻撃の直前に最新の敵位置を向く（コンボ中に敵が移動しても追いかける）
             RotateTowards(GetAutoAimTargetPosition());
-
             PlaySound(meleeSwingSound);
             ApplyMeleeSphereDamage(meleeDamage);
-            yield return new WaitForSeconds(0.25f); // 攻撃間隔
+            yield return new WaitForSeconds(0.25f);
         }
 
-        // ひっかき攻撃の直前にもう一度振り向く
         RotateTowards(GetAutoAimTargetPosition());
         yield return new WaitForSeconds(0.1f);
 
         PlaySound(scratchAttackSound);
         ApplyMeleeSphereDamage(meleeDamage * 1.5f);
 
-        // 後方に下がる（現在の正面＝敵がいる方向の真後ろへ）
+        // 後方に下がる
         float backstepTime = 0.25f;
         float timer = 0f;
         while (timer < backstepTime)
@@ -219,6 +219,9 @@ public class SpeedController : MonoBehaviour
             timer += Time.deltaTime;
             yield return null;
         }
+
+        // ★重要: 攻撃アクションが全て終了したので、最初に記憶した回転に戻す
+        transform.rotation = _originalRotation;
 
         _isAttacking = false;
     }
@@ -233,16 +236,17 @@ public class SpeedController : MonoBehaviour
         StartAttackStun();
         _stunTimer = crouchDuration;
 
-        // 溜め時間
         yield return new WaitForSeconds(0.3f);
 
-        // ★発射直前に再度ターゲットを捕捉して振り向く
         Vector3 finalTarget = GetAutoAimTargetPosition();
         RotateTowards(finalTarget);
-
         ExecuteBeamLogic(finalTarget);
 
         yield return new WaitForSeconds(crouchDuration - 0.3f);
+
+        // ★重要: 攻撃が終わったので、最初に記憶した回転に戻す
+        transform.rotation = _originalRotation;
+
         _isAttacking = false;
     }
 

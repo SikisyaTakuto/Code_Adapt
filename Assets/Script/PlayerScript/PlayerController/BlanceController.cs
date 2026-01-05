@@ -70,6 +70,7 @@ public class BlanceController : MonoBehaviour
     private bool _isAttacking = false;
     private bool _isStunned = false;
     private float _stunTimer = 0.0f;
+    private Quaternion _rotationBeforeAttack;
 
     private Vector3 _velocity;
     private float _moveSpeed;
@@ -151,6 +152,7 @@ public class BlanceController : MonoBehaviour
     // 硬直開始メソッドを拡張（時間を指定可能に）
     public void StartAttackStun(float duration)
     {
+        _rotationBeforeAttack = transform.rotation;
         _isAttacking = true;
         _isStunned = true;
         _stunTimer = duration; // 指定されたアニメーション時間に合わせる
@@ -163,6 +165,12 @@ public class BlanceController : MonoBehaviour
         _stunTimer -= Time.deltaTime;
         if (_stunTimer <= 0.0f)
         {
+            // ★追加：攻撃（硬直）が終わったら元の角度に戻す
+            if (_isAttacking)
+            {
+                transform.rotation = _rotationBeforeAttack;
+            }
+
             _isStunned = false;
             _isAttacking = false;
             if (isGrounded) _velocity.y = -0.1f;

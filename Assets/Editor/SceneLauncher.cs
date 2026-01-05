@@ -46,6 +46,12 @@ public class SceneLauncher
         OpenSceneWithSaveCheck("Assets/Scenes/GameScene/ArmorSelectScene/ArmorSelectScene 1.unity");
     }
 
+    [MenuItem("Launcher/ArmorSelectScene2", priority = 2)]
+    public static void OpenArmorSelectScene2()
+    {
+        OpenSceneWithSaveCheck("Assets/Scenes/GameScene/ArmorSelectScene/ArmorSelectScene 2.unity");
+    }
+
     [MenuItem("Launcher/GameScene1", priority = 4)]
     public static void OpenGameScene1()
     {
@@ -85,13 +91,13 @@ public class SceneLauncher
     [MenuItem("Launcher/GameOverScene1", priority = 10)]
     public static void OpenGameOverScene1()
     {
-        OpenSceneWithSaveCheck("Assets/Scenes/GameScene/GameOverScene/GameOverScene.unity");
+        OpenSceneWithSaveCheck("Assets/Scenes/GameScene/GameOverScene/GameOverScene 1.unity");
     }
 
     [MenuItem("Launcher/GameOverScene2", priority = 11)]
     public static void OpenGameOverScene2()
     {
-        OpenSceneWithSaveCheck("Assets/Scenes/GameScene/GameOverScene/GameOverScene2.unity");
+        OpenSceneWithSaveCheck("Assets/Scenes/GameScene/GameOverScene/GameOverScene 2.unity");
     }
 
     /// <summary>

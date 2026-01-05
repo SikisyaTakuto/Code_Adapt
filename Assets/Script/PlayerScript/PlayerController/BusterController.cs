@@ -66,7 +66,7 @@ public class BusterController : MonoBehaviour
     private bool _isAttacking = false;
     private bool _isStunned = false;
     private float _stunTimer = 0.0f;
-
+    private Quaternion _originalRotation; // ★追加：回転保存用
     private Vector3 _velocity;
     private float _moveSpeed;
     private bool _wasGrounded = false;
@@ -331,91 +331,84 @@ public class BusterController : MonoBehaviour
 
     private void PerformAttack()
     {
-        bool isMode2 = (_modesAndVisuals.CurrentWeaponMode == PlayerModesAndVisuals.WeaponMode.Attack2);
+        // ★1. 攻撃前の回転を保存
+        _originalRotation = transform.rotation;
 
+        bool isMode2 = (_modesAndVisuals.CurrentWeaponMode == PlayerModesAndVisuals.WeaponMode.Attack2);
         if (_busterAnim != null) _busterAnim.PlayAttackAnimation(isMode2);
 
-        // ★攻撃開始時に最適なターゲットを取得し、その方向を向く
+        // ★2. オートエイムで振り向く
         Vector3 targetPos = GetAutoAimTargetPosition();
         RotateTowards(targetPos);
 
-        switch (_modesAndVisuals.CurrentWeaponMode)
-        {
-            case PlayerModesAndVisuals.WeaponMode.Attack1:
-                HandleAttack1_LongRangeBeam(targetPos); // 引数追加
-                break;
-            case PlayerModesAndVisuals.WeaponMode.Attack2:
-                HandleAttack2_FullBurstBackstep();
-                break;
-        }
+        if (isMode2) StartCoroutine(FullBurstRoutine());
+        else StartCoroutine(HandleAttack1Routine(targetPos)); // ★修正: コルーチンに変更
     }
 
-    // --- Attack1: 中遠距離ビーム ---
-    private void HandleAttack1_LongRangeBeam(Vector3 targetPos)
+    // Attack1: 中遠距離ビーム (回転を戻すためにコルーチン化)
+    private IEnumerator HandleAttack1Routine(Vector3 targetPos)
     {
-        if (!playerStatus.ConsumeEnergy(beamAttackEnergyCost)) return;
+        if (!playerStatus.ConsumeEnergy(beamAttackEnergyCost)) yield break;
 
+        _isAttacking = true;
         StartAttackStun();
-        // FireAllGunsを介さず直接特定のターゲットへ発射
+        _stunTimer = attackFixedDuration;
+
         FireSpecificGuns(true, false, targetPos, true);
+
+        // 硬直が終わるまで待つ
+        yield return new WaitForSeconds(attackFixedDuration);
+
+        // ★3. 回転を元に戻す
+        transform.rotation = _originalRotation;
+        _isAttacking = false;
     }
 
-    // --- Attack2: 近中距離 全弾発射 & バックステップ (全部) ---
-    private void HandleAttack2_FullBurstBackstep()
-    {
-        StartCoroutine(FullBurstRoutine());
-    }
-
-    // --- Attack2: 近中距離 全弾発射 & バックステップ ---
+    // Attack2: 全弾発射 & バックステップ
     private IEnumerator FullBurstRoutine()
     {
-        // --- 攻撃開始: 硬直フラグを立てる ---
         _isAttacking = true;
         _isStunned = true;
 
-        // ★追加：攻撃開始の瞬間に最適なターゲットを索敵し、向き直る
         Vector3 initialTargetPos = GetAutoAimTargetPosition();
         RotateTowards(initialTargetPos);
 
-        // 1. バックステップ (向いた方向の真後ろへ)
+        // バックステップ移動
         Vector3 backDir = -transform.forward;
         _velocity = backDir * backstepForce + Vector3.up * 2f;
+        _stunTimer = 5.0f; // ループ内で更新されるので長めに設定
 
-        // 攻撃アニメーションに合わせてスタンの残り時間を長めに設定
-        _stunTimer = 5.0f;
-
-        // 2. 【第一波】ビーム発射
+        // 第一波：ビーム
         if (playerStatus.ConsumeEnergy(beamAttackEnergyCost))
         {
-            // 索敵したターゲット、または正面に向けて発射
             FireSpecificGuns(true, false, initialTargetPos, true);
         }
 
-        // ビームとガトリングの間のディレイ
         yield return new WaitForSeconds(1.0f);
 
-        // 3. 【第二波】ガトリング連射
+        // 第二波：ガトリング
         if (playerStatus.ConsumeEnergy(gatlingEnergyCostTotal))
         {
             for (int i = 0; i < gatlingBurstCount; i++)
             {
-                // 連射中も硬直を維持
                 _isStunned = true;
                 _stunTimer = 1.0f;
 
-                // ★追加：連射中もターゲットを追尾し続ける
+                // 連射中も敵を追尾
                 Vector3 currentTargetPos = GetAutoAimTargetPosition();
                 RotateTowards(currentTargetPos);
 
-                // 発射 (isLockedOnフラグをtrueにすることで、FireProjectile内で方向計算が行われる)
                 FireSpecificGuns(false, true, currentTargetPos, true);
-
                 yield return new WaitForSeconds(gatlingFireRate);
             }
         }
 
-        // --- 攻撃終了: 硬直を短くして操作権を戻す準備 ---
-        _stunTimer = 0.6f;
+        // 最後の余韻待機
+        yield return new WaitForSeconds(0.6f);
+
+        // ★4. 回転を元に戻す
+        transform.rotation = _originalRotation;
+        _isAttacking = false;
     }
 
     // 特定の武器種だけを撃つヘルパー
