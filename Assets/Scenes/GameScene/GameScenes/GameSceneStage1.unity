@@ -4501,6 +4501,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1397998402}
     m_Modifications:
+    - target: {fileID: 92580002570930376, guid: b63958f8f5904214fa2fbc07c1ae8bdc, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 92580002570930376, guid: b63958f8f5904214fa2fbc07c1ae8bdc, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 7076821029527468266, guid: b63958f8f5904214fa2fbc07c1ae8bdc, type: 3}
       propertyPath: playerTarget
       value: 
@@ -24820,6 +24828,14 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6393984902649195348, guid: 908d8803012b8a445811dc414b3cbf58, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6393984902649195348, guid: 908d8803012b8a445811dc414b3cbf58, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 9167448086418809347, guid: 908d8803012b8a445811dc414b3cbf58, type: 3}
       propertyPath: m_Name
       value: SoldierMoveEnemy
@@ -31258,6 +31274,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1397998402}
     m_Modifications:
+    - target: {fileID: 92580002570930376, guid: b63958f8f5904214fa2fbc07c1ae8bdc, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 92580002570930376, guid: b63958f8f5904214fa2fbc07c1ae8bdc, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 7076821029527468266, guid: b63958f8f5904214fa2fbc07c1ae8bdc, type: 3}
       propertyPath: playerTarget
       value: 
@@ -38830,6 +38854,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: SuicideEnemy
       objectReference: {fileID: 0}
+    - target: {fileID: 5159437046404602289, guid: 05171e106c1785544adfee81ca25c0b0, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5159437046404602289, guid: 05171e106c1785544adfee81ca25c0b0, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6033489292474488621, guid: 05171e106c1785544adfee81ca25c0b0, type: 3}
       propertyPath: m_LocalPosition.x
       value: -34.289993
@@ -39785,7 +39817,6 @@ GameObject:
   - component: {fileID: 811817463}
   - component: {fileID: 811817462}
   - component: {fileID: 811817461}
-  - component: {fileID: 811817460}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -39844,96 +39875,6 @@ Camera:
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
   m_StereoSeparation: 0.022
---- !u!114 &811817460
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 811817458}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 62899f850307741f2a39c98a8b639597, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_Actions: {fileID: -944628639613478452, guid: 0fb0a0ad7f9a76742a2c4e78b51b5ab9, type: 3}
-  m_NotificationBehavior: 0
-  m_UIInputModule: {fileID: 488354289}
-  m_DeviceLostEvent:
-    m_PersistentCalls:
-      m_Calls: []
-  m_DeviceRegainedEvent:
-    m_PersistentCalls:
-      m_Calls: []
-  m_ControlsChangedEvent:
-    m_PersistentCalls:
-      m_Calls: []
-  m_ActionEvents:
-  - m_PersistentCalls:
-      m_Calls: []
-    m_ActionId: 61c22b56-dd49-4c3b-80c5-7c1b918e2cc6
-    m_ActionName: 'ControllerInput/Move[/XInputControllerWindows/rightStick]'
-  - m_PersistentCalls:
-      m_Calls: []
-    m_ActionId: 740535ee-49d8-4505-8ba3-30bee69f30cd
-    m_ActionName: 'ControllerInput/Look[/XInputControllerWindows/rightStick]'
-  - m_PersistentCalls:
-      m_Calls: []
-    m_ActionId: a756b65f-244f-4d47-a40e-7af5e5044054
-    m_ActionName: 'ControllerInput/AButton[/XInputControllerWindows/buttonSouth]'
-  - m_PersistentCalls:
-      m_Calls: []
-    m_ActionId: 317d14c3-0d82-4ca3-98e7-f2c60bf7b977
-    m_ActionName: 'ControllerInput/BButton[/XInputControllerWindows/buttonEast]'
-  - m_PersistentCalls:
-      m_Calls: []
-    m_ActionId: 127306d2-163c-49df-84c2-7142447730f7
-    m_ActionName: 'ControllerInput/XButton[/XInputControllerWindows/buttonWest]'
-  - m_PersistentCalls:
-      m_Calls: []
-    m_ActionId: 2493510b-8c01-408e-a9a4-e0a87cb2f049
-    m_ActionName: 'ControllerInput/YButton[/XInputControllerWindows/buttonNorth]'
-  - m_PersistentCalls:
-      m_Calls: []
-    m_ActionId: 1ee3f779-bddd-44be-b81a-57464724c837
-    m_ActionName: 'ControllerInput/LeftShoulder[/XInputControllerWindows/leftShoulder]'
-  - m_PersistentCalls:
-      m_Calls: []
-    m_ActionId: d307fe7d-5006-44f2-a374-ef8921837075
-    m_ActionName: 'ControllerInput/RightShoulder[/XInputControllerWindows/rightShoulder]'
-  - m_PersistentCalls:
-      m_Calls: []
-    m_ActionId: 4b244c86-cb4a-4173-94ad-546c2e536a49
-    m_ActionName: 'ControllerInput/LeftTrigger[/XInputControllerWindows/leftTrigger]'
-  - m_PersistentCalls:
-      m_Calls: []
-    m_ActionId: 04de5f33-c288-42ad-a19d-19a55b11d854
-    m_ActionName: 'ControllerInput/RightTrigger[/XInputControllerWindows/rightTrigger]'
-  - m_PersistentCalls:
-      m_Calls: []
-    m_ActionId: 6a39d090-8fc2-45b0-9f1c-edc4ff1a652b
-    m_ActionName: 'ControllerInput/DPad[/XInputControllerWindows/dpad]'
-  - m_PersistentCalls:
-      m_Calls: []
-    m_ActionId: 4379f9d1-1381-4ff8-9dc6-cda9d11cff65
-    m_ActionName: 'ControllerInput/StartButton[/XInputControllerWindows/start]'
-  - m_PersistentCalls:
-      m_Calls: []
-    m_ActionId: e0abc174-fbfe-4925-84ab-1b833605384b
-    m_ActionName: 'ControllerInput/SelectButton[/XInputControllerWindows/select]'
-  - m_PersistentCalls:
-      m_Calls: []
-    m_ActionId: 279e8e3b-4172-481e-ab3e-a8c5f357ddc7
-    m_ActionName: 'ControllerInput/LeftStickPress[/XInputControllerWindows/leftStickPress]'
-  - m_PersistentCalls:
-      m_Calls: []
-    m_ActionId: b9ed1ddc-94f8-4ff6-93ba-d8d6e06f2e50
-    m_ActionName: 'ControllerInput/RightStickPress[/XInputControllerWindows/rightStickPress]'
-  m_NeverAutoSwitchControlSchemes: 0
-  m_DefaultControlScheme: 
-  m_DefaultActionMap: ControllerInput
-  m_SplitScreenIndex: -1
-  m_Camera: {fileID: 811817459}
 --- !u!114 &811817461
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -39947,20 +39888,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   target: {fileID: 1683709386}
-  distance: 10
+  distance: 5
   height: 2
   initialMouseRotationSpeed: 3
   initialControllerRotationSpeed: 500
   smoothSpeed: 10
-  pitchMinMax: {x: -45, y: 30}
-  lockOnRotationSpeed: 25
-  maxLockOnRange: 50
+  pitchMinMax: {x: -40, y: 85}
+  lockOnRotationSpeed: 50
+  maxLockOnRange: 30
   maxLockOnKeepRange: 40
   enemyLayer:
     serializedVersion: 2
     m_Bits: 512
   lockOnAngleLimit: 60
-  lockOnDuration: 5
+  lockOnDuration: 3
   _changeDuration: 0.3
   collisionLayers:
     serializedVersion: 2
@@ -39972,9 +39913,9 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 8
   groundYOffset: 0.5
-  collisionOffset: 0.05
+  collisionOffset: 0.2
   cameraRadius: 0.3
-  ceilingYOffset: 1.2
+  ceilingYOffset: 0.5
   lockOnUIRect: {fileID: 1445689439}
 --- !u!114 &811817462
 MonoBehaviour:
@@ -47719,6 +47660,14 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6393984902649195348, guid: 908d8803012b8a445811dc414b3cbf58, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6393984902649195348, guid: 908d8803012b8a445811dc414b3cbf58, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 9167448086418809347, guid: 908d8803012b8a445811dc414b3cbf58, type: 3}
       propertyPath: m_Name
       value: SoldierMoveEnemy
@@ -50937,6 +50886,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1397998402}
     m_Modifications:
+    - target: {fileID: 11082467589059004, guid: fa94614ae55745245871094756dbaf2a, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 11082467589059004, guid: fa94614ae55745245871094756dbaf2a, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 1038785016903548173, guid: fa94614ae55745245871094756dbaf2a, type: 3}
       propertyPath: m_Name
       value: DroneEnemy
@@ -52362,6 +52319,14 @@ PrefabInstance:
     - target: {fileID: 3661450644770765272, guid: 05171e106c1785544adfee81ca25c0b0, type: 3}
       propertyPath: m_Name
       value: SuicideEnemy
+      objectReference: {fileID: 0}
+    - target: {fileID: 5159437046404602289, guid: 05171e106c1785544adfee81ca25c0b0, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5159437046404602289, guid: 05171e106c1785544adfee81ca25c0b0, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6033489292474488621, guid: 05171e106c1785544adfee81ca25c0b0, type: 3}
       propertyPath: m_LocalPosition.x
@@ -99285,6 +99250,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: SuicideEnemy
       objectReference: {fileID: 0}
+    - target: {fileID: 5159437046404602289, guid: 05171e106c1785544adfee81ca25c0b0, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5159437046404602289, guid: 05171e106c1785544adfee81ca25c0b0, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6033489292474488621, guid: 05171e106c1785544adfee81ca25c0b0, type: 3}
       propertyPath: m_LocalPosition.x
       value: -101.2
@@ -105826,7 +105799,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &2114536184
 RectTransform:
   m_ObjectHideFlags: 0

@@ -287,22 +287,62 @@ public class BusterController : MonoBehaviour
         if (Input.GetMouseButtonDown(0)) PerformAttack();
     }
 
-    private void PerformAttack()
-    {
-        // 現在のモードを判定
-        bool isMode2 = (_modesAndVisuals.CurrentWeaponMode == PlayerModesAndVisuals.WeaponMode.Attack2);
+    // =======================================================
+    // 索敵・エイム支援ロジック (追加)
+    // =======================================================
 
-        // アニメーション再生を指示（これで同期が完璧になります）
-        if (_busterAnim != null)
+    private Vector3 GetAutoAimTargetPosition()
+    {
+        // 1. ロックオン中ならその座標
+        if (_tpsCamController != null && _tpsCamController.LockOnTarget != null)
         {
-            _busterAnim.PlayAttackAnimation(isMode2);
+            return GetLockOnTargetPosition(_tpsCamController.LockOnTarget, true);
         }
 
-        // 実際の攻撃ロジック
+        // 2. 非ロックオン時：カメラ中央付近の敵を探す
+        if (Camera.main != null)
+        {
+            Vector3 origin = Camera.main.transform.position;
+            Vector3 forward = Camera.main.transform.forward;
+            Collider[] hits = Physics.OverlapSphere(transform.position, beamMaxDistance, enemyLayer);
+
+            float minAngle = 30f; // 30度以内なら吸い付く
+            Transform best = null;
+
+            foreach (var col in hits)
+            {
+                Vector3 dir = (col.bounds.center - origin).normalized;
+                float angle = Vector3.Angle(forward, dir);
+                if (angle < minAngle)
+                {
+                    minAngle = angle;
+                    best = col.transform;
+                }
+            }
+
+            if (best != null) return GetLockOnTargetPosition(best, true);
+
+            // 敵がいない場合はカメラの100m先
+            return origin + forward * beamMaxDistance;
+        }
+
+        return transform.position + transform.forward * beamMaxDistance;
+    }
+
+    private void PerformAttack()
+    {
+        bool isMode2 = (_modesAndVisuals.CurrentWeaponMode == PlayerModesAndVisuals.WeaponMode.Attack2);
+
+        if (_busterAnim != null) _busterAnim.PlayAttackAnimation(isMode2);
+
+        // ★攻撃開始時に最適なターゲットを取得し、その方向を向く
+        Vector3 targetPos = GetAutoAimTargetPosition();
+        RotateTowards(targetPos);
+
         switch (_modesAndVisuals.CurrentWeaponMode)
         {
             case PlayerModesAndVisuals.WeaponMode.Attack1:
-                HandleAttack1_LongRangeBeam();
+                HandleAttack1_LongRangeBeam(targetPos); // 引数追加
                 break;
             case PlayerModesAndVisuals.WeaponMode.Attack2:
                 HandleAttack2_FullBurstBackstep();
@@ -310,13 +350,14 @@ public class BusterController : MonoBehaviour
         }
     }
 
-    // --- Attack1: 中遠距離ビーム (上2つ) ---
-    private void HandleAttack1_LongRangeBeam()
+    // --- Attack1: 中遠距離ビーム ---
+    private void HandleAttack1_LongRangeBeam(Vector3 targetPos)
     {
         if (!playerStatus.ConsumeEnergy(beamAttackEnergyCost)) return;
 
         StartAttackStun();
-        FireAllGuns(true, false); // ビームのみ
+        // FireAllGunsを介さず直接特定のターゲットへ発射
+        FireSpecificGuns(true, false, targetPos, true);
     }
 
     // --- Attack2: 近中距離 全弾発射 & バックステップ (全部) ---
@@ -325,32 +366,29 @@ public class BusterController : MonoBehaviour
         StartCoroutine(FullBurstRoutine());
     }
 
+    // --- Attack2: 近中距離 全弾発射 & バックステップ ---
     private IEnumerator FullBurstRoutine()
     {
         // --- 攻撃開始: 硬直フラグを立てる ---
         _isAttacking = true;
         _isStunned = true;
 
-        // 1. バックステップ
+        // ★追加：攻撃開始の瞬間に最適なターゲットを索敵し、向き直る
+        Vector3 initialTargetPos = GetAutoAimTargetPosition();
+        RotateTowards(initialTargetPos);
+
+        // 1. バックステップ (向いた方向の真後ろへ)
         Vector3 backDir = -transform.forward;
         _velocity = backDir * backstepForce + Vector3.up * 2f;
 
-        // 攻撃アニメーションの長さに合わせてスタンの残り時間をリセット
-        // (UpdateのHandleStunStateで勝手に解けないように長めに設定するか、手動で管理)
+        // 攻撃アニメーションに合わせてスタンの残り時間を長めに設定
         _stunTimer = 5.0f;
-
-        // 共通ターゲット情報
-        Transform lockOnTarget = _tpsCamController?.LockOnTarget;
-        bool isLockedOn = lockOnTarget != null;
-
-        Vector3 initialTargetPos = isLockedOn
-            ? GetLockOnTargetPosition(lockOnTarget, true)
-            : transform.position + transform.forward * beamMaxDistance;
 
         // 2. 【第一波】ビーム発射
         if (playerStatus.ConsumeEnergy(beamAttackEnergyCost))
         {
-            FireSpecificGuns(true, false, initialTargetPos, isLockedOn);
+            // 索敵したターゲット、または正面に向けて発射
+            FireSpecificGuns(true, false, initialTargetPos, true);
         }
 
         // ビームとガトリングの間のディレイ
@@ -365,27 +403,19 @@ public class BusterController : MonoBehaviour
                 _isStunned = true;
                 _stunTimer = 1.0f;
 
-                isLockedOn = (lockOnTarget != null);
-                Vector3 currentTargetPos;
-                if (isLockedOn)
-                {
-                    currentTargetPos = GetLockOnTargetPosition(lockOnTarget, true);
-                    RotateTowards(currentTargetPos);
-                }
-                else
-                {
-                    currentTargetPos = transform.position + transform.forward * beamMaxDistance;
-                }
+                // ★追加：連射中もターゲットを追尾し続ける
+                Vector3 currentTargetPos = GetAutoAimTargetPosition();
+                RotateTowards(currentTargetPos);
 
-                FireSpecificGuns(false, true, currentTargetPos, isLockedOn);
+                // 発射 (isLockedOnフラグをtrueにすることで、FireProjectile内で方向計算が行われる)
+                FireSpecificGuns(false, true, currentTargetPos, true);
+
                 yield return new WaitForSeconds(gatlingFireRate);
             }
         }
 
-        // --- 攻撃終了: 硬直を解除 ---
-        // 少し余韻（硬直）を残すなら 0.2f 程度、すぐ動かしたいなら 0.0f
-        _stunTimer =6f;
-        // _isAttacking = false; // これは HandleStunState で _stunTimer が 0 になったら自動で false になります
+        // --- 攻撃終了: 硬直を短くして操作権を戻す準備 ---
+        _stunTimer = 0.6f;
     }
 
     // 特定の武器種だけを撃つヘルパー

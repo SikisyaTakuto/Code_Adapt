@@ -5,10 +5,7 @@ using System.Collections.Generic;
 
 public class PauseManager : MonoBehaviour
 {
-    // --- シングルトン化のための静的変数 ---
     public static PauseManager Instance;
-
-    // --- Inspectorから設定する変数 ---
     [Header("UI References")]
     [Tooltip("ポーズメニューのルートUIパネル (Menupanel) を設定してください。")]
     public GameObject pauseMenuUI;
@@ -41,7 +38,6 @@ public class PauseManager : MonoBehaviour
 
     private bool isPaused = false;
     private CanvasGroup pauseMenuCanvasGroup;
-
     private Canvas rootCanvas;
     void Awake()
     {

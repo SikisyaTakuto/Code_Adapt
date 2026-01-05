@@ -7699,6 +7699,22 @@ PrefabInstance:
       propertyPath: m_Name
       value: BGM
       objectReference: {fileID: 0}
+    - target: {fileID: 3809746535417211841, guid: a80faebb548aa854f88030f753c68488, type: 3}
+      propertyPath: bossBGM
+      value: 
+      objectReference: {fileID: 8300000, guid: c6322184221403a47a33e14f773b7f3c, type: 3}
+    - target: {fileID: 3809746535417211841, guid: a80faebb548aa854f88030f753c68488, type: 3}
+      propertyPath: clearBGM
+      value: 
+      objectReference: {fileID: 8300000, guid: b5241a59245f906459bdbde82a367f06, type: 3}
+    - target: {fileID: 3809746535417211841, guid: a80faebb548aa854f88030f753c68488, type: 3}
+      propertyPath: normalBGM
+      value: 
+      objectReference: {fileID: 8300000, guid: 1d8ffbb70dc716646abe11dba492a567, type: 3}
+    - target: {fileID: 3809746535417211841, guid: a80faebb548aa854f88030f753c68488, type: 3}
+      propertyPath: gameOverBGM
+      value: 
+      objectReference: {fileID: 8300000, guid: d4d33ad32104c9e4fb07353efc60cf8b, type: 3}
     - target: {fileID: 8887668489994246618, guid: a80faebb548aa854f88030f753c68488, type: 3}
       propertyPath: m_LocalPosition.x
       value: -4.697632
@@ -47031,7 +47047,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: OuitGame
+  m_Text: QuitGame
 --- !u!222 &2101311710
 CanvasRenderer:
   m_ObjectHideFlags: 0

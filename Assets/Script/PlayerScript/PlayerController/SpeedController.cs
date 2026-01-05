@@ -122,13 +122,62 @@ public class SpeedController : MonoBehaviour
         else _velocity.y = -0.1f;
     }
 
-    // --- 攻撃処理 (Coroutines) ---
+    // =======================================================
+    // 索敵・エイム支援ロジック (追加)
+    // =======================================================
+
+    private Vector3 GetAutoAimTargetPosition()
+    {
+        // 1. ロックオン中ならそのターゲットを返す
+        Transform lockOnTarget = _tpsCamController?.LockOnTarget;
+        if (lockOnTarget != null) return GetLockOnTargetPosition(lockOnTarget, true);
+
+        // 2. 非ロックオン時：カメラ前方の敵を検索
+        if (Camera.main != null)
+        {
+            Vector3 searchOrigin = Camera.main.transform.position;
+            Vector3 searchDir = Camera.main.transform.forward;
+
+            // プレイヤー周囲の敵を取得
+            Collider[] nearbyEnemies = Physics.OverlapSphere(transform.position, beamMaxDistance, enemyLayer);
+            float closestAngle = 35f; // オートエイムの許容角度（35度以内）
+            Transform bestTarget = null;
+
+            foreach (var col in nearbyEnemies)
+            {
+                Vector3 dirToEnemy = (col.bounds.center - searchOrigin).normalized;
+                float angle = Vector3.Angle(searchDir, dirToEnemy);
+                if (angle < closestAngle)
+                {
+                    closestAngle = angle;
+                    bestTarget = col.transform;
+                }
+            }
+
+            if (bestTarget != null) return GetLockOnTargetPosition(bestTarget, true);
+
+            // 敵がいない場合はカメラの正面座標
+            return searchOrigin + searchDir * beamMaxDistance;
+        }
+
+        return transform.position + transform.forward * beamMaxDistance;
+    }
+
+    // =======================================================
+    // 攻撃処理 (修正版)
+    // =======================================================
 
     private void PerformAttack()
     {
         bool isAttack2 = (_modesAndVisuals.CurrentWeaponMode == PlayerModesAndVisuals.WeaponMode.Attack2);
+
+        // ★攻撃開始の瞬間にオートエイムターゲットを探して振り向く
+        Vector3 targetPos = GetAutoAimTargetPosition();
+        RotateTowards(targetPos);
+
         var speedAnim = GetComponentInChildren<SpeedAnimation>(true);
-        if (speedAnim != null && speedAnim.gameObject.activeInHierarchy) speedAnim.PlayAttackAnimation(isAttack2);
+        if (speedAnim != null && speedAnim.gameObject.activeInHierarchy)
+            speedAnim.PlayAttackAnimation(isAttack2);
 
         if (isAttack2) StartCoroutine(HandleSpeedCrouchBeamRoutine());
         else StartCoroutine(HandleSpeedMeleeRoutine());
@@ -137,28 +186,31 @@ public class SpeedController : MonoBehaviour
     // Attack1: 3連撃 + ひっかき + 下がる
     private IEnumerator HandleSpeedMeleeRoutine()
     {
-        _isAttacking = true; // 強制硬直フラグON
-        float totalDuration =5f;
+        _isAttacking = true;
+        // 動作全体の硬直時間を長めに確保
+        float totalDuration = 1.5f;
         StartAttackStun();
         _stunTimer = totalDuration;
-
-        Transform lockOnTarget = _tpsCamController?.LockOnTarget;
-        if (lockOnTarget != null) RotateTowards(GetLockOnTargetPosition(lockOnTarget));
 
         // 1～3連撃
         for (int i = 0; i < 3; i++)
         {
-            PlaySound(meleeSwingSound); // 音を鳴らす
+            // ★各攻撃の直前に最新の敵位置を向く（コンボ中に敵が移動しても追いかける）
+            RotateTowards(GetAutoAimTargetPosition());
+
+            PlaySound(meleeSwingSound);
             ApplyMeleeSphereDamage(meleeDamage);
             yield return new WaitForSeconds(0.25f); // 攻撃間隔
         }
 
-        // ひっかき攻撃
+        // ひっかき攻撃の直前にもう一度振り向く
+        RotateTowards(GetAutoAimTargetPosition());
         yield return new WaitForSeconds(0.1f);
-        PlaySound(scratchAttackSound); // ひっかき音
+
+        PlaySound(scratchAttackSound);
         ApplyMeleeSphereDamage(meleeDamage * 1.5f);
 
-        // 後方に下がる（この間も硬直扱いで操作不能）
+        // 後方に下がる（現在の正面＝敵がいる方向の真後ろへ）
         float backstepTime = 0.25f;
         float timer = 0f;
         while (timer < backstepTime)
@@ -168,7 +220,7 @@ public class SpeedController : MonoBehaviour
             yield return null;
         }
 
-        _isAttacking = false; // 攻撃終了
+        _isAttacking = false;
     }
 
     // Attack2: しゃがみビーム
@@ -181,12 +233,40 @@ public class SpeedController : MonoBehaviour
         StartAttackStun();
         _stunTimer = crouchDuration;
 
+        // 溜め時間
         yield return new WaitForSeconds(0.3f);
 
-        ExecuteBeamLogic();
+        // ★発射直前に再度ターゲットを捕捉して振り向く
+        Vector3 finalTarget = GetAutoAimTargetPosition();
+        RotateTowards(finalTarget);
+
+        ExecuteBeamLogic(finalTarget);
 
         yield return new WaitForSeconds(crouchDuration - 0.3f);
         _isAttacking = false;
+    }
+
+    private void ExecuteBeamLogic(Vector3 targetPosition)
+    {
+        if (beamFirePoints == null || beamPrefab == null) return;
+
+        foreach (var firePoint in beamFirePoints)
+        {
+            if (firePoint == null) continue;
+            Vector3 origin = firePoint.position;
+
+            // すでにRotateTowardsで体は向いているが、ビームの弾道自体もターゲットへ向ける
+            Vector3 fireDirection = (targetPosition - origin).normalized;
+
+            RaycastHit hit;
+            bool didHit = Physics.Raycast(origin, fireDirection, out hit, beamMaxDistance, ~0);
+            Vector3 endPoint = didHit ? hit.point : origin + fireDirection * beamMaxDistance;
+
+            if (didHit) ApplyDamageToEnemy(hit.collider, beamDamage);
+
+            BeamController beamInstance = Instantiate(beamPrefab, origin, Quaternion.LookRotation(fireDirection));
+            beamInstance.Fire(origin, endPoint, didHit);
+        }
     }
 
     // 効果音再生用ヘルパー

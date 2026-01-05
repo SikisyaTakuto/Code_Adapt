@@ -5,6 +5,8 @@ public class VoxRoomTrigger : MonoBehaviour
     // インスペクターから操作対象の ElsController コンポーネントをアタッチ
     public VoxController boss;
 
+    private bool hasTriggered = false;
+
     private void OnTriggerEnter(Collider other)
     {
         // 接触したオブジェクトのタグが "Player" であるかを確認
@@ -19,6 +21,13 @@ public class VoxRoomTrigger : MonoBehaviour
 
             // 一度起動したら二度と起動しないように、このトリガーコンポーネントを無効化しても良い
             GetComponent<Collider>().enabled = false;
+
+
+            if (BGMManager.instance != null)
+            {
+                BGMManager.instance.PlayBossBGM();
+                hasTriggered = true; // 1回だけ実行
+            }
         }
     }
 }

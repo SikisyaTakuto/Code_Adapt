@@ -313,38 +313,33 @@ public class BlanceController : MonoBehaviour
     // パターン1: 剣の3連撃 -> 剣を消す -> ビームを出す
     private IEnumerator HandleComboAttackRoutine()
     {
-        // 1. 攻撃開始と硬直の設定
         float totalDuration = swordComboTime + beamFiringTime;
         StartAttackStun(totalDuration);
 
-        // 向きの調整
-        Transform lockOnTarget = _tpsCamController?.LockOnTarget;
-        if (lockOnTarget != null) RotateTowards(GetLockOnTargetPosition(lockOnTarget));
-
-        // ★ 2. 剣の3連撃音を再生（コルーチン内でタイミングを制御）
+        // --- 剣の攻撃フェーズ ---
         StartCoroutine(PlayMeleeSwingSounds());
 
-        // 剣の攻撃判定（判定の発生タイミングは音と合わせるのが理想ですが、一旦ここで一括判定）
-        Debug.Log("Sword Combo Start");
+        // ★追加：剣を振る際も、一番近い敵がいればそちらを向く
+        Vector3 initialTarget = FindBestAutoAimTarget();
+        RotateTowards(initialTarget);
+
         Collider[] hitColliders = Physics.OverlapSphere(transform.position, meleeAttackRange, enemyLayer);
         foreach (var hitCollider in hitColliders)
         {
             if (hitCollider.transform != this.transform) ApplyDamageToEnemy(hitCollider, meleeDamage * 3);
         }
 
-        // 3. 剣を振っている時間だけ待機
         yield return new WaitForSeconds(swordComboTime);
 
-        // 4. 剣を非表示にしてビームを撃つ
+        // --- ビーム攻撃フェーズ ---
         if (swordObject != null) swordObject.SetActive(false);
 
-        Debug.Log("Beam Attack Start");
-        FireDualBeams();
+        // ★修正：ビームを発射し、実際に狙った方向へプレイヤーを回転させる
+        Vector3 beamTarget = FireDualBeams();
+        RotateTowards(beamTarget);
 
-        // 5. ビームを撃ち終わるまで待機
         yield return new WaitForSeconds(beamFiringTime);
 
-        // 6. 剣を再表示する
         if (swordObject != null) swordObject.SetActive(true);
     }
 
@@ -373,36 +368,66 @@ public class BlanceController : MonoBehaviour
     private IEnumerator DoubleGunRoutine()
     {
         StartAttackStun(doubleGunDuration);
-
         if (swordObject != null) swordObject.SetActive(false);
 
-        Transform lockOnTarget = _tpsCamController?.LockOnTarget;
-        if (lockOnTarget != null) RotateTowards(GetLockOnTargetPosition(lockOnTarget));
-
-        FireDualBeams();
+        // ★修正：発射したビームのターゲット方向へ即座に向く
+        Vector3 beamTarget = FireDualBeams();
+        RotateTowards(beamTarget);
 
         yield return new WaitForSeconds(doubleGunDuration);
 
         if (swordObject != null) swordObject.SetActive(true);
     }
 
-    // 共通処理: 2丁の銃からビームを発射
-    private void FireDualBeams()
+    // 索敵ロジックを共通化
+    private Vector3 FindBestAutoAimTarget()
     {
-        if (beamFirePoints == null || beamFirePoints.Length == 0 || beamPrefab == null) return;
-
         Transform lockOnTarget = _tpsCamController?.LockOnTarget;
-        Vector3 targetPosition = Vector3.zero;
-        bool isLockedOn = lockOnTarget != null;
-        if (isLockedOn) targetPosition = GetLockOnTargetPosition(lockOnTarget, true);
+        if (lockOnTarget != null) return GetLockOnTargetPosition(lockOnTarget, true);
 
-        Vector3 playerForward = transform.forward;
+        if (Camera.main != null)
+        {
+            Vector3 searchOrigin = Camera.main.transform.position;
+            Collider[] nearbyEnemies = Physics.OverlapSphere(searchOrigin, beamMaxDistance, enemyLayer);
+            float closestAngle = 35f;
+            Transform bestTarget = null;
 
+            foreach (var col in nearbyEnemies)
+            {
+                Vector3 directionToEnemy = (col.bounds.center - searchOrigin).normalized;
+                float angle = Vector3.Angle(Camera.main.transform.forward, directionToEnemy);
+                if (angle < closestAngle)
+                {
+                    closestAngle = angle;
+                    bestTarget = col.transform;
+                }
+            }
+
+            if (bestTarget != null) return GetLockOnTargetPosition(bestTarget, true);
+
+            // 敵がいない場合はカメラの正面
+            Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
+            if (Physics.Raycast(ray, out RaycastHit hit, beamMaxDistance, ~0)) return hit.point;
+            return ray.origin + ray.direction * beamMaxDistance;
+        }
+        return transform.position + transform.forward * 10f;
+    }
+
+    // 共通処理: ビームを発射し、狙った座標を返す
+    private Vector3 FireDualBeams()
+    {
+        if (beamFirePoints == null || beamFirePoints.Length == 0 || beamPrefab == null)
+            return transform.position + transform.forward;
+
+        // ターゲット座標を決定
+        Vector3 targetPosition = FindBestAutoAimTarget();
+
+        // 各発射ポイントからビームを生成
         foreach (var firePoint in beamFirePoints)
         {
             if (firePoint == null) continue;
             Vector3 origin = firePoint.position;
-            Vector3 fireDirection = isLockedOn ? (targetPosition - origin).normalized : playerForward;
+            Vector3 fireDirection = (targetPosition - origin).normalized;
 
             RaycastHit hit;
             bool didHit = Physics.Raycast(origin, fireDirection, out hit, beamMaxDistance, ~0);
@@ -413,6 +438,8 @@ public class BlanceController : MonoBehaviour
             BeamController beamInstance = Instantiate(beamPrefab, origin, Quaternion.LookRotation(fireDirection));
             beamInstance.Fire(origin, endPoint, didHit);
         }
+
+        return targetPosition; // 回転に使用するために座標を返す
     }
 
     private void ApplyDamageToEnemy(Collider hitCollider, float damageAmount)
