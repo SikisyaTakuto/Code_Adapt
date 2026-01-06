@@ -27,7 +27,7 @@ public class BulletDamageHandler : MonoBehaviour
             ApplyDamageToStatus(other.gameObject); // 修正メソッドを呼び出し
             Destroy(gameObject);
         }
-        else if (other.CompareTag("Wall") || other.gameObject.layer == LayerMask.NameToLayer("Default"))
+        else if (other.CompareTag("Wall") /*|| other.gameObject.layer == LayerMask.NameToLayer("Default")*/)
         {
             isProcessed = true;
             InstantiateHitEffect();
