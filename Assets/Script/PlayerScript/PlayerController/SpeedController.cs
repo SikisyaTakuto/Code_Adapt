@@ -38,7 +38,6 @@ public class SpeedController : MonoBehaviour
     private bool _isAttacking = false;
     private bool _isStunned = false;
     private float _stunTimer = 0.0f;
-    private Quaternion _originalRotation;
     private Vector3 _velocity;
     private float _moveSpeed;
     private bool _wasGrounded = false;
@@ -129,38 +128,25 @@ public class SpeedController : MonoBehaviour
 
     private Vector3 GetAutoAimTargetPosition()
     {
-        // 1. ロックオン中ならそのターゲットを返す
+        // 1. ロックオン中ならそのターゲットを返す（プレイヤーの操作を優先）
         Transform lockOnTarget = _tpsCamController?.LockOnTarget;
         if (lockOnTarget != null) return GetLockOnTargetPosition(lockOnTarget, true);
 
-        // 2. 非ロックオン時：カメラ前方の敵を検索
+        // 2. 非ロックオン時：常にカメラの正面を狙う（自動で敵を探さない）
         if (Camera.main != null)
         {
-            Vector3 searchOrigin = Camera.main.transform.position;
-            Vector3 searchDir = Camera.main.transform.forward;
+            // カメラの中心からレイを飛ばす
+            Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
 
-            // プレイヤー周囲の敵を取得
-            Collider[] nearbyEnemies = Physics.OverlapSphere(transform.position, beamMaxDistance, enemyLayer);
-            float closestAngle = 35f; // オートエイムの許容角度（35度以内）
-            Transform bestTarget = null;
-
-            foreach (var col in nearbyEnemies)
+            // 何かに当たればその地点、何もなければ最大射程（beamMaxDistance）の地点を返す
+            if (Physics.Raycast(ray, out RaycastHit hit, beamMaxDistance, ~0))
             {
-                Vector3 dirToEnemy = (col.bounds.center - searchOrigin).normalized;
-                float angle = Vector3.Angle(searchDir, dirToEnemy);
-                if (angle < closestAngle)
-                {
-                    closestAngle = angle;
-                    bestTarget = col.transform;
-                }
+                return hit.point;
             }
-
-            if (bestTarget != null) return GetLockOnTargetPosition(bestTarget, true);
-
-            // 敵がいない場合はカメラの正面座標
-            return searchOrigin + searchDir * beamMaxDistance;
+            return ray.origin + ray.direction * beamMaxDistance;
         }
 
+        // カメラがない場合のフォールバック（自身の正面）
         return transform.position + transform.forward * beamMaxDistance;
     }
 
@@ -170,9 +156,6 @@ public class SpeedController : MonoBehaviour
 
     private void PerformAttack()
     {
-        // ★重要: 敵を向く「前」に、現在の回転（スタート時の向き）を記憶する
-        _originalRotation = transform.rotation;
-
         bool isAttack2 = (_modesAndVisuals.CurrentWeaponMode == PlayerModesAndVisuals.WeaponMode.Attack2);
 
         // オートエイムで振り向く
@@ -219,10 +202,6 @@ public class SpeedController : MonoBehaviour
             timer += Time.deltaTime;
             yield return null;
         }
-
-        // ★重要: 攻撃アクションが全て終了したので、最初に記憶した回転に戻す
-        transform.rotation = _originalRotation;
-
         _isAttacking = false;
     }
 
@@ -243,9 +222,6 @@ public class SpeedController : MonoBehaviour
         ExecuteBeamLogic(finalTarget);
 
         yield return new WaitForSeconds(crouchDuration - 0.3f);
-
-        // ★重要: 攻撃が終わったので、最初に記憶した回転に戻す
-        transform.rotation = _originalRotation;
 
         _isAttacking = false;
     }

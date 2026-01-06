@@ -70,8 +70,6 @@ public class BlanceController : MonoBehaviour
     private bool _isAttacking = false;
     private bool _isStunned = false;
     private float _stunTimer = 0.0f;
-    private Quaternion _rotationBeforeAttack;
-
     private Vector3 _velocity;
     private float _moveSpeed;
     private bool _wasGrounded = false;
@@ -86,6 +84,14 @@ public class BlanceController : MonoBehaviour
         InitializeComponents();
     }
 
+    void Start()
+    {
+        // ★初期状態では剣を非表示にする
+        if (swordObject != null)
+        {
+            swordObject.SetActive(false);
+        }
+    }
     void Update()
     {
         if (playerStatus == null || playerStatus.IsDead) return;
@@ -152,7 +158,6 @@ public class BlanceController : MonoBehaviour
     // 硬直開始メソッドを拡張（時間を指定可能に）
     public void StartAttackStun(float duration)
     {
-        _rotationBeforeAttack = transform.rotation;
         _isAttacking = true;
         _isStunned = true;
         _stunTimer = duration; // 指定されたアニメーション時間に合わせる
@@ -165,12 +170,6 @@ public class BlanceController : MonoBehaviour
         _stunTimer -= Time.deltaTime;
         if (_stunTimer <= 0.0f)
         {
-            // ★追加：攻撃（硬直）が終わったら元の角度に戻す
-            if (_isAttacking)
-            {
-                transform.rotation = _rotationBeforeAttack;
-            }
-
             _isStunned = false;
             _isAttacking = false;
             if (isGrounded) _velocity.y = -0.1f;
@@ -317,20 +316,22 @@ public class BlanceController : MonoBehaviour
                 break;
         }
     }
-
-    // パターン1: 剣の3連撃 -> 剣を消す -> ビームを出す
+    // パターン1: 剣の3連撃 + ビーム
     private IEnumerator HandleComboAttackRoutine()
     {
         float totalDuration = swordComboTime + beamFiringTime;
         StartAttackStun(totalDuration);
 
-        // --- 剣の攻撃フェーズ ---
+        // --- 1. 剣の攻撃フェーズ ---
+        // ★ ここで剣を表示させる
+        if (swordObject != null) swordObject.SetActive(true);
+
         StartCoroutine(PlayMeleeSwingSounds());
 
-        // ★追加：剣を振る際も、一番近い敵がいればそちらを向く
         Vector3 initialTarget = FindBestAutoAimTarget();
         RotateTowards(initialTarget);
 
+        // 近接ダメージ判定
         Collider[] hitColliders = Physics.OverlapSphere(transform.position, meleeAttackRange, enemyLayer);
         foreach (var hitCollider in hitColliders)
         {
@@ -339,16 +340,16 @@ public class BlanceController : MonoBehaviour
 
         yield return new WaitForSeconds(swordComboTime);
 
-        // --- ビーム攻撃フェーズ ---
         if (swordObject != null) swordObject.SetActive(false);
 
-        // ★修正：ビームを発射し、実際に狙った方向へプレイヤーを回転させる
+        // --- 2. ビーム攻撃フェーズ ---
+        // ★ ビームに切り替わるタイミングで剣を非表示にする
+        if (swordObject != null) swordObject.SetActive(false);
+
         Vector3 beamTarget = FireDualBeams();
         RotateTowards(beamTarget);
 
         yield return new WaitForSeconds(beamFiringTime);
-
-        if (swordObject != null) swordObject.SetActive(true);
     }
 
     // ★ 3連撃の音を鳴らすためのサブ・コルーチン
@@ -373,51 +374,45 @@ public class BlanceController : MonoBehaviour
         StartCoroutine(DoubleGunRoutine());
     }
 
+    // パターン2: 2丁の銃モード（ビームのみ）
     private IEnumerator DoubleGunRoutine()
     {
         StartAttackStun(doubleGunDuration);
+
+        // ★ このモードでは剣を使わないので非表示を確実にする
         if (swordObject != null) swordObject.SetActive(false);
 
-        // ★修正：発射したビームのターゲット方向へ即座に向く
         Vector3 beamTarget = FireDualBeams();
         RotateTowards(beamTarget);
 
         yield return new WaitForSeconds(doubleGunDuration);
 
-        if (swordObject != null) swordObject.SetActive(true);
+        // 終了時も非表示
+        if (swordObject != null) swordObject.SetActive(false);
     }
 
-    // 索敵ロジックを共通化
+    // 索敵ロジックを修正: 自動で敵を探す処理を削除
     private Vector3 FindBestAutoAimTarget()
     {
+        // 1. ロックオン中であれば、そのターゲットを返す（これはプレイヤーの意志による操作のため維持）
         Transform lockOnTarget = _tpsCamController?.LockOnTarget;
         if (lockOnTarget != null) return GetLockOnTargetPosition(lockOnTarget, true);
 
+        // 2. ロックオンしていない場合は、常にカメラの正面を狙う
         if (Camera.main != null)
         {
-            Vector3 searchOrigin = Camera.main.transform.position;
-            Collider[] nearbyEnemies = Physics.OverlapSphere(searchOrigin, beamMaxDistance, enemyLayer);
-            float closestAngle = 35f;
-            Transform bestTarget = null;
-
-            foreach (var col in nearbyEnemies)
-            {
-                Vector3 directionToEnemy = (col.bounds.center - searchOrigin).normalized;
-                float angle = Vector3.Angle(Camera.main.transform.forward, directionToEnemy);
-                if (angle < closestAngle)
-                {
-                    closestAngle = angle;
-                    bestTarget = col.transform;
-                }
-            }
-
-            if (bestTarget != null) return GetLockOnTargetPosition(bestTarget, true);
-
-            // 敵がいない場合はカメラの正面
+            // カメラの中心からレイを飛ばす
             Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
-            if (Physics.Raycast(ray, out RaycastHit hit, beamMaxDistance, ~0)) return hit.point;
+
+            // 何かに当たればその地点、何もなければ最大射程の地点を返す
+            if (Physics.Raycast(ray, out RaycastHit hit, beamMaxDistance, ~0))
+            {
+                return hit.point;
+            }
             return ray.origin + ray.direction * beamMaxDistance;
         }
+
+        // カメラがない場合のフォールバック（自身の正面）
         return transform.position + transform.forward * 10f;
     }
 

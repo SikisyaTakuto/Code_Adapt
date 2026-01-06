@@ -66,7 +66,6 @@ public class BusterController : MonoBehaviour
     private bool _isAttacking = false;
     private bool _isStunned = false;
     private float _stunTimer = 0.0f;
-    private Quaternion _originalRotation; // ★追加：回転保存用
     private Vector3 _velocity;
     private float _moveSpeed;
     private bool _wasGrounded = false;
@@ -293,47 +292,32 @@ public class BusterController : MonoBehaviour
 
     private Vector3 GetAutoAimTargetPosition()
     {
-        // 1. ロックオン中ならその座標
+        // 1. ロックオン中ならその座標を返す（プレイヤーが意図的に狙っているため維持）
         if (_tpsCamController != null && _tpsCamController.LockOnTarget != null)
         {
             return GetLockOnTargetPosition(_tpsCamController.LockOnTarget, true);
         }
 
-        // 2. 非ロックオン時：カメラ中央付近の敵を探す
+        // 2. 非ロックオン時：カメラの中央（レティクル）の先を狙う（自動索敵を削除）
         if (Camera.main != null)
         {
-            Vector3 origin = Camera.main.transform.position;
-            Vector3 forward = Camera.main.transform.forward;
-            Collider[] hits = Physics.OverlapSphere(transform.position, beamMaxDistance, enemyLayer);
+            // カメラの中心からレイ（光線）を飛ばす
+            Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
 
-            float minAngle = 30f; // 30度以内なら吸い付く
-            Transform best = null;
-
-            foreach (var col in hits)
+            // 何か（壁や敵）に当たればその地点、何もなければ射程限界の地点を返す
+            if (Physics.Raycast(ray, out RaycastHit hit, beamMaxDistance, ~0))
             {
-                Vector3 dir = (col.bounds.center - origin).normalized;
-                float angle = Vector3.Angle(forward, dir);
-                if (angle < minAngle)
-                {
-                    minAngle = angle;
-                    best = col.transform;
-                }
+                return hit.point;
             }
-
-            if (best != null) return GetLockOnTargetPosition(best, true);
-
-            // 敵がいない場合はカメラの100m先
-            return origin + forward * beamMaxDistance;
+            return ray.origin + ray.direction * beamMaxDistance;
         }
 
+        // カメラがない場合のフォールバック
         return transform.position + transform.forward * beamMaxDistance;
     }
 
     private void PerformAttack()
     {
-        // ★1. 攻撃前の回転を保存
-        _originalRotation = transform.rotation;
-
         bool isMode2 = (_modesAndVisuals.CurrentWeaponMode == PlayerModesAndVisuals.WeaponMode.Attack2);
         if (_busterAnim != null) _busterAnim.PlayAttackAnimation(isMode2);
 
@@ -359,8 +343,6 @@ public class BusterController : MonoBehaviour
         // 硬直が終わるまで待つ
         yield return new WaitForSeconds(attackFixedDuration);
 
-        // ★3. 回転を元に戻す
-        transform.rotation = _originalRotation;
         _isAttacking = false;
     }
 
@@ -406,8 +388,6 @@ public class BusterController : MonoBehaviour
         // 最後の余韻待機
         yield return new WaitForSeconds(0.6f);
 
-        // ★4. 回転を元に戻す
-        transform.rotation = _originalRotation;
         _isAttacking = false;
     }
 
