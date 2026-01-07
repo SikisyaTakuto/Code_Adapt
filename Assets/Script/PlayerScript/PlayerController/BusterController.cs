@@ -322,12 +322,13 @@ public class BusterController : MonoBehaviour
         bool isMode2 = (_modesAndVisuals.CurrentWeaponMode == PlayerModesAndVisuals.WeaponMode.Attack2);
         if (_busterAnim != null) _busterAnim.PlayAttackAnimation(isMode2);
 
-        // ★2. オートエイムで振り向く
+        // ★1. 攻撃開始の瞬間のターゲット位置を確定
         Vector3 targetPos = GetAutoAimTargetPosition();
-        RotateTowards(targetPos);
 
-        if (isMode2) StartCoroutine(FullBurstRoutine());
-        else StartCoroutine(HandleAttack1Routine(targetPos)); // ★修正: コルーチンに変更
+        if (isMode2)
+            StartCoroutine(FullBurstRoutine());
+        else
+            StartCoroutine(HandleAttack1Routine(targetPos));
     }
 
     // --- Attack1: 中遠距離ビーム (回転保存・復帰版) ---
@@ -335,21 +336,21 @@ public class BusterController : MonoBehaviour
     {
         if (!playerStatus.ConsumeEnergy(beamAttackEnergyCost)) yield break;
 
-        // 1. 回転の保存と固定
+        // ★2. 回転の保存と開始
         _isAttacking = true;
         _rotationBeforeAttack = transform.rotation;
 
-        // ターゲットを向く
+        // ターゲットへ一度向かせる
         RotateTowards(targetPos);
         Quaternion attackRotation = transform.rotation;
 
-        StartAttackStun();
+        StartAttackStun(); // 硬直開始
         _stunTimer = attackFixedDuration;
 
-        // 発射
+        // ビーム発射
         FireSpecificGuns(true, false, targetPos, true);
 
-        // アニメーション中に勝手に回らないよう、硬直が終わるまで回転を強制
+        // ★3. 攻撃中（硬直中）、アニメーションが体を勝手に回さないよう強制固定
         float elapsed = 0;
         while (elapsed < attackFixedDuration)
         {
@@ -358,7 +359,7 @@ public class BusterController : MonoBehaviour
             yield return null;
         }
 
-        // 2. 回転を元に戻す
+        // ★4. 攻撃終了：元の回転に戻す
         transform.rotation = _rotationBeforeAttack;
         _isAttacking = false;
     }
@@ -366,21 +367,19 @@ public class BusterController : MonoBehaviour
     // Attack2: 全弾発射 & バックステップ
     private IEnumerator FullBurstRoutine()
     {
-        // 1. 回転の保存
+        // ★2. 回転の保存
         _isAttacking = true;
         _isStunned = true;
         _rotationBeforeAttack = transform.rotation;
 
         Vector3 initialTargetPos = GetAutoAimTargetPosition();
         RotateTowards(initialTargetPos);
-
-        // 攻撃中の基本方位を確定
         Quaternion attackRotation = transform.rotation;
 
-        // バックステップ移動（物理的な移動は許容し、回転だけ固定する）
+        // バックステップ移動ベクトル（回転のみ固定し、位置は物理的に動かす）
         Vector3 backDir = -transform.forward;
         _velocity = backDir * backstepForce + Vector3.up * 2f;
-        _stunTimer = 5.0f;
+        _stunTimer = 5.0f; // ループ内で動的に制御するため大きめに設定
 
         // 第一波：ビーム
         if (playerStatus.ConsumeEnergy(beamAttackEnergyCost))
@@ -388,7 +387,7 @@ public class BusterController : MonoBehaviour
             FireSpecificGuns(true, false, initialTargetPos, true);
         }
 
-        // 待機中も回転を固定
+        // ビーム発射後の溜め時間も回転を固定
         float timer = 0;
         while (timer < 1.0f)
         {
@@ -403,18 +402,16 @@ public class BusterController : MonoBehaviour
             for (int i = 0; i < gatlingBurstCount; i++)
             {
                 _isStunned = true;
-                _stunTimer = 1.0f;
+                _stunTimer = 1.0f; // 硬直を維持
 
-                // 連射中、もし敵を追いかけたいならここを更新するが、
-                // 「真後ろを向く」のを防ぐなら attackRotation を維持
                 Vector3 currentTargetPos = GetAutoAimTargetPosition();
                 RotateTowards(currentTargetPos);
-                // 現在のターゲット方向に attackRotation を更新（これによって常に敵を追尾しつつ固定）
+                // 追従させつつも、毎フレームの強制上書き用に現在の向きを保持
                 attackRotation = transform.rotation;
 
                 FireSpecificGuns(false, true, currentTargetPos, true);
 
-                // 次の弾までの短い待機中も固定
+                // 連射の弾間隔中も強制的に固定
                 float shotInterval = 0;
                 while (shotInterval < gatlingFireRate)
                 {
@@ -425,7 +422,7 @@ public class BusterController : MonoBehaviour
             }
         }
 
-        // 最後の余韻待機（ここでも固定）
+        // 最後の余韻（フォロースルー）待機
         timer = 0;
         while (timer < 0.6f)
         {
@@ -434,9 +431,10 @@ public class BusterController : MonoBehaviour
             yield return null;
         }
 
-        // 2. 攻撃終了：元の回転に戻す
+        // ★4. 攻撃終了：元の回転に戻す
         transform.rotation = _rotationBeforeAttack;
         _isAttacking = false;
+        _stunTimer = 0.01f; // 硬直を終了させる
     }
 
     // 特定の武器種だけを撃つヘルパー

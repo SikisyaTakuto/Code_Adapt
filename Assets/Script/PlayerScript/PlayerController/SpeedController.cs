@@ -171,21 +171,25 @@ public class SpeedController : MonoBehaviour
         else StartCoroutine(HandleSpeedMeleeRoutine());
     }
 
-    // Attack1: 3連撃 + ひっかき + 下がる
+    // Attack1: 3連撃 + ひっかき + 下がる (Animator制御・回転復帰版)
     private IEnumerator HandleSpeedMeleeRoutine()
     {
-        // 1. 攻撃開始時の向きを保存
+        // 1. Animatorの取得と「攻撃前」の回転を保存
+        Animator anim = GetComponentInChildren<Animator>();
         _isAttacking = true;
         _rotationBeforeAttack = transform.rotation;
+
+        // アニメーションによって体が勝手に回転するのを防ぐため Root Motion を一時オフ
+        if (anim != null) anim.applyRootMotion = false;
 
         float totalDuration = 1.5f;
         StartAttackStun();
         _stunTimer = totalDuration;
 
-        // 1～3連撃
+        // 1～3連撃のループ
         for (int i = 0; i < 3; i++)
         {
-            // 攻撃の各ステップでターゲットを向く（追尾）
+            // 各コンボの瞬間にターゲットを向き直し、その向きをこのステップの基準にする
             Vector3 currentTarget = GetAutoAimTargetPosition();
             RotateTowards(currentTarget);
             Quaternion currentStepRotation = transform.rotation;
@@ -193,7 +197,7 @@ public class SpeedController : MonoBehaviour
             PlaySound(meleeSwingSound);
             ApplyMeleeSphereDamage(meleeDamage);
 
-            // 待機中もアニメーションによる回転を防止（固定）
+            // 振っている最中(0.25秒間)、アニメーションに回転を上書きされないよう強制固定
             float stepTimer = 0;
             while (stepTimer < 0.25f)
             {
@@ -203,7 +207,7 @@ public class SpeedController : MonoBehaviour
             }
         }
 
-        // ひっかき攻撃の前の微調整
+        // --- フィニッシュ：ひっかき攻撃 ---
         Vector3 finalTarget = GetAutoAimTargetPosition();
         RotateTowards(finalTarget);
         Quaternion scratchRotation = transform.rotation;
@@ -213,41 +217,45 @@ public class SpeedController : MonoBehaviour
         PlaySound(scratchAttackSound);
         ApplyMeleeSphereDamage(meleeDamage * 1.5f);
 
-        // 後方に下がる（移動しつつ向きは固定）
+        // 後方に下がる（向きを固定したまま移動）
         float backstepTime = 0.25f;
         float timer = 0f;
         while (timer < backstepTime)
         {
-            transform.rotation = scratchRotation; // 向きを維持
+            // ひっかきの向きを維持したままバックステップ
+            transform.rotation = scratchRotation;
             _playerController.Move(-transform.forward * 12f * Time.deltaTime);
             timer += Time.deltaTime;
             yield return null;
         }
 
-        // 2. 攻撃終了：元の回転（カメラ方向など）に復帰
+        // 2. 攻撃終了：保存しておいた「カメラ方向」の回転に戻す
         transform.rotation = _rotationBeforeAttack;
+        if (anim != null) anim.applyRootMotion = true;
         _isAttacking = false;
     }
 
-    // Attack2: しゃがみビーム
+    // Attack2: しゃがみビーム (回転保存・復帰版)
     private IEnumerator HandleSpeedCrouchBeamRoutine()
     {
         if (!playerStatus.ConsumeEnergy(beamAttackEnergyCost)) yield break;
 
-        // 1. 保存
+        Animator anim = GetComponentInChildren<Animator>();
         _isAttacking = true;
         _rotationBeforeAttack = transform.rotation;
+        if (anim != null) anim.applyRootMotion = false;
 
         float crouchDuration = 1.0f;
         StartAttackStun();
         _stunTimer = crouchDuration;
 
-        // 溜め時間中の向き固定
-        float prepTimer = 0;
+        // ターゲットを向いて回転を固定
         Vector3 targetPos = GetAutoAimTargetPosition();
         RotateTowards(targetPos);
         Quaternion attackRotation = transform.rotation;
 
+        // 発射前タメ（回転固定）
+        float prepTimer = 0;
         while (prepTimer < 0.3f)
         {
             transform.rotation = attackRotation;
@@ -255,10 +263,9 @@ public class SpeedController : MonoBehaviour
             yield return null;
         }
 
-        // 発射
         ExecuteBeamLogic(GetAutoAimTargetPosition());
 
-        // 残りの硬直時間も固定
+        // 発射後硬直（回転固定）
         float remainTimer = 0;
         while (remainTimer < (crouchDuration - 0.3f))
         {
@@ -267,8 +274,9 @@ public class SpeedController : MonoBehaviour
             yield return null;
         }
 
-        // 2. 復帰
+        // 終了：復帰
         transform.rotation = _rotationBeforeAttack;
+        if (anim != null) anim.applyRootMotion = true;
         _isAttacking = false;
     }
 
