@@ -66,6 +66,7 @@ public class BusterController : MonoBehaviour
     private bool _isAttacking = false;
     private bool _isStunned = false;
     private float _stunTimer = 0.0f;
+    private Quaternion _rotationBeforeAttack;
     private Vector3 _velocity;
     private float _moveSpeed;
     private bool _wasGrounded = false;
@@ -329,36 +330,57 @@ public class BusterController : MonoBehaviour
         else StartCoroutine(HandleAttack1Routine(targetPos)); // ★修正: コルーチンに変更
     }
 
-    // Attack1: 中遠距離ビーム (回転を戻すためにコルーチン化)
+    // --- Attack1: 中遠距離ビーム (回転保存・復帰版) ---
     private IEnumerator HandleAttack1Routine(Vector3 targetPos)
     {
         if (!playerStatus.ConsumeEnergy(beamAttackEnergyCost)) yield break;
 
+        // 1. 回転の保存と固定
         _isAttacking = true;
+        _rotationBeforeAttack = transform.rotation;
+
+        // ターゲットを向く
+        RotateTowards(targetPos);
+        Quaternion attackRotation = transform.rotation;
+
         StartAttackStun();
         _stunTimer = attackFixedDuration;
 
+        // 発射
         FireSpecificGuns(true, false, targetPos, true);
 
-        // 硬直が終わるまで待つ
-        yield return new WaitForSeconds(attackFixedDuration);
+        // アニメーション中に勝手に回らないよう、硬直が終わるまで回転を強制
+        float elapsed = 0;
+        while (elapsed < attackFixedDuration)
+        {
+            transform.rotation = attackRotation;
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
 
+        // 2. 回転を元に戻す
+        transform.rotation = _rotationBeforeAttack;
         _isAttacking = false;
     }
 
     // Attack2: 全弾発射 & バックステップ
     private IEnumerator FullBurstRoutine()
     {
+        // 1. 回転の保存
         _isAttacking = true;
         _isStunned = true;
+        _rotationBeforeAttack = transform.rotation;
 
         Vector3 initialTargetPos = GetAutoAimTargetPosition();
         RotateTowards(initialTargetPos);
 
-        // バックステップ移動
+        // 攻撃中の基本方位を確定
+        Quaternion attackRotation = transform.rotation;
+
+        // バックステップ移動（物理的な移動は許容し、回転だけ固定する）
         Vector3 backDir = -transform.forward;
         _velocity = backDir * backstepForce + Vector3.up * 2f;
-        _stunTimer = 5.0f; // ループ内で更新されるので長めに設定
+        _stunTimer = 5.0f;
 
         // 第一波：ビーム
         if (playerStatus.ConsumeEnergy(beamAttackEnergyCost))
@@ -366,9 +388,16 @@ public class BusterController : MonoBehaviour
             FireSpecificGuns(true, false, initialTargetPos, true);
         }
 
-        yield return new WaitForSeconds(1.0f);
+        // 待機中も回転を固定
+        float timer = 0;
+        while (timer < 1.0f)
+        {
+            transform.rotation = attackRotation;
+            timer += Time.deltaTime;
+            yield return null;
+        }
 
-        // 第二波：ガトリング
+        // 第二波：ガトリング連射
         if (playerStatus.ConsumeEnergy(gatlingEnergyCostTotal))
         {
             for (int i = 0; i < gatlingBurstCount; i++)
@@ -376,18 +405,37 @@ public class BusterController : MonoBehaviour
                 _isStunned = true;
                 _stunTimer = 1.0f;
 
-                // 連射中も敵を追尾
+                // 連射中、もし敵を追いかけたいならここを更新するが、
+                // 「真後ろを向く」のを防ぐなら attackRotation を維持
                 Vector3 currentTargetPos = GetAutoAimTargetPosition();
                 RotateTowards(currentTargetPos);
+                // 現在のターゲット方向に attackRotation を更新（これによって常に敵を追尾しつつ固定）
+                attackRotation = transform.rotation;
 
                 FireSpecificGuns(false, true, currentTargetPos, true);
-                yield return new WaitForSeconds(gatlingFireRate);
+
+                // 次の弾までの短い待機中も固定
+                float shotInterval = 0;
+                while (shotInterval < gatlingFireRate)
+                {
+                    transform.rotation = attackRotation;
+                    shotInterval += Time.deltaTime;
+                    yield return null;
+                }
             }
         }
 
-        // 最後の余韻待機
-        yield return new WaitForSeconds(0.6f);
+        // 最後の余韻待機（ここでも固定）
+        timer = 0;
+        while (timer < 0.6f)
+        {
+            transform.rotation = attackRotation;
+            timer += Time.deltaTime;
+            yield return null;
+        }
 
+        // 2. 攻撃終了：元の回転に戻す
+        transform.rotation = _rotationBeforeAttack;
         _isAttacking = false;
     }
 

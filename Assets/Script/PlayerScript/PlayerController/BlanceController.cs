@@ -70,6 +70,7 @@ public class BlanceController : MonoBehaviour
     private bool _isAttacking = false;
     private bool _isStunned = false;
     private float _stunTimer = 0.0f;
+    private Quaternion _rotationBeforeAttack; // 攻撃前の回転を保持
     private Vector3 _velocity;
     private float _moveSpeed;
     private bool _wasGrounded = false;
@@ -113,7 +114,7 @@ public class BlanceController : MonoBehaviour
         }
 
         // プレイヤーの回転
-        if (_tpsCamController != null)
+        if (_tpsCamController != null && !_isAttacking) // ★ !_isAttacking を追加
         {
             if (_tpsCamController.LockOnTarget == null)
                 _tpsCamController.RotatePlayerToCameraDirection();
@@ -319,37 +320,52 @@ public class BlanceController : MonoBehaviour
     // パターン1: 剣の3連撃 + ビーム
     private IEnumerator HandleComboAttackRoutine()
     {
+        // 1. 攻撃開始直前の状態を固定
+        _isAttacking = true; // Updateでの回転処理を即座にブロック
+        _rotationBeforeAttack = transform.rotation;
+
+        // 2. ターゲットを決定し、その方向へ一度だけ向かせる
+        Vector3 initialTarget = FindBestAutoAimTarget();
+        RotateTowards(initialTarget);
+
+        // 現在の「正しい攻撃方向」を保持
+        Quaternion attackRotation = transform.rotation;
+
         float totalDuration = swordComboTime + beamFiringTime;
         StartAttackStun(totalDuration);
 
         // --- 1. 剣の攻撃フェーズ ---
-        // ★ ここで剣を表示させる
         if (swordObject != null) swordObject.SetActive(true);
-
         StartCoroutine(PlayMeleeSwingSounds());
 
-        Vector3 initialTarget = FindBestAutoAimTarget();
-        RotateTowards(initialTarget);
-
-        // 近接ダメージ判定
-        Collider[] hitColliders = Physics.OverlapSphere(transform.position, meleeAttackRange, enemyLayer);
-        foreach (var hitCollider in hitColliders)
+        // 剣の攻撃中、毎フレーム回転を矯正するループ（アニメーションによる回転を防止）
+        float elapsed = 0;
+        while (elapsed < swordComboTime)
         {
-            if (hitCollider.transform != this.transform) ApplyDamageToEnemy(hitCollider, meleeDamage * 3);
+            // アニメーションが勝手に回そうとしても、強制的に attackRotation に戻す
+            transform.rotation = attackRotation;
+
+            // 近接ダメージ判定（既存ロジック）
+            Collider[] hitColliders = Physics.OverlapSphere(transform.position, meleeAttackRange, enemyLayer);
+            foreach (var hitCollider in hitColliders)
+            {
+                if (hitCollider.transform != this.transform) ApplyDamageToEnemy(hitCollider, meleeDamage * 3);
+            }
+
+            elapsed += Time.deltaTime;
+            yield return null;
         }
 
-        yield return new WaitForSeconds(swordComboTime);
+        //// --- 2. ビーム攻撃フェーズ ---
+        //if (swordObject != null) swordObject.SetActive(false);
 
-        if (swordObject != null) swordObject.SetActive(false);
+        //Vector3 beamTarget = FireDualBeams();
+        //RotateTowards(beamTarget);
 
-        // --- 2. ビーム攻撃フェーズ ---
-        // ★ ビームに切り替わるタイミングで剣を非表示にする
-        if (swordObject != null) swordObject.SetActive(false);
+        //yield return new WaitForSeconds(beamFiringTime);
 
-        Vector3 beamTarget = FireDualBeams();
-        RotateTowards(beamTarget);
-
-        yield return new WaitForSeconds(beamFiringTime);
+        // ★ 攻撃終了：保存しておいた回転に戻す
+        transform.rotation = _rotationBeforeAttack;
     }
 
     // ★ 3連撃の音を鳴らすためのサブ・コルーチン
@@ -377,9 +393,11 @@ public class BlanceController : MonoBehaviour
     // パターン2: 2丁の銃モード（ビームのみ）
     private IEnumerator DoubleGunRoutine()
     {
+        // ★ 攻撃開始前の回転を保存
+        _rotationBeforeAttack = transform.rotation;
+
         StartAttackStun(doubleGunDuration);
 
-        // ★ このモードでは剣を使わないので非表示を確実にする
         if (swordObject != null) swordObject.SetActive(false);
 
         Vector3 beamTarget = FireDualBeams();
@@ -387,8 +405,10 @@ public class BlanceController : MonoBehaviour
 
         yield return new WaitForSeconds(doubleGunDuration);
 
-        // 終了時も非表示
         if (swordObject != null) swordObject.SetActive(false);
+
+        // ★ 攻撃終了：保存しておいた回転に戻す
+        transform.rotation = _rotationBeforeAttack;
     }
 
     // 索敵ロジックを修正: 自動で敵を探す処理を削除
@@ -501,8 +521,14 @@ public class BlanceController : MonoBehaviour
 
     private void RotateTowards(Vector3 targetPosition)
     {
-        Vector3 dir = (targetPosition - transform.position).normalized;
-        transform.rotation = Quaternion.LookRotation(new Vector3(dir.x, 0, dir.z));
+        Vector3 dir = (targetPosition - transform.position);
+        dir.y = 0; // 上下方向の回転は無視
+
+        // ターゲットが近すぎる、またはほぼ同じ位置の場合は回転しない
+        if (dir.sqrMagnitude > 0.01f)
+        {
+            transform.rotation = Quaternion.LookRotation(dir.normalized);
+        }
     }
 
     private Vector3 GetLockOnTargetPosition(Transform target, bool useOffsetIfNoCollider = false)

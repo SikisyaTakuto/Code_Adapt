@@ -38,6 +38,7 @@ public class SpeedController : MonoBehaviour
     private bool _isAttacking = false;
     private bool _isStunned = false;
     private float _stunTimer = 0.0f;
+    private Quaternion _rotationBeforeAttack;
     private Vector3 _velocity;
     private float _moveSpeed;
     private bool _wasGrounded = false;
@@ -173,7 +174,10 @@ public class SpeedController : MonoBehaviour
     // Attack1: 3連撃 + ひっかき + 下がる
     private IEnumerator HandleSpeedMeleeRoutine()
     {
+        // 1. 攻撃開始時の向きを保存
         _isAttacking = true;
+        _rotationBeforeAttack = transform.rotation;
+
         float totalDuration = 1.5f;
         StartAttackStun();
         _stunTimer = totalDuration;
@@ -181,27 +185,47 @@ public class SpeedController : MonoBehaviour
         // 1～3連撃
         for (int i = 0; i < 3; i++)
         {
-            RotateTowards(GetAutoAimTargetPosition());
+            // 攻撃の各ステップでターゲットを向く（追尾）
+            Vector3 currentTarget = GetAutoAimTargetPosition();
+            RotateTowards(currentTarget);
+            Quaternion currentStepRotation = transform.rotation;
+
             PlaySound(meleeSwingSound);
             ApplyMeleeSphereDamage(meleeDamage);
-            yield return new WaitForSeconds(0.25f);
+
+            // 待機中もアニメーションによる回転を防止（固定）
+            float stepTimer = 0;
+            while (stepTimer < 0.25f)
+            {
+                transform.rotation = currentStepRotation;
+                stepTimer += Time.deltaTime;
+                yield return null;
+            }
         }
 
-        RotateTowards(GetAutoAimTargetPosition());
+        // ひっかき攻撃の前の微調整
+        Vector3 finalTarget = GetAutoAimTargetPosition();
+        RotateTowards(finalTarget);
+        Quaternion scratchRotation = transform.rotation;
+
         yield return new WaitForSeconds(0.1f);
 
         PlaySound(scratchAttackSound);
         ApplyMeleeSphereDamage(meleeDamage * 1.5f);
 
-        // 後方に下がる
+        // 後方に下がる（移動しつつ向きは固定）
         float backstepTime = 0.25f;
         float timer = 0f;
         while (timer < backstepTime)
         {
+            transform.rotation = scratchRotation; // 向きを維持
             _playerController.Move(-transform.forward * 12f * Time.deltaTime);
             timer += Time.deltaTime;
             yield return null;
         }
+
+        // 2. 攻撃終了：元の回転（カメラ方向など）に復帰
+        transform.rotation = _rotationBeforeAttack;
         _isAttacking = false;
     }
 
@@ -210,19 +234,41 @@ public class SpeedController : MonoBehaviour
     {
         if (!playerStatus.ConsumeEnergy(beamAttackEnergyCost)) yield break;
 
+        // 1. 保存
         _isAttacking = true;
+        _rotationBeforeAttack = transform.rotation;
+
         float crouchDuration = 1.0f;
         StartAttackStun();
         _stunTimer = crouchDuration;
 
-        yield return new WaitForSeconds(0.3f);
+        // 溜め時間中の向き固定
+        float prepTimer = 0;
+        Vector3 targetPos = GetAutoAimTargetPosition();
+        RotateTowards(targetPos);
+        Quaternion attackRotation = transform.rotation;
 
-        Vector3 finalTarget = GetAutoAimTargetPosition();
-        RotateTowards(finalTarget);
-        ExecuteBeamLogic(finalTarget);
+        while (prepTimer < 0.3f)
+        {
+            transform.rotation = attackRotation;
+            prepTimer += Time.deltaTime;
+            yield return null;
+        }
 
-        yield return new WaitForSeconds(crouchDuration - 0.3f);
+        // 発射
+        ExecuteBeamLogic(GetAutoAimTargetPosition());
 
+        // 残りの硬直時間も固定
+        float remainTimer = 0;
+        while (remainTimer < (crouchDuration - 0.3f))
+        {
+            transform.rotation = attackRotation;
+            remainTimer += Time.deltaTime;
+            yield return null;
+        }
+
+        // 2. 復帰
+        transform.rotation = _rotationBeforeAttack;
         _isAttacking = false;
     }
 
