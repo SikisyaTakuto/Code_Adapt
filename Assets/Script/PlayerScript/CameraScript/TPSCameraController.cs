@@ -18,8 +18,8 @@ public class TPSCameraController : MonoBehaviour
     [SerializeField] private Vector2 pitchMinMax = new Vector2(-40, 85); // 上下回転の角度制限
 
     [Header("--- 初期感度設定 ---")]
-    [SerializeField] private float initialMouseSpeed =1000000.0f; //カメラがどれくらい速く回転するか
-    [SerializeField] private float initialControllerSpeed = 500.0f; //ゲームパッド（コントローラー）のスティックを倒したときの回転速度
+    [SerializeField] private float initialMouseSpeed =10.0f; //カメラがどれくらい速く回転するか
+    [SerializeField] private float initialControllerSpeed = 10.0f; //ゲームパッド（コントローラー）のスティックを倒したときの回転速度
 
     [Header("--- ロックオン設定 ---")]
     [SerializeField] private float lockOnRotationSpeed = 50f; // ロックオン時の旋回速度
@@ -98,6 +98,10 @@ public class TPSCameraController : MonoBehaviour
     {
         _playerInput = target?.GetComponentInParent<PlayerInput>();
 
+        // 修正：起動時に必ずインスペクターの値を static 変数へ叩き込む
+        MouseRotationSpeed = initialMouseSpeed;
+        ControllerRotationSpeed = initialControllerSpeed;
+
         // 感度の初期化
         if (MouseRotationSpeed <= 0f)
         {
@@ -108,11 +112,15 @@ public class TPSCameraController : MonoBehaviour
         // 初期位置の設定
         if (target != null)
         {
-            _lookTargetPosition = target.position + Vector3.up * 1.5f;
+            // 注視点と角度の初期値をターゲットに合わせる
+            _lookTargetPosition = target.position + Vector3.up * height;
             _latestTargetPosition = _lookTargetPosition;
             _yaw = target.eulerAngles.y;
-            _pitch = transform.eulerAngles.x;
-            if (_pitch > 180) _pitch -= 360;
+            _pitch = 0f;
+
+            // 補間（Slerp）を使わず、最初からその場所に配置する
+            transform.rotation = Quaternion.Euler(_pitch, _yaw, 0);
+            transform.position = _lookTargetPosition - transform.forward * distance;
         }
     }
 
@@ -204,9 +212,16 @@ public class TPSCameraController : MonoBehaviour
     private float CalculateCollisionDistance(Vector3 anchor)
     {
         LayerMask mask = collisionLayers | groundLayer | ceilingLayer;
-        if (Physics.SphereCast(anchor, cameraRadius, -transform.forward, out RaycastHit hit, distance, mask))
+
+        // 修正：カメラの支点(anchor)から少し後ろからキャストを開始することで
+        // プレイヤー自身にヒットするのを防ぎます
+        Vector3 castStart = anchor + transform.forward * 0.5f;
+        float castDist = distance + 0.5f;
+
+        if (Physics.SphereCast(castStart, cameraRadius, -transform.forward, out RaycastHit hit, castDist, mask))
         {
-            return Mathf.Max(hit.distance - collisionOffset, 0.1f);
+            // 自分の体(Playerレイヤー)に当たっていないか、ヒットした距離が近すぎないかチェック
+            return Mathf.Clamp(hit.distance - collisionOffset - 0.5f, 0.5f, distance);
         }
         return distance;
     }
