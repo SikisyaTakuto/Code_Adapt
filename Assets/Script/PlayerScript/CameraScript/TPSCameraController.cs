@@ -18,8 +18,8 @@ public class TPSCameraController : MonoBehaviour
     [SerializeField] private Vector2 pitchMinMax = new Vector2(-40, 85); // 上下回転の角度制限
 
     [Header("--- 初期感度設定 ---")]
-    [SerializeField] private float initialMouseSpeed =10.0f; //カメラがどれくらい速く回転するか
-    [SerializeField] private float initialControllerSpeed = 10.0f; //ゲームパッド（コントローラー）のスティックを倒したときの回転速度
+    [SerializeField] private float initialMouseSpeed =50.0f; //カメラがどれくらい速く回転するか
+    [SerializeField] private float initialControllerSpeed = 50.0f; //ゲームパッド（コントローラー）のスティックを倒したときの回転速度
 
     [Header("--- ロックオン設定 ---")]
     [SerializeField] private float lockOnRotationSpeed = 50f; // ロックオン時の旋回速度
