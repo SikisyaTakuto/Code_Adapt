@@ -14,8 +14,8 @@ public class TPSCameraController : MonoBehaviour
     [SerializeField] private Vector2 pitchMinMax = new Vector2(-40, 85);
 
     [Header("--- 感度設定 (初期値) ---")]
-    [SerializeField] private float initialMouseSpeed = 5.0f;
-    [SerializeField] private float initialControllerSpeed = 10.0f;
+    [SerializeField] private float initialMouseSpeed = 1.0f;
+    [SerializeField] private float initialControllerSpeed = 2.0f;
 
     [Header("--- ロックオン設定 ---")]
     [SerializeField] private float lockOnRotationSpeed = 50f;
