@@ -67,7 +67,7 @@ public class CameraSensitivityController : MonoBehaviour
         float newControllerSensitivity = newMouseSensitivity * controllerSensitivityMultiplier;
 
         // TPSCameraControllerの静的メソッドを呼び出して感度を設定
-        TPSCameraController.SetMouseSensitivity(newMouseSensitivity);
-        TPSCameraController.SetControllerSensitivity(newControllerSensitivity);
+        TPSCameraController.MouseRotationSpeed = newMouseSensitivity;
+        TPSCameraController.ControllerRotationSpeed = newControllerSensitivity;
     }
 }
