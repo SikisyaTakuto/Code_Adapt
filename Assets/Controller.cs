@@ -768,6 +768,17 @@ public partial class @Controller: IInputActionCollection2, IDisposable
                 },
                 {
                     ""name"": """",
+                    ""id"": ""1a5c6dc8-c037-4d02-a0a6-eeb961f24b98"",
+                    ""path"": ""<Mouse>/delta"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Look"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
                     ""id"": ""65fc4f5f-01ad-440e-8b7f-b5bdcc57ce73"",
                     ""path"": ""<XInputController>/buttonSouth"",
                     ""interactions"": """",
