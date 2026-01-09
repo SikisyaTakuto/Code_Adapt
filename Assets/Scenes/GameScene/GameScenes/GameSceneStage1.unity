@@ -11254,6 +11254,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3cde203ab1cb14c45ab7ac6b5217ccf4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _playerController: {fileID: 1683709383}
+  _tpsCamController: {fileID: 811817461}
   _modesAndVisuals: {fileID: 1683709385}
   playerStatus: {fileID: 1683709384}
   beamPrefab: {fileID: 7068210006117006437, guid: d929e84277a2fe84bb469fb55f1cf446, type: 3}
@@ -11272,12 +11274,10 @@ MonoBehaviour:
   dashMultiplier: 2.5
   verticalSpeed: 10
   gravity: -9.81
-  canFly: 1
   fastFallMultiplier: 3
+  canFly: 1
   attackFixedDuration: 0.8
   landStunDuration: 0.2
-  meleeAttackRange: 30
-  meleeDamage: 75
   beamDamage: 75
   beamAttackEnergyCost: 50
   beamMaxDistance: 100
@@ -41117,6 +41117,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9374fae4935dee54e80350752cb026e8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _playerController: {fileID: 0}
+  _tpsCamController: {fileID: 0}
   _modesAndVisuals: {fileID: 1683709385}
   playerStatus: {fileID: 1683709384}
   beamPrefab: {fileID: 7068210006117006437, guid: d929e84277a2fe84bb469fb55f1cf446, type: 3}
@@ -41127,23 +41129,22 @@ MonoBehaviour:
   enemyLayer:
     serializedVersion: 2
     m_Bits: 512
+  _audioSource: {fileID: 838497953}
+  _meleeSwingSound: {fileID: 8300000, guid: 388c86423d737b94eb0445d6429f2c34, type: 3}
+  _scratchAttackSound: {fileID: 8300000, guid: a5589b28a47c55543a8dd53b320a9932, type: 3}
   baseMoveSpeed: 15
   dashMultiplier: 2.5
   verticalSpeed: 10
   gravity: -9.81
-  canFly: 1
   fastFallMultiplier: 3
-  attackFixedDuration: 0.8
-  landStunDuration: 0.2
+  canFly: 1
   meleeAttackRange: 5
   meleeDamage: 100
   beamDamage: 20
   beamAttackEnergyCost: 30
   beamMaxDistance: 100
   lockOnTargetHeightOffset: 1
-  audioSource: {fileID: 838497953}
-  meleeSwingSound: {fileID: 8300000, guid: 29f43bac1aadbc34c84e30049f67f152, type: 3}
-  scratchAttackSound: {fileID: 8300000, guid: 388c86423d737b94eb0445d6429f2c34, type: 3}
+  attackFixedDuration: 0.8
 --- !u!114 &838497950
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -80257,6 +80258,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 532953244a99a7d4792bda30fa438531, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _playerController: {fileID: 1683709383}
+  _tpsCamController: {fileID: 811817461}
   _modesAndVisuals: {fileID: 1683709385}
   playerStatus: {fileID: 1683709384}
   beamPrefab: {fileID: 7068210006117006437, guid: d929e84277a2fe84bb469fb55f1cf446, type: 3}
@@ -80271,10 +80274,8 @@ MonoBehaviour:
   dashMultiplier: 2.5
   verticalSpeed: 10
   gravity: -9.81
-  canFly: 1
   fastFallMultiplier: 3
-  attackFixedDuration: 0.8
-  landStunDuration: 0.2
+  canFly: 1
   swordObject: {fileID: 417541511}
   meleeAttackRange: 5
   meleeDamage: 100
@@ -80285,6 +80286,7 @@ MonoBehaviour:
   swordComboTime: 1.5
   beamFiringTime: 1
   doubleGunDuration: 1.2
+  landStunDuration: 0.2
   audioSource: {fileID: 1593151837}
   swordSwingSound: {fileID: 8300000, guid: 388c86423d737b94eb0445d6429f2c34, type: 3}
 --- !u!114 &1593151834

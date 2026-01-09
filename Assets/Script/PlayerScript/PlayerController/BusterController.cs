@@ -1,132 +1,113 @@
 using System.Collections;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
+/// <summary>
+/// 【バスター（重武装）モード制御クラス】
+/// 概要: ビームやガトリングを用いた遠距離火力特化のアクションを制御します。
+/// 特徴: 攻撃中の移動制限（硬直）、慣性を利用したバックステップ、自動エイム支援などを搭載。
+/// </summary>
 public class BusterController : MonoBehaviour
 {
+    #region 1. 依存コンポーネント & 関連オブジェクト
     // =======================================================
-    // 依存コンポーネント / 関連オブジェクト
-    // =======================================================
 
-    [Header("Dependencies")]
-    private CharacterController _playerController;
-    private TPSCameraController _tpsCamController;
-    public PlayerModesAndVisuals _modesAndVisuals;
+    [Header("Core Dependencies")]
+    [SerializeField] private CharacterController _playerController; // 移動制御の主体
+    [SerializeField] private TPSCameraController _tpsCamController; // カメラ・ロックオン情報の取得
+    public PlayerModesAndVisuals _modesAndVisuals;                // 武装・アーマーの切り替え管理
+    public PlayerStatus playerStatus;                             // ステータス（HP/EN/死亡フラグ）の管理元
 
-    // ★追加: 共通ステータス管理への参照
-    public PlayerStatus playerStatus;
+    [Header("VFX & Fire Points")]
+    public BeamController beamPrefab;      // ビーム攻撃の実体
+    public Transform[] beamFirePoints;      // 肩部など：高火力ビームの発射点
+    public Transform[] gatlingFirePoints;   // 腕部など：連射ガトリングの発射点
+    public GameObject gatlingBulletPrefab; // ガトリング弾のプレハブ
+    public GameObject hitEffectPrefab;     // 敵着弾時の火花などのエフェクト
+    public LayerMask enemyLayer;           // 攻撃が当たるレイヤー設定
 
-    [Header("Vfx & Layers")]
-    public BeamController beamPrefab;
-    public Transform[] beamFirePoints;    // 上の2個
-    public Transform[] gatlingFirePoints; // 下の2個
-    public GameObject gatlingBulletPrefab; // ガトリング用の弾丸またはエフェクト
-    public GameObject hitEffectPrefab;
-    public LayerMask enemyLayer;
+    private BusterAnimation _busterAnim;    // アニメーション制御用キャッシュ
+    #endregion
 
-    // =======================================================
-    // 移動・攻撃設定 (ステータス以外)
+    #region 2. 設定パラメータ (調整用)
     // =======================================================
 
     [Header("Movement Settings")]
-    public float baseMoveSpeed = 15.0f;
-    public float dashMultiplier = 2.5f;
-    public float verticalSpeed = 10.0f;
-    public float gravity = -9.81f;
-    public bool canFly = true;
-    public float fastFallMultiplier = 3.0f;
+    public float baseMoveSpeed = 15.0f;   // 通常移動速度
+    public float dashMultiplier = 2.5f;   // ダッシュ（ブースト）時の倍率
+    public float verticalSpeed = 10.0f;   // 上昇速度
+    public float gravity = -9.81f;        // 重力の強さ
+    public float fastFallMultiplier = 3.0f; // 落下を速める倍率（滞空感の調整）
+    public bool canFly = true;            // 飛行可能フラグ
 
-    [Header("Stun & Hardening Settings")]
-    public float attackFixedDuration = 0.8f;
-    public float landStunDuration = 0.2f;
+    [Header("Stun & Timings")]
+    public float attackFixedDuration = 0.8f; // 通常攻撃時の操作不能時間
+    public float landStunDuration = 0.2f;    // 高所着地時の隙
 
-    [Header("Attack Settings")]
-    public float meleeAttackRange = 2.0f;
-    public float meleeDamage = 50.0f;
-    public float beamDamage = 50.0f;
-    public float beamAttackEnergyCost = 30.0f;
-    public float beamMaxDistance = 100f;
-    public float lockOnTargetHeightOffset = 1.0f;
+    [Header("Combat Settings")]
+    public float beamDamage = 50.0f;       // ビーム1発の威力
+    public float beamAttackEnergyCost = 30.0f; // ビーム消費EN
+    public float beamMaxDistance = 100f;   // 射程距離
+    public float lockOnTargetHeightOffset = 1.0f; // ロックオン対象の中心位置調整
 
-    [Header("Attack Patterns")]
-    public float backstepForce = 20f; // Attack2で後ろに下がる強さ
-    public float gatlingFireRate = 0.05f; // ガトリングの連射速度
-    public int gatlingBurstCount = 10;     // ★追加：1回の攻撃で発射する弾数
-    public float gatlingEnergyCostTotal = 10f; // ★追加：ガトリング全体の消費エネルギー
-    private float nextGatlingTime;
+    [Header("Special Attack (Full Burst)")]
+    public float backstepForce = 20f;       // 全弾発射時の反動（後ろに飛ぶ力）
+    public float gatlingFireRate = 0.05f;   // ガトリングの連射間隔（秒）
+    public int gatlingBurstCount = 10;      // ガトリングの連射数
+    public float gatlingEnergyCostTotal = 10f; // 特殊攻撃全体のEN消費量
+    #endregion
 
-    private BusterAnimation _busterAnim; // キャッシュ用
-
-    // HP, Energy, UI, 死亡フラグに関する変数は PlayerStatus へ移動したため削除
-
-    // =======================================================
-    // プライベート/キャッシュ変数
+    #region 3. 内部ステータス & キャッシュ
     // =======================================================
 
-    private bool _isAttacking = false;
-    private bool _isStunned = false;
-    private float _stunTimer = 0.0f;
-    private Quaternion _rotationBeforeAttack;
-    private Vector3 _velocity;
-    private float _moveSpeed;
-    private bool _wasGrounded = false;
-    private bool _isBoosting = false;
-    private float _verticalInput = 0f;
+    private bool _isAttacking = false;      // 現在攻撃アクション中か
+    private bool _isStunned = false;        // 現在硬直（操作不能）状態か
+    private float _stunTimer = 0.0f;        // 硬直終了までのカウントダウン
+    private Quaternion _rotationBeforeAttack; // 攻撃終了後に元の向きに戻すための保存用
 
-    private float _debuffMoveMultiplier = 1.0f;
+    private Vector3 _velocity;              // 現在の移動速度（慣性・重力含む）
+    private float _moveSpeed;               // アーマー性能適用後の最終速度
+    private bool _wasGrounded = false;      // 前フレームの接地判定
+    private bool _isBoosting = false;       // 入力システムからのブーストフラグ
+    private float _verticalInput = 0f;      // 上下移動の入力値
+
+    private float _debuffMoveMultiplier = 1.0f; // 鈍い動き等のデバフ倍率
     private float _debuffJumpMultiplier = 1.0f;
+    #endregion
+
+    #region 4. ライフサイクル (Life Cycle)
+    // =======================================================
 
     void Awake()
     {
         InitializeComponents();
-        // アニメーションコンポーネントを取得
         _busterAnim = GetComponentInChildren<BusterAnimation>();
     }
 
     void Update()
     {
-        // ★PlayerStatusの死亡判定を参照
+        // 【死亡判定】体力がゼロならすべての更新を停止
         if (playerStatus == null || playerStatus.IsDead) return;
 
         bool isGroundedNow = _playerController.isGrounded;
 
-        // 1. 硬直状態の処理
-        HandleStunState(isGroundedNow);
+        // 【硬直管理】タイマーを減らし、ゼロになったら硬直を解除する
+        UpdateStunTimer(isGroundedNow);
 
         if (_isStunned)
         {
-            HandleStunnedVerticalMovement(isGroundedNow);
-
-            // 空中であれば、攻撃時に設定した _velocity (後ろへのベクトル) をそのまま使う
-            // 徐々に減速させる(摩擦)
-            float friction = 5f;
-            _velocity.x = Mathf.Lerp(_velocity.x, 0, Time.deltaTime * friction);
-            _velocity.z = Mathf.Lerp(_velocity.z, 0, Time.deltaTime * friction);
-
-            _playerController.Move(_velocity * Time.deltaTime);
+            // 硬直中の挙動：重力と、攻撃による慣性移動（バックステップ等）のみを処理
+            HandleStunnedPhysics(isGroundedNow);
             _wasGrounded = isGroundedNow;
             return;
         }
 
-        // 2. プレイヤーの向き制御
-        if (_tpsCamController != null)
-        {
-            if (_tpsCamController.LockOnTarget == null)
-            {
-                // 非ロックオン時：カメラが向いている水平方向に体を固定
-                _tpsCamController.RotatePlayerToCameraDirection();
-            }
-            else
-            {
-                // ロックオン時：常にターゲットを向く
-                RotateTowards(GetLockOnTargetPosition(_tpsCamController.LockOnTarget));
-            }
-        }
+        // 【回転制御】非攻撃時、カメラの向きやロックオン対象へ体を向ける
+        HandleRotation();
 
-        // 3. 移動計算
+        // 【移動性能更新】現在のアーマー補正を適用
         ApplyArmorStats();
-        // HandleEnergy() は PlayerStatus 側で自動実行されるため削除
 
+        // 【入力・移動実行】
         HandleInput();
         Vector3 finalMove = HandleVerticalMovement(isGroundedNow) + HandleHorizontalMovement();
         _playerController.Move(finalMove * Time.deltaTime);
@@ -136,72 +117,35 @@ public class BusterController : MonoBehaviour
 
     private void InitializeComponents()
     {
-        _playerController = GetComponentInParent<CharacterController>();
-        _tpsCamController = FindObjectOfType<TPSCameraController>();
-
-        // ★親オブジェクトからPlayerStatusを探す
-        if (playerStatus == null)
-        {
-            playerStatus = GetComponentInParent<PlayerStatus>();
-        }
+        // 依存している各コンポーネントを自動取得（手動設定も可）
+        if (_playerController == null) _playerController = GetComponentInParent<CharacterController>();
+        if (_tpsCamController == null) _tpsCamController = FindObjectOfType<TPSCameraController>();
+        if (playerStatus == null) playerStatus = GetComponentInParent<PlayerStatus>();
     }
+    #endregion
 
-    // =======================================================
-    // 硬直 (Stun) 制御
+    #region 5. 移動・回転制御 (Movement & Rotation)
     // =======================================================
 
-    public void StartLandingStun()
+    private void HandleRotation()
     {
-        if (_isStunned) return;
-        _isStunned = true;
-        _stunTimer = landStunDuration;
+        if (_tpsCamController == null) return;
 
-        // 足元を地面に密着させる微調整
-        _velocity = new Vector3(0, -0.1f, 0);
+        if (_tpsCamController.LockOnTarget == null)
+            // ターゲットがいない場合：カメラが向いている水平方向にプレイヤーを向ける
+            _tpsCamController.RotatePlayerToCameraDirection();
+        else
+            // ターゲットがいる場合：常にターゲットの中心を向く
+            RotateTowards(GetLockOnTargetPosition(_tpsCamController.LockOnTarget));
     }
-
-    public void StartAttackStun()
-    {
-        _isAttacking = true;
-        _isStunned = true;
-        _stunTimer = attackFixedDuration;
-        _velocity.y = 0f;
-    }
-
-    private void HandleStunState(bool isGrounded)
-    {
-        if (!_isStunned) return;
-        _stunTimer -= Time.deltaTime;
-        if (_stunTimer <= 0.0f)
-        {
-            _isStunned = false;
-            _isAttacking = false;
-            if (isGrounded) _velocity.y = -0.1f;
-        }
-    }
-
-    private void HandleStunnedVerticalMovement(bool isGroundedNow)
-    {
-        if (!isGroundedNow)
-        {
-            float fallSpeedMultiplier = (_velocity.y < 0) ? fastFallMultiplier : 1.0f;
-            _velocity.y += gravity * Time.deltaTime * fallSpeedMultiplier;
-        }
-        else _velocity.y = -0.1f;
-    }
-
-    // =======================================================
-    // Movement Logic
-    // =======================================================
 
     private Vector3 HandleHorizontalMovement()
     {
-        if (_isStunned) return Vector3.zero;
-
         float h = Input.GetAxis("Horizontal");
         float v = Input.GetAxis("Vertical");
         if (h == 0f && v == 0f) return Vector3.zero;
 
+        // カメラの向きに基づき、地面に対して垂直な移動ベクトルを作成
         Vector3 moveDirection;
         if (_tpsCamController != null)
         {
@@ -214,9 +158,8 @@ public class BusterController : MonoBehaviour
 
         float currentSpeed = _moveSpeed * _debuffMoveMultiplier;
 
-        // ★エネルギーチェックをPlayerStatusに委譲
+        // 【ブースト計算】ENがある場合のみ高速移動。毎秒ENを消費。
         bool isDashing = (Input.GetKey(KeyCode.LeftShift) || _isBoosting) && playerStatus.currentEnergy > 0.1f;
-
         if (isDashing)
         {
             currentSpeed *= dashMultiplier;
@@ -228,36 +171,28 @@ public class BusterController : MonoBehaviour
 
     private Vector3 HandleVerticalMovement(bool isGrounded)
     {
-        if (!_wasGrounded && isGrounded && _velocity.y < -0.1f && !_isStunned)
-        {
-            //StartLandingStun();
-            return Vector3.zero;
-        }
-
+        // 地面にいる場合は微小な下向きの力を与え、接地判定を安定させる
         if (isGrounded && _velocity.y < 0) _velocity.y = -0.1f;
-        if (_isStunned) return Vector3.zero;
 
         bool isFlyingUp = (Input.GetKey(KeyCode.Space) || _verticalInput > 0.5f);
-        // bool isFlyingDown = (Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt) || _verticalInput < -0.5f);
         bool hasVerticalInput = false;
 
-        // ★飛行エネルギーチェックを委譲
-        if (canFly && playerStatus.currentEnergy > 0.1f)
+        // 【飛行上昇】EN消費を伴う上昇処理
+        if (canFly && playerStatus.currentEnergy > 0.1f && isFlyingUp)
         {
-            if (isFlyingUp)
-            {
-                _velocity.y = verticalSpeed * _debuffJumpMultiplier; // デバフ適用
-                hasVerticalInput = true;
-            }
+            _velocity.y = verticalSpeed * _debuffJumpMultiplier;
+            hasVerticalInput = true;
         }
 
         if (hasVerticalInput) playerStatus.ConsumeEnergy(15.0f * Time.deltaTime);
         else if (!isGrounded)
         {
+            // 【空中落下】重力を適用。落下中（y < 0）はより速く落ちるよう倍率をかける
             float fallSpeedMultiplier = (_velocity.y < 0) ? fastFallMultiplier : 1.0f;
             _velocity.y += gravity * Time.deltaTime * fallSpeedMultiplier;
         }
 
+        // EN切れによる失速
         if (playerStatus.currentEnergy <= 0.1f && _velocity.y > 0) _velocity.y = 0;
 
         return new Vector3(0, _velocity.y, 0);
@@ -265,92 +200,106 @@ public class BusterController : MonoBehaviour
 
     private void ApplyArmorStats()
     {
+        // アーマーごとの移動速度倍率を適用
         var stats = _modesAndVisuals.CurrentArmorStats;
         _moveSpeed = baseMoveSpeed * (stats != null ? stats.moveSpeedMultiplier : 1.0f);
     }
+    #endregion
 
+    #region 6. 硬直ロジック (Stun Logic)
     // =======================================================
-    // Input & Attack Logic
+
+    private void UpdateStunTimer(bool isGrounded)
+    {
+        if (!_isStunned) return;
+
+        _stunTimer -= Time.deltaTime;
+        if (_stunTimer <= 0.0f)
+        {
+            _isStunned = false;
+            _isAttacking = false;
+            // 硬直明け、地面なら落下ベクトルをリセット
+            if (isGrounded) _velocity.y = -0.1f;
+        }
+    }
+
+    private void HandleStunnedPhysics(bool isGroundedNow)
+    {
+        // 硬直中の垂直移動（落下のみ許可）
+        if (!isGroundedNow)
+        {
+            float fallSpeedMultiplier = (_velocity.y < 0) ? fastFallMultiplier : 1.0f;
+            _velocity.y += gravity * Time.deltaTime * fallSpeedMultiplier;
+        }
+        else _velocity.y = -0.1f;
+
+        // 硬直中の水平移動（摩擦による減速計算）
+        // 攻撃の反動で飛ばされた際、徐々に止まるようにLerpを使用
+        float friction = 5f;
+        _velocity.x = Mathf.Lerp(_velocity.x, 0, Time.deltaTime * friction);
+        _velocity.z = Mathf.Lerp(_velocity.z, 0, Time.deltaTime * friction);
+
+        _playerController.Move(_velocity * Time.deltaTime);
+    }
+
+    /// <summary>
+    /// 攻撃による硬直を開始させる命令
+    /// </summary>
+    public void StartAttackStun()
+    {
+        _isAttacking = true;
+        _isStunned = true;
+        _stunTimer = attackFixedDuration;
+        _velocity.y = 0f; // 空中射撃時の高度維持
+    }
+    #endregion
+
+    #region 7. 攻撃ロジック (Combat Logic)
     // =======================================================
 
     private void HandleInput()
     {
-        if (_isStunned) return;
-        HandleAttackInputs();
+        if (Input.GetMouseButtonDown(0)) PerformAttack();
         HandleWeaponSwitchInput();
         HandleArmorSwitchInput();
     }
 
-    private void HandleAttackInputs()
-    {
-        if (_isAttacking || _isStunned) return;
-        if (Input.GetMouseButtonDown(0)) PerformAttack();
-    }
-
-    // =======================================================
-    // 索敵・エイム支援ロジック (追加)
-    // =======================================================
-
-    private Vector3 GetAutoAimTargetPosition()
-    {
-        // 1. ロックオン中ならその座標を返す（プレイヤーが意図的に狙っているため維持）
-        if (_tpsCamController != null && _tpsCamController.LockOnTarget != null)
-        {
-            return GetLockOnTargetPosition(_tpsCamController.LockOnTarget, true);
-        }
-
-        // 2. 非ロックオン時：カメラの中央（レティクル）の先を狙う（自動索敵を削除）
-        if (Camera.main != null)
-        {
-            // カメラの中心からレイ（光線）を飛ばす
-            Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
-
-            // 何か（壁や敵）に当たればその地点、何もなければ射程限界の地点を返す
-            if (Physics.Raycast(ray, out RaycastHit hit, beamMaxDistance, ~0))
-            {
-                return hit.point;
-            }
-            return ray.origin + ray.direction * beamMaxDistance;
-        }
-
-        // カメラがない場合のフォールバック
-        return transform.position + transform.forward * beamMaxDistance;
-    }
-
     private void PerformAttack()
     {
+        if (_isAttacking || _isStunned) return;
+
+        // WeaponMode設定に応じて、通常攻撃か特殊攻撃（Attack2）かを判定
         bool isMode2 = (_modesAndVisuals.CurrentWeaponMode == PlayerModesAndVisuals.WeaponMode.Attack2);
         if (_busterAnim != null) _busterAnim.PlayAttackAnimation(isMode2);
 
-        // ★1. 攻撃開始の瞬間のターゲット位置を確定
+        // 射撃を開始する瞬間のターゲット座標を取得
         Vector3 targetPos = GetAutoAimTargetPosition();
 
         if (isMode2)
-            StartCoroutine(FullBurstRoutine());
+            StartCoroutine(FullBurstRoutine()); // 全弾発射
         else
-            StartCoroutine(HandleAttack1Routine(targetPos));
+            StartCoroutine(HandleAttack1Routine(targetPos)); // 単発ビーム
     }
 
-    // --- Attack1: 中遠距離ビーム (回転保存・復帰版) ---
+    /// <summary>
+    /// 通常攻撃コルーチン: 回転を一時的にロックしてビームを放つ
+    /// </summary>
     private IEnumerator HandleAttack1Routine(Vector3 targetPos)
     {
         if (!playerStatus.ConsumeEnergy(beamAttackEnergyCost)) yield break;
 
-        // ★2. 回転の保存と開始
         _isAttacking = true;
-        _rotationBeforeAttack = transform.rotation;
+        _rotationBeforeAttack = transform.rotation; // 射撃前の向きを保存
 
-        // ターゲットへ一度向かせる
+        // ターゲットに一瞬で向きを合わせる
         RotateTowards(targetPos);
         Quaternion attackRotation = transform.rotation;
 
-        StartAttackStun(); // 硬直開始
-        _stunTimer = attackFixedDuration;
-
-        // ビーム発射
+        StartAttackStun();
         FireSpecificGuns(true, false, targetPos, true);
 
-        // ★3. 攻撃中（硬直中）、アニメーションが体を勝手に回さないよう強制固定
+        // 【回転固定ループ】
+        // アニメーションのルートモーションなどで体が勝手に回るのを防ぐ
         float elapsed = 0;
         while (elapsed < attackFixedDuration)
         {
@@ -359,15 +308,16 @@ public class BusterController : MonoBehaviour
             yield return null;
         }
 
-        // ★4. 攻撃終了：元の回転に戻す
+        // 射撃終了後、元の体の向き（カメラ方向など）に復帰
         transform.rotation = _rotationBeforeAttack;
         _isAttacking = false;
     }
 
-    // Attack2: 全弾発射 & バックステップ
+    /// <summary>
+    /// 特殊攻撃コルーチン: バックステップ → ビーム → ガトリング連射 のコンボ
+    /// </summary>
     private IEnumerator FullBurstRoutine()
     {
-        // ★2. 回転の保存
         _isAttacking = true;
         _isStunned = true;
         _rotationBeforeAttack = transform.rotation;
@@ -376,18 +326,18 @@ public class BusterController : MonoBehaviour
         RotateTowards(initialTargetPos);
         Quaternion attackRotation = transform.rotation;
 
-        // バックステップ移動ベクトル（回転のみ固定し、位置は物理的に動かす）
+        // 【バックステップ】後方へのベクトルと、わずかな浮き上がりを付与
         Vector3 backDir = -transform.forward;
         _velocity = backDir * backstepForce + Vector3.up * 2f;
-        _stunTimer = 5.0f; // ループ内で動的に制御するため大きめに設定
+        _stunTimer = 5.0f; // ループ制御のため一旦長めに設定
 
-        // 第一波：ビーム
+        // 第一波：メインビーム発射
         if (playerStatus.ConsumeEnergy(beamAttackEnergyCost))
         {
             FireSpecificGuns(true, false, initialTargetPos, true);
         }
 
-        // ビーム発射後の溜め時間も回転を固定
+        // 発射後の溜め時間（硬直）
         float timer = 0;
         while (timer < 1.0f)
         {
@@ -396,22 +346,22 @@ public class BusterController : MonoBehaviour
             yield return null;
         }
 
-        // 第二波：ガトリング連射
+        // 第二波：ガトリング連射開始
         if (playerStatus.ConsumeEnergy(gatlingEnergyCostTotal))
         {
             for (int i = 0; i < gatlingBurstCount; i++)
             {
                 _isStunned = true;
-                _stunTimer = 1.0f; // 硬直を維持
+                _stunTimer = 1.0f; // 連射中は常に硬直時間を上書き維持
 
+                // 連射中も微調整としてターゲットを追い続ける
                 Vector3 currentTargetPos = GetAutoAimTargetPosition();
                 RotateTowards(currentTargetPos);
-                // 追従させつつも、毎フレームの強制上書き用に現在の向きを保持
                 attackRotation = transform.rotation;
 
                 FireSpecificGuns(false, true, currentTargetPos, true);
 
-                // 連射の弾間隔中も強制的に固定
+                // 連射間隔待機中も回転を固定
                 float shotInterval = 0;
                 while (shotInterval < gatlingFireRate)
                 {
@@ -422,7 +372,7 @@ public class BusterController : MonoBehaviour
             }
         }
 
-        // 最後の余韻（フォロースルー）待機
+        // 【残心】すべての弾を撃ち終えた後のフォロースルー時間
         timer = 0;
         while (timer < 0.6f)
         {
@@ -431,100 +381,58 @@ public class BusterController : MonoBehaviour
             yield return null;
         }
 
-        // ★4. 攻撃終了：元の回転に戻す
+        // 状態をリセットして通常移動へ戻す
         transform.rotation = _rotationBeforeAttack;
         _isAttacking = false;
-        _stunTimer = 0.01f; // 硬直を終了させる
+        _stunTimer = 0.01f;
     }
+    #endregion
 
-    // 特定の武器種だけを撃つヘルパー
+    #region 8. 発射・ダメージ処理 (Projectile & Damage)
+    // =======================================================
+
     private void FireSpecificGuns(bool useBeam, bool useGatling, Vector3 targetPosition, bool isLockedOn)
     {
         Vector3 playerForward = transform.forward;
 
+        // 複数ある発射ポイント（FirePoints）を巡回してプレハブを生成
         if (useBeam && beamFirePoints != null)
         {
             foreach (var fp in beamFirePoints)
-            {
                 if (fp != null) FireProjectile(fp, targetPosition, isLockedOn, playerForward, true);
-            }
         }
 
         if (useGatling && gatlingFirePoints != null)
         {
             foreach (var fp in gatlingFirePoints)
-            {
                 if (fp != null) FireProjectile(fp, targetPosition, isLockedOn, playerForward, false);
-            }
         }
     }
 
-    // 全ての発射ポイントから撃つ共通処理
-    private void FireAllGuns(bool useBeam, bool useGatling)
-    {
-        Transform lockOnTarget = _tpsCamController?.LockOnTarget;
-        Vector3 targetPosition = Vector3.zero;
-        bool isLockedOn = lockOnTarget != null;
-
-        if (isLockedOn)
-        {
-            targetPosition = GetLockOnTargetPosition(lockOnTarget, true);
-            RotateTowards(targetPosition);
-        }
-        Vector3 playerForward = transform.forward;
-
-        // 1. ビーム発射 (上の2個)
-        if (useBeam && beamFirePoints != null)
-        {
-            foreach (var fp in beamFirePoints)
-            {
-                if (fp != null) FireProjectile(fp, targetPosition, isLockedOn, playerForward, true);
-            }
-        }
-
-        // 2. ガトリング発射 (下の2個)
-        if (useGatling && gatlingFirePoints != null)
-        {
-            if (!playerStatus.ConsumeEnergy(10f)) return; // 追加のエネルギー消費
-
-            foreach (var fp in gatlingFirePoints)
-            {
-                if (fp != null) FireProjectile(fp, targetPosition, isLockedOn, playerForward, false);
-            }
-        }
-    }
-
-    // 発射ロジックを共通化
     private void FireProjectile(Transform firePoint, Vector3 targetPos, bool isLockedOn, Vector3 forward, bool isBeam)
     {
         Vector3 origin = firePoint.position;
+        // ロックオン時は敵の方向、非ロックオン時は正面へ飛ばす
         Vector3 fireDirection = isLockedOn ? (targetPos - origin).normalized : forward;
 
-        RaycastHit hit;
-        bool didHit = Physics.Raycast(origin, fireDirection, out hit, beamMaxDistance, ~0);
+        // 【即着弾判定】レイキャストを使用して壁や敵に当たるか確認
+        bool didHit = Physics.Raycast(origin, fireDirection, out RaycastHit hit, beamMaxDistance, ~0);
         Vector3 endPoint = didHit ? hit.point : origin + fireDirection * beamMaxDistance;
 
-        if (didHit) ApplyDamageToEnemy(hit.collider, isBeam ? beamDamage : 10.0f); // ダメージ差
+        // ダメージ適用
+        if (didHit) ApplyDamageToEnemy(hit.collider, isBeam ? beamDamage : 10.0f);
 
+        // ビームまたは弾丸の視覚エフェクト生成
         if (isBeam)
         {
             BeamController beamInstance = Instantiate(beamPrefab, origin, Quaternion.LookRotation(fireDirection));
             beamInstance.Fire(origin, endPoint, didHit);
         }
-        else
+        else if (gatlingBulletPrefab != null)
         {
-            if (gatlingBulletPrefab != null)
-            {
-                // 弾を生成
-                GameObject bulletObj = Instantiate(gatlingBulletPrefab, origin, Quaternion.LookRotation(fireDirection));
-                GatlingBullet bullet = bulletObj.GetComponent<GatlingBullet>();
-
-                if (bullet != null)
-                {
-                    // 弾を発射（ターゲットがいればその方向、いなければ正面）
-                    bullet.Launch(fireDirection);
-                }
-            }
+            GameObject bulletObj = Instantiate(gatlingBulletPrefab, origin, Quaternion.LookRotation(fireDirection));
+            GatlingBullet bullet = bulletObj.GetComponent<GatlingBullet>();
+            if (bullet != null) bullet.Launch(fireDirection);
         }
     }
 
@@ -533,25 +441,17 @@ public class BusterController : MonoBehaviour
         GameObject target = hitCollider.gameObject;
         bool isHit = false;
 
-        // 既存の敵判定ロジック
+        // 敵の各部位や種類に応じたダメージスクリプトの取得を試みる（ポリモーフィズムがない場合の暫定処理）
         if (target.TryGetComponent<SoldierMoveEnemy>(out var s1)) { s1.TakeDamage(damageAmount); isHit = true; }
         else if (target.TryGetComponent<SoliderEnemy>(out var s2)) { s2.TakeDamage(damageAmount); isHit = true; }
         else if (target.TryGetComponent<TutorialEnemyController>(out var s3)) { s3.TakeDamage(damageAmount); isHit = true; }
         else if (target.TryGetComponent<ScorpionEnemy>(out var s4)) { s4.TakeDamage(damageAmount); isHit = true; }
         else if (target.TryGetComponent<SuicideEnemy>(out var s5)) { s5.TakeDamage(damageAmount); isHit = true; }
         else if (target.TryGetComponent<DroneEnemy>(out var s6)) { s6.TakeDamage(damageAmount); isHit = true; }
-        // ★追加：本体のパーツ（胴体など）を撃った場合
-        else if (target.TryGetComponent<VoxBodyPart>(out var bodyPart))
-        {
-            bodyPart.TakeDamage(damageAmount);
-            isHit = true;
-        }
-        // ★追加：ボスのパーツ（アームなど）へのヒット
-        else if (target.TryGetComponent<VoxPart>(out var part))
-        {
-            part.TakeDamage(damageAmount);
-            isHit = true;
-        }
+        else if (target.TryGetComponent<VoxBodyPart>(out var bodyPart)) { bodyPart.TakeDamage(damageAmount); isHit = true; }
+        else if (target.TryGetComponent<VoxPart>(out var part)) { part.TakeDamage(damageAmount); isHit = true; }
+
+        // ヒット時エフェクトの生成
         if (isHit && hitEffectPrefab != null)
         {
             Instantiate(hitEffectPrefab, hitCollider.bounds.center, Quaternion.identity);
@@ -560,52 +460,58 @@ public class BusterController : MonoBehaviour
 
     public void TakeDamage(float damageAmount)
     {
-        // ★ダメージ計算をPlayerStatusに委譲
+        // アーマーの防御力係数を取得してダメージ計算を委譲
         var stats = _modesAndVisuals.CurrentArmorStats;
         float defense = (stats != null) ? stats.defenseMultiplier : 1.0f;
         playerStatus.TakeDamage(damageAmount, defense);
     }
+    #endregion
 
+    #region 9. ユーティリティ (Utilities)
     // =======================================================
-    // Utilities & Input System Events
-    // =======================================================
+
+    /// <summary>
+    /// ロックオン中ならターゲット、そうでなければ画面中央（レティクル）のワールド座標を返す
+    /// </summary>
+    private Vector3 GetAutoAimTargetPosition()
+    {
+        // 1. ロックオン対象がいればその中心
+        if (_tpsCamController?.LockOnTarget != null)
+            return GetLockOnTargetPosition(_tpsCamController.LockOnTarget, true);
+
+        // 2. 非ロックオン時：カメラの中心から正面にレイを飛ばしてヒットした地点をターゲットにする
+        if (Camera.main != null)
+        {
+            Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
+            if (Physics.Raycast(ray, out RaycastHit hit, beamMaxDistance, ~0)) return hit.point;
+            return ray.origin + ray.direction * beamMaxDistance;
+        }
+
+        return transform.position + transform.forward * beamMaxDistance;
+    }
 
     private void RotateTowards(Vector3 targetPosition)
     {
+        // 高度（y）を無視して、水平方向の向きを計算
         Vector3 dir = (targetPosition - transform.position).normalized;
         transform.rotation = Quaternion.LookRotation(new Vector3(dir.x, 0, dir.z));
     }
 
-    private Vector3 GetLockOnTargetPosition(Transform target, bool useOffsetIfNoCollider = false)
+    private Vector3 GetLockOnTargetPosition(Transform target, bool useOffset = false)
     {
+        // ターゲットにコライダーがあればその中心、なければ足元＋オフセット
         if (target.TryGetComponent<Collider>(out var col)) return col.bounds.center;
-        return useOffsetIfNoCollider ? target.position + Vector3.up * lockOnTargetHeightOffset : target.position;
+        return useOffset ? target.position + Vector3.up * lockOnTargetHeightOffset : target.position;
     }
 
     private void HandleWeaponSwitchInput() { if (Input.GetKeyDown(KeyCode.E)) _modesAndVisuals.SwitchWeapon(); }
     private void HandleArmorSwitchInput()
     {
-        // 1キーで最初に選んだアーマーを表示
-        if (Input.GetKeyDown(KeyCode.Alpha1))
-        {
-            _modesAndVisuals.ChangeArmorBySlot(0);
-        }
-        // 2キーで2番目に選んだアーマーを表示
-        else if (Input.GetKeyDown(KeyCode.Alpha2))
-        {
-            _modesAndVisuals.ChangeArmorBySlot(1);
-        }
+        if (Input.GetKeyDown(KeyCode.Alpha1)) _modesAndVisuals.ChangeArmorBySlot(0);
+        else if (Input.GetKeyDown(KeyCode.Alpha2)) _modesAndVisuals.ChangeArmorBySlot(1);
     }
 
-    public void SetDebuff(float moveMult, float jumpMult)
-    {
-        _debuffMoveMultiplier = moveMult;
-        _debuffJumpMultiplier = jumpMult;
-    }
-
-    public void ResetDebuff()
-    {
-        _debuffMoveMultiplier = 1.0f;
-        _debuffJumpMultiplier = 1.0f;
-    }
+    public void SetDebuff(float moveMult, float jumpMult) { _debuffMoveMultiplier = moveMult; _debuffJumpMultiplier = jumpMult; }
+    public void ResetDebuff() { _debuffMoveMultiplier = 1.0f; _debuffJumpMultiplier = 1.0f; }
+    #endregion
 }
