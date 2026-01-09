@@ -39853,7 +39853,7 @@ MonoBehaviour:
   height: 2
   smoothSpeed: 10
   pitchMinMax: {x: -40, y: 85}
-  initialMouseSpeed: 1
+  initialMouseSpeed: 2
   initialControllerSpeed: 2
   lockOnRotationSpeed: 50
   maxLockOnRange: 30
@@ -82209,10 +82209,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   sensitivitySlider: {fileID: 1630443647}
-  baseMouseSensitivity: 0.5
-  baseControllerSensitivity: 2
-  minMultiplier: 0.2
-  maxMultiplier: 5
+  minMouseSensitivity: 0.1
+  maxMouseSensitivity: 5
+  controllerSensitivityMultiplier: 4
 --- !u!114 &1630443647
 MonoBehaviour:
   m_ObjectHideFlags: 0
