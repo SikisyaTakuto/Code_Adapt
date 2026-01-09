@@ -6,14 +6,19 @@ public class CameraSensitivityController : MonoBehaviour
     [Tooltip("感度を制御するための UI Slider をアタッチ")]
     public Slider sensitivitySlider;
 
-    [Header("感度の設定範囲")]
-    [Tooltip("スライダーの最小値 (0.0f) に対応するマウス感度")]
-    public float minMouseSensitivity = 1.0f; // 他のPCで動かない対策として少し底上げ
-    [Tooltip("スライダーの最大値 (1.0f) に対応するマウス感度")]
-    public float maxMouseSensitivity = 10.0f; // 他のPCで動かない対策として最大値をアップ
+    [Header("基準となる感度 (スライダー 0.5 の時の値)")]
+    [Tooltip("マウス：この値をベースにスライダーで倍率をかけます")]
+    public float baseMouseSensitivity = 0.5f;
+    [Tooltip("コントローラー：この値をベースにスライダーで倍率をかけます")]
+    public float baseControllerSensitivity = 2.0f;
 
-    [Tooltip("マウス感度に対するコントローラー感度の基準倍率")]
-    public float controllerSensitivityMultiplier = 4.0f; // 倍率を現実的な数値に調整
+    [Header("調整幅 (倍率)")]
+    [Range(0.1f, 1.0f)]
+    [Tooltip("スライダーを最小にした時に基準の何倍にするか (0.2なら0.2倍)")]
+    public float minMultiplier = 0.2f;
+    [Range(1.0f, 10.0f)]
+    [Tooltip("スライダーを最大にした時に基準の何倍にするか (5.0なら5倍)")]
+    public float maxMultiplier = 5.0f;
 
     void Start()
     {
@@ -23,28 +28,46 @@ public class CameraSensitivityController : MonoBehaviour
             return;
         }
 
-        // 1. スライダーの基本設定
+        // スライダーの範囲を 0?1 に固定
         sensitivitySlider.minValue = 0f;
         sensitivitySlider.maxValue = 1f;
 
-        // 2. スライダーを中央 (0.5) に設定
+        // 初期値を中央に設定
         sensitivitySlider.value = 0.5f;
 
-        // 3. スライダーの値が変更されたときのイベント登録
         sensitivitySlider.onValueChanged.AddListener(OnSliderValueChanged);
 
-        // 4. 初回実行：スライダーの中央値（0.5f）に基づいてカメラの感度を初期化
+        // 初回実行
         OnSliderValueChanged(sensitivitySlider.value);
     }
 
     private void OnSliderValueChanged(float sliderValue)
     {
-        // スライダーの値 (0.0 ～ 1.0) を感度範囲に変換
-        float newMouseSensitivity = Mathf.Lerp(minMouseSensitivity, maxMouseSensitivity, sliderValue);
-        float newControllerSensitivity = newMouseSensitivity * controllerSensitivityMultiplier;
+        float multiplier;
 
-        // TPSCameraController の静的プロパティに直接代入
-        TPSCameraController.MouseRotationSpeed = newMouseSensitivity;
-        TPSCameraController.ControllerRotationSpeed = newControllerSensitivity;
+        // スライダー 0.5 を境界に、下半分と上半分で倍率を計算
+        if (sliderValue <= 0.5f)
+        {
+            // 0.0(minMultiplier倍) ～ 0.5(1.0倍)
+            float t = sliderValue / 0.5f;
+            multiplier = Mathf.Lerp(minMultiplier, 1.0f, t);
+        }
+        else
+        {
+            // 0.5(1.0倍) ～ 1.0(maxMultiplier倍)
+            float t = (sliderValue - 0.5f) / 0.5f;
+            multiplier = Mathf.Lerp(1.0f, maxMultiplier, t);
+        }
+
+        // 基準値に倍率を適用
+        float newMouse = baseMouseSensitivity * multiplier;
+        float newController = baseControllerSensitivity * multiplier;
+
+        // TPSCameraController への適用
+        TPSCameraController.MouseRotationSpeed = newMouse;
+        TPSCameraController.ControllerRotationSpeed = newController;
+
+        // デバッグ用（調整が終わったら消してOK）
+        // Debug.Log($"Multiplier: {multiplier:F2} | Mouse: {newMouse:F2} | Controller: {newController:F2}");
     }
 }

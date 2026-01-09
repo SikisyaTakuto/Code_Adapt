@@ -14,7 +14,7 @@ public class TPSCameraController : MonoBehaviour
     [SerializeField] private Vector2 pitchMinMax = new Vector2(-40, 85);
 
     [Header("--- 感度設定 (初期値) ---")]
-    [SerializeField] private float initialMouseSpeed = 1.0f;
+    [SerializeField] private float initialMouseSpeed = 1f;
     [SerializeField] private float initialControllerSpeed = 2.0f;
 
     [Header("--- ロックオン設定 ---")]
@@ -177,27 +177,25 @@ public class TPSCameraController : MonoBehaviour
             return rot;
         }
 
-        // デバイス判定の修正：現在の入力デバイスから判断
         bool isGamepad = false;
         if (_playerInput != null && _playerInput.devices.Count > 0)
         {
-            // 接続されているデバイスのいずれかがGamepadであればGamepadモード
             isGamepad = _playerInput.devices.Any(d => d is Gamepad);
         }
 
-        // 入力の反映
         if (isGamepad)
         {
-            // ゲームパッド（Time.deltaTime を掛ける）
-            _yaw += _lookInput.x * _controllerRotationSpeed * Time.deltaTime;
-            _pitch -= _lookInput.y * _controllerRotationSpeed * Time.deltaTime;
+            // ゲームパッド：スティックの倒し量 × 感度 × 時間
+            _yaw += _lookInput.x * _controllerRotationSpeed * Time.deltaTime * 50f; // 50倍程度で調整しやすく
+            _pitch -= _lookInput.y * _controllerRotationSpeed * Time.deltaTime * 50f;
         }
         else
         {
-            // マウス（Time.deltaTime を掛けずに感度係数で調整）
-            // マウスのデルタ入力はフレームレートに依存しないため
-            _yaw += _lookInput.x * _mouseRotationSpeed * 0.1f;
-            _pitch -= _lookInput.y * _mouseRotationSpeed * 0.1f;
+            // マウス：デルタ値 × 感度 × 補正係数
+            // 0.1f を 0.01f 程度まで落とすと、一般的な感度設定に近づきます
+            float mouseSensitivityMultiplier = 0.01f;
+            _yaw += _lookInput.x * _mouseRotationSpeed * mouseSensitivityMultiplier;
+            _pitch -= _lookInput.y * _mouseRotationSpeed * mouseSensitivityMultiplier;
         }
 
         _pitch = Mathf.Clamp(_pitch, pitchMinMax.x, pitchMinMax.y);
