@@ -4,13 +4,15 @@ using UnityEngine;
 [RequireComponent(typeof(CharacterController))]
 public class TestBoss : MonoBehaviour
 {
-    public enum BossState { Idle, Hovering, Relocating, BeamAttack, StabbingAttack }
+    // Attack2 をステートに追加
+    public enum BossState { Idle, Hovering, Relocating, BeamAttack, StabbingAttack, Attack2 }
 
     [Header("Basic Settings")]
     [SerializeField] private BossState _currentState = BossState.Idle;
     [SerializeField] private Transform _player;
     [SerializeField] private float _maxHealth = 1000f;
     private float _currentHealth;
+    private Animator _animator;
 
     [Header("Movement Settings")]
     [SerializeField] private float _hoverSpeed = 5f;
@@ -18,28 +20,35 @@ public class TestBoss : MonoBehaviour
     [SerializeField] private float _stoppingDistance = 15f;
     [SerializeField] private float _hoverHeight = 10f;
 
-    [Header("Beam Attack (2 Bits)")]
+    [Header("Existing Beam Attack (2 Bits)")]
     [SerializeField] private Transform[] _beamBits;
     [SerializeField] private GameObject _beamEffectPrefab;
     [SerializeField] private float _beamDuration = 1.0f;
     [SerializeField] private float _beamAttackSpread = 6.0f;
 
     [Header("Stabbing Attack (4 Separate Bits)")]
-    [SerializeField] private Transform[] _stabBits;         // 配列に変更
+    [SerializeField] private Transform[] _stabBits;
     [SerializeField] private float _stabPrepareTime = 0.8f;
     [SerializeField] private float _stabDashSpeed = 55f;
     [SerializeField] private float _stabReturnSpeed = 20f;
+
+    [Header("New Attack 2 (4 Shields Beam)")]
+    [SerializeField] private Transform[] _shields;          // ボスが持っている4つの盾を登録
+    [SerializeField] private GameObject _shieldBeamPrefab;  // 盾用ビームのエフェクト
+    private float _attack2Delay = 6.0f;    // アニメ開始からビームが出るまでの時間
+    private float _attack2Duration = 12.0f; // 攻撃モーションの終了までの時間
 
     private CharacterController _controller;
     private Vector3 _targetPosition;
     private bool _isActionInProgress = false;
 
     private Vector3[] _beamBitLocalDefaults;
-    private Vector3[] _stabBitLocalDefaults;               // 配列に変更
+    private Vector3[] _stabBitLocalDefaults;
 
     void Start()
     {
         _controller = GetComponent<CharacterController>();
+        _animator = GetComponent<Animator>();
         _currentHealth = _maxHealth;
 
         if (_player == null)
@@ -53,7 +62,7 @@ public class TestBoss : MonoBehaviour
                 _beamBitLocalDefaults[i] = _beamBits[i].localPosition;
         }
 
-        // 突き刺しビット初期位置保存 (4つ分)
+        // 突き刺しビット初期位置保存
         if (_stabBits != null)
         {
             _stabBitLocalDefaults = new Vector3[_stabBits.Length];
@@ -68,8 +77,13 @@ public class TestBoss : MonoBehaviour
     {
         if (_player == null) return;
 
-        if (_currentState != BossState.BeamAttack && _currentState != BossState.StabbingAttack)
+        // 攻撃動作中（特に盾ビーム中）はLookAtを停止、またはアニメーションに任せる
+        if (_currentState != BossState.BeamAttack &&
+            _currentState != BossState.StabbingAttack &&
+            _currentState != BossState.Attack2)
+        {
             LookAtPlayer();
+        }
 
         switch (_currentState)
         {
@@ -107,12 +121,13 @@ public class TestBoss : MonoBehaviour
         else
         {
             float rand = Random.value;
-            if (rand < 0.35f)
+            // 確率を調整（Attack2を30%で追加）
+            if (rand < 0.30f)
+                StartCoroutine(ExecuteAttack2());
+            else if (rand < 0.65f)
                 StartCoroutine(ExecuteBeamAttack());
-            else if (rand < 0.7f)
-                StartCoroutine(ExecuteStabbingAttack());
             else
-                SetState(BossState.Hovering);
+                StartCoroutine(ExecuteStabbingAttack());
         }
     }
 
@@ -123,7 +138,48 @@ public class TestBoss : MonoBehaviour
     }
     #endregion
 
-    #region 突き刺し攻撃 (4つ同時)
+    #region Attack 2 (4枚の盾からビーム)
+    private IEnumerator ExecuteAttack2()
+    {
+        if (_shields == null || _shields.Length == 0 || _player == null) yield break;
+
+        _isActionInProgress = true;
+        _currentState = BossState.Attack2;
+
+        // アニメーション開始
+        if (_animator) _animator.SetTrigger("Attack2");
+
+        // 発射タイミングまで待機
+        yield return new WaitForSeconds(_attack2Delay);
+
+        // 各盾からビームを生成
+        foreach (var shield in _shields)
+        {
+            if (_shieldBeamPrefab)
+            {
+                // --- 修正ポイント：プレイヤーへの回転を計算 ---
+                // 盾の位置からプレイヤーの位置へのベクトルを計算
+                Vector3 directionToPlayer = (_player.position + Vector3.up) - shield.position;
+                // 回転を作成 (LookRotation)
+                Quaternion beamRotation = Quaternion.LookRotation(directionToPlayer);
+
+                // 計算した回転(beamRotation)を使用して生成
+                // shieldを親にすることで、ボスの移動には追従させつつ、向きは生成時のプレイヤー方向へ固定
+                GameObject beam = Instantiate(_shieldBeamPrefab, shield.position, beamRotation, shield);
+
+                Destroy(beam, _attack2Duration - _attack2Delay);
+            }
+        }
+
+        // アニメーション終了まで待機
+        yield return new WaitForSeconds(_attack2Duration - _attack2Delay);
+
+        _isActionInProgress = false;
+        _currentState = BossState.Hovering;
+    }
+    #endregion
+
+    #region 既存の攻撃 (Stabbing / Beam)
     private IEnumerator ExecuteStabbingAttack()
     {
         if (_stabBits == null || _stabBits.Length == 0 || _player == null) yield break;
@@ -135,11 +191,16 @@ public class TestBoss : MonoBehaviour
         Vector3[] startWorldPos = new Vector3[count];
         Vector3[] readyWorldPos = new Vector3[count];
 
-        // 1. 予備動作：プレイヤーを囲むように頭上に展開
+        BitCollision[] bitCollisions = new BitCollision[count];
+        for (int i = 0; i < count; i++)
+        {
+            bitCollisions[i] = _stabBits[i].GetComponent<BitCollision>();
+            if (bitCollisions[i] == null) bitCollisions[i] = _stabBits[i].gameObject.AddComponent<BitCollision>();
+        }
+
         for (int i = 0; i < count; i++)
         {
             startWorldPos[i] = _stabBits[i].position;
-            // プレイヤーの周囲に円状に配置
             float angle = i * Mathf.PI * 2f / count;
             Vector3 offset = new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle)) * 4f;
             readyWorldPos[i] = _player.position + Vector3.up * 8f + offset;
@@ -158,7 +219,8 @@ public class TestBoss : MonoBehaviour
             yield return null;
         }
 
-        // 2. 突進：各ビットがプレイヤーの現在位置へ突っ込む
+        foreach (var col in bitCollisions) col.SetColliderActive(true);
+
         Vector3 attackTarget = _player.position;
         bool allReached = false;
         float timeout = 0;
@@ -175,9 +237,9 @@ public class TestBoss : MonoBehaviour
             yield return null;
         }
 
+        foreach (var col in bitCollisions) col.SetColliderActive(false);
         yield return new WaitForSeconds(0.3f);
 
-        // 3. 帰還
         float returnElapsed = 0;
         float returnDuration = 0.8f;
         Vector3[] burstPos = new Vector3[count];
@@ -198,10 +260,7 @@ public class TestBoss : MonoBehaviour
         _isActionInProgress = false;
         _currentState = BossState.Hovering;
     }
-    #endregion
 
-    // --- 以下、移動・ビーム・LookAt 等は変更なし ---
-    #region ビーム攻撃・移動 (既存のまま)
     private IEnumerator ExecuteBeamAttack()
     {
         if (_beamBits == null || _beamBits.Length < 2) yield break;
@@ -247,7 +306,9 @@ public class TestBoss : MonoBehaviour
         _isActionInProgress = false;
         _currentState = BossState.Hovering;
     }
+    #endregion
 
+    #region 移動・補助
     private void UpdateHovering()
     {
         Vector3 hoverOffset = new Vector3(Mathf.Sin(Time.time) * 7f, _hoverHeight + Mathf.Cos(Time.time * 0.5f) * 3f, Mathf.Cos(Time.time) * 7f);
