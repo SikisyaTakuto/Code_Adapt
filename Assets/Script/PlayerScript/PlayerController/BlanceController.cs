@@ -301,43 +301,56 @@ public class BlanceController : MonoBehaviour
     }
 
     /// <summary>
-    /// 【攻撃パターン1】剣での3連撃。
+    /// 【攻撃パターン1】剣での2連撃。
+    /// 回数を3回から2回に変更し、判定時間を調整しました。
     /// </summary>
     private IEnumerator HandleComboAttackRoutine()
     {
         _isAttacking = true;
-        _rotationBeforeAttack = transform.rotation; // 攻撃終了後に元の向きに戻すため保存
+        _rotationBeforeAttack = transform.rotation;
 
-        // 攻撃開始時に一瞬だけ敵の方向を向く
         Vector3 targetPos = FindBestAutoAimTarget();
         RotateTowards(targetPos);
         Quaternion attackRotation = transform.rotation;
 
-        // 硬直（操作不能）時間を設定
+        // 硬直時間は設定された合計時間を使用
         StartAttackStun(swordComboTime + beamFiringTime);
 
         if (swordObject != null) swordObject.SetActive(true);
-        StartCoroutine(PlayMeleeSwingSounds());
 
-        float elapsed = 0;
-        while (elapsed < swordComboTime)
+        // --- 修正ポイント：2連撃に合わせて分割 ---
+        int comboCount = 2;
+        float interval = swordComboTime / (float)comboCount;
+
+        for (int i = 0; i < comboCount; i++) // 2連撃
         {
-            // アニメーションによる意図しない体の回転を強制的に抑制
-            transform.rotation = attackRotation;
+            if (audioSource != null && swordSwingSound != null) audioSource.PlayOneShot(swordSwingSound);
 
-            // 剣の当たり判定（球体判定）
-            Collider[] hits = Physics.OverlapSphere(transform.position, meleeAttackRange, enemyLayer);
-            foreach (var col in hits)
+            // 今回のスイングで叩いた敵のリストをリセット
+            HashSet<GameObject> alreadyHitEnemies = new HashSet<GameObject>();
+
+            float elapsedInSwing = 0;
+            while (elapsedInSwing < interval)
             {
-                if (col.transform != this.transform) ApplyDamageToEnemy(col, meleeDamage);
-            }
+                transform.rotation = attackRotation;
 
-            elapsed += Time.deltaTime;
-            yield return null;
+                // 剣の当たり判定
+                Collider[] hits = Physics.OverlapSphere(transform.position, meleeAttackRange, enemyLayer);
+                foreach (var col in hits)
+                {
+                    if (col.transform != this.transform && !alreadyHitEnemies.Contains(col.gameObject))
+                    {
+                        ApplyDamageToEnemy(col, meleeDamage);
+                        alreadyHitEnemies.Add(col.gameObject);
+                    }
+                }
+
+                elapsedInSwing += Time.deltaTime;
+                yield return null;
+            }
         }
 
         if (swordObject != null) swordObject.SetActive(false);
-        // 攻撃が終わったら、攻撃前の向き（カメラの向き）にゆっくり戻す
         transform.rotation = _rotationBeforeAttack;
     }
 
