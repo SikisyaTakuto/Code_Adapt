@@ -35,8 +35,10 @@ public class TestBoss : MonoBehaviour
     [Header("New Attack 2 (4 Shields Beam)")]
     [SerializeField] private Transform[] _shields;          // ボスが持っている4つの盾を登録
     [SerializeField] private GameObject _shieldBeamPrefab;  // 盾用ビームのエフェクト
-    private float _attack2Delay = 6.0f;    // アニメ開始からビームが出るまでの時間
-    private float _attack2Duration = 12.0f; // 攻撃モーションの終了までの時間
+    [SerializeField] private float _attack2Delay = 2.0f;        // アニメ開始から発射までの溜め
+    [SerializeField] private float _attack2BeamDuration = 6.0f; // ビームが出ている時間
+    [SerializeField] private float _attack2StunDuration = 12.0f; // 撃ち終わった後の硬直時間
+    [SerializeField] private float _heightMatchSpeed = 5.0f; // 高さ合わせの移動速度
 
     private CharacterController _controller;
     private Vector3 _targetPosition;
@@ -146,35 +148,72 @@ public class TestBoss : MonoBehaviour
         _isActionInProgress = true;
         _currentState = BossState.Attack2;
 
-        // アニメーション開始
+        // --- 1. 高さ合わせ ＋ 振り向きループ ---
+        // ターゲットはプレイヤーの腰～胸の高さ（足元だとビームが地面に埋まるため）
+        float heightOffset = 1.0f;
+        float moveTimeout = 2.0f; // 少し余裕を持たせる
+
+        while (moveTimeout > 0)
+        {
+            moveTimeout -= Time.deltaTime;
+
+            // プレイヤーと同じ高さ（+オフセット）のターゲット座標を計算
+            float targetY = _player.position.y + heightOffset;
+            Vector3 targetPos = new Vector3(transform.position.x, targetY, transform.position.z);
+
+            // ボスの位置を直接更新（CharacterControllerを介さずスムーズに高さを合わせる）
+            transform.position = Vector3.MoveTowards(transform.position, targetPos, _heightMatchSpeed * Time.deltaTime);
+
+            // 常にプレイヤーを向く
+            LookAtPlayer();
+
+            // 高さがほぼ一致したら移動フェーズ終了
+            if (Mathf.Abs(transform.position.y - targetY) < 0.05f) break;
+
+            yield return null;
+        }
+
+        // 2. アニメーション開始
         if (_animator) _animator.SetTrigger("Attack2");
 
-        // 発射タイミングまで待機
-        yield return new WaitForSeconds(_attack2Delay);
+        // --- 3. 発射前の溜め時間（ここでも高さを維持しながら向き続ける） ---
+        float lookTimer = 0;
+        while (lookTimer < _attack2Delay)
+        {
+            lookTimer += Time.deltaTime;
 
-        // 各盾からビームを生成
+            // 溜め中もプレイヤーがジャンプしたり段差を降りたりした場合に高さを追従
+            float currentTargetY = _player.position.y + heightOffset;
+            Vector3 updatedPos = new Vector3(transform.position.x, currentTargetY, transform.position.z);
+            transform.position = Vector3.MoveTowards(transform.position, updatedPos, _heightMatchSpeed * Time.deltaTime);
+
+            LookAtPlayer();
+            yield return null;
+        }
+
+        // 4. 各盾からビームを発射
         foreach (var shield in _shields)
         {
             if (_shieldBeamPrefab)
             {
-                // --- 修正ポイント：プレイヤーへの回転を計算 ---
-                // 盾の位置からプレイヤーの位置へのベクトルを計算
-                Vector3 directionToPlayer = (_player.position + Vector3.up) - shield.position;
-                // 回転を作成 (LookRotation)
+                // プレイヤーの胴体を狙うベクトル
+                Vector3 targetPoint = _player.position + Vector3.up * heightOffset;
+                Vector3 directionToPlayer = targetPoint - shield.position;
                 Quaternion beamRotation = Quaternion.LookRotation(directionToPlayer);
 
-                // 計算した回転(beamRotation)を使用して生成
-                // shieldを親にすることで、ボスの移動には追従させつつ、向きは生成時のプレイヤー方向へ固定
+                // ビーム生成
                 GameObject beam = Instantiate(_shieldBeamPrefab, shield.position, beamRotation, shield);
-
-                Destroy(beam, _attack2Duration - _attack2Delay);
+                Destroy(beam, _attack2BeamDuration);
             }
         }
 
-        // アニメーション終了まで待機
-        //yield return new WaitForSeconds(_attack2Duration - _attack2Delay);
-        yield return new WaitForSeconds(15.0f);
+        // 5. ビーム持続時間待機（射撃中は向きも高さも固定：ボスが踏ん張っている演出）
+        yield return new WaitForSeconds(_attack2BeamDuration);
 
+        // 6. 攻撃後の硬直時間（プレイヤーの攻撃チャンス）
+        yield return new WaitForSeconds(_attack2StunDuration);
+
+        // 7. 行動終了
         _isActionInProgress = false;
         _currentState = BossState.Hovering;
     }

@@ -18983,7 +18983,7 @@ Transform:
   m_GameObject: {fileID: 1074063152}
   serializedVersion: 2
   m_LocalRotation: {x: -0.9658217, y: 0.06783224, z: 0.23898052, w: -0.07399756}
-  m_LocalPosition: {x: -0.049397856, y: 0.21985066, z: -0.008419067}
+  m_LocalPosition: {x: -0.058, y: 0.24, z: -0.007}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -43572,6 +43572,10 @@ MonoBehaviour:
   _stabReturnSpeed: 15
   _shields: []
   _shieldBeamPrefab: {fileID: 0}
+  _attack2Delay: 6
+  _attack2BeamDuration: 6
+  _attack2StunDuration: 12
+  _heightMatchSpeed: 5
 --- !u!143 &919132147914255928
 CharacterController:
   m_ObjectHideFlags: 0
@@ -45873,6 +45877,10 @@ MonoBehaviour:
   - {fileID: 1455998250}
   - {fileID: 496795618}
   _shieldBeamPrefab: {fileID: 2416649738203431239, guid: 5a794f43573278c4398a3c9aed0d1fcd, type: 3}
+  _attack2Delay: 6
+  _attack2BeamDuration: 6
+  _attack2StunDuration: 12
+  _heightMatchSpeed: 5
 --- !u!143 &1878161688447133265
 CharacterController:
   m_ObjectHideFlags: 0
