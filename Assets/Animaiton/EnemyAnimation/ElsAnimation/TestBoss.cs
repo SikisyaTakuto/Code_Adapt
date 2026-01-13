@@ -172,7 +172,8 @@ public class TestBoss : MonoBehaviour
         }
 
         // アニメーション終了まで待機
-        yield return new WaitForSeconds(_attack2Duration - _attack2Delay);
+        //yield return new WaitForSeconds(_attack2Duration - _attack2Delay);
+        yield return new WaitForSeconds(15.0f);
 
         _isActionInProgress = false;
         _currentState = BossState.Hovering;
