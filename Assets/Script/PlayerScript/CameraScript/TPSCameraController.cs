@@ -138,7 +138,17 @@ public class TPSCameraController : MonoBehaviour
 
         UpdateLockOnUIPosition();
 
-        if (_lockOnTarget != null) RotatePlayerToLockOnTarget();
+        // --- ここを修正 ---
+        // ロックオン中なら敵の方向へ、そうでなければカメラの正面方向へプレイヤーを回転させる
+        if (_lockOnTarget != null)
+        {
+            RotatePlayerToLockOnTarget();
+        }
+        else
+        {
+            // 入力がある時だけ回転させたい場合は、ここに OnLook の入力チェックを入れるとより自然です
+            RotatePlayerToCameraDirection();
+        }
     }
 
     #endregion
@@ -332,27 +342,18 @@ public class TPSCameraController : MonoBehaviour
     {
         if (_lockOnTarget == null || target == null) return;
 
-        // 1. ターゲットへの方向ベクトルを計算
-        Vector3 directionToEnemy = _lockOnTarget.position - target.position;
+        // カメラが計算した最新の水平回転（_yaw）を基準にする
+        // これにより、カメラとプレイヤーの向きが完全に一致し、斜めになるのを防ぎます
+        Quaternion targetRotation = Quaternion.Euler(0, _yaw, 0);
 
-        // 2. Y軸（高さ）の成分を 0 にして水平方向のみにする
-        directionToEnemy.y = 0;
+        // 現在のプレイヤーの回転からも「傾き(X,Z)」を完全に無視して計算
+        Quaternion currentRotation = Quaternion.Euler(0, target.eulerAngles.y, 0);
 
-        // 3. ベクトルがほぼゼロ（重なっている状態）でないか確認
-        if (directionToEnemy.sqrMagnitude > 0.001f)
-        {
-            // 4. 水平方向を向く回転値を計算
-            Quaternion targetRotation = Quaternion.LookRotation(directionToEnemy);
-
-            // 5. プレイヤーの回転を補間（スムーズに回転）
-            // smoothSpeed * 1.5f だとカメラに追いつかない場合があるため、
-            // ロックオン時は lockOnRotationSpeed を使用するのが理想的です
-            target.rotation = Quaternion.Slerp(
-                target.rotation,
-                targetRotation,
-                Time.deltaTime * lockOnRotationSpeed // ここを専用の速度に
-            );
-        }
+        target.rotation = Quaternion.Slerp(
+            currentRotation,
+            targetRotation,
+            Time.deltaTime * lockOnRotationSpeed
+        );
     }
 
     private void HandleFixedViewMode()
@@ -369,16 +370,18 @@ public class TPSCameraController : MonoBehaviour
     {
         if (target == null) return;
 
-        // カメラの正面方向を取得し、垂直方向（Y軸）の成分をカットする
-        Vector3 cameraForward = transform.forward;
-        cameraForward.y = 0;
+        // カメラの現在の左右回転（_yaw）だけを使って、プレイヤーを直立させたまま回転させる
+        Quaternion targetRotation = Quaternion.Euler(0, _yaw, 0);
 
-        if (cameraForward.sqrMagnitude > 0.001f)
-        {
-            // カメラの水平な向きに合わせてプレイヤーを回転させる
-            Quaternion targetRotation = Quaternion.LookRotation(cameraForward);
-            target.rotation = Quaternion.Slerp(target.rotation, targetRotation, Time.deltaTime * smoothSpeed);
-        }
+        // プレイヤーの現在の回転から余計な傾きを排除
+        Quaternion currentRotation = Quaternion.Euler(0, target.eulerAngles.y, 0);
+
+        // smoothSpeed を使用してカメラの回転に追従させる
+        target.rotation = Quaternion.Slerp(
+            currentRotation,
+            targetRotation,
+            Time.deltaTime * smoothSpeed
+        );
     }
 
     /// <summary>

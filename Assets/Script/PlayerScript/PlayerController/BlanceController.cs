@@ -160,40 +160,53 @@ public class BlanceController : MonoBehaviour
     {
         if (_tpsCamController == null || _isAttacking) return;
 
-        if (_tpsCamController.LockOnTarget == null)
-            // ロックオンしていない場合はカメラの正面を向く
-            _tpsCamController.RotatePlayerToCameraDirection();
-        else
-            // ロックオン中はターゲットの方向を常に見る
+        // ロックオン中のみ、強制的にターゲットを向かせる
+        // ロックオンしていない時は、HandleHorizontalMovement 内での回転に任せる
+        if (_tpsCamController.LockOnTarget != null)
+        {
             RotateTowards(GetLockOnTargetPosition(_tpsCamController.LockOnTarget));
+        }
     }
 
     /// <summary>
-    /// キーボード入力を元に、前後左右の移動ベクトルを計算します。
+    /// キーボード入力を元に、前後左右の移動ベクトルを計算し、モデルを入力方向へ向けます。
     /// </summary>
     private Vector3 HandleHorizontalMovement()
     {
-        float h = Input.GetAxis("Horizontal");
-        float v = Input.GetAxis("Vertical");
+        float h = Input.GetAxisRaw("Horizontal"); // GetAxisRawの方がレスポンスが良い
+        float v = Input.GetAxisRaw("Vertical");
+
         if (h == 0f && v == 0f) return Vector3.zero;
 
-        // カメラの向き（Y軸のみ）を考慮して移動方向を決定
-        Vector3 moveDirection;
-        if (_tpsCamController != null)
-        {
-            Quaternion cameraRotation = Quaternion.Euler(0, _tpsCamController.transform.eulerAngles.y, 0);
-            moveDirection = cameraRotation * new Vector3(h, 0, v);
-        }
-        else
-        {
-            moveDirection = (transform.right * h + transform.forward * v);
-        }
-        moveDirection.Normalize();
+        // 1. カメラの向き（Y軸のみ）を取得
+        Vector3 cameraForward = _tpsCamController.transform.forward;
+        cameraForward.y = 0;
+        cameraForward.Normalize();
 
-        // 速度計算（基本速度 × デバフ倍率）
+        Vector3 cameraRight = _tpsCamController.transform.right;
+        cameraRight.y = 0;
+        cameraRight.Normalize();
+
+        // 2. カメラの向きを軸とした「入力方向」のベクトルを作成
+        Vector3 moveDirection = (cameraForward * v + cameraRight * h).normalized;
+
+        // 3. 【追加】入力がある場合、モデルをその進行方向に向ける
+        if (moveDirection != Vector3.zero)
+        {
+            // 攻撃中やロックオン中でなければ、移動方向にスムーズに回転
+            // ロックオン中に移動方向を向かせたくない場合は && _tpsCamController.LockOnTarget == null を追加
+            if (!_isAttacking)
+            {
+                Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
+                // 0.15fなどの数値で回転の滑らかさを調整（大きいほど速い）
+                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, 0.15f);
+            }
+        }
+
+        // 速度計算
         float currentSpeed = _moveSpeed * _debuffMoveMultiplier;
 
-        // ダッシュ処理（左Shift押し ＋ ENが残っている場合）
+        // ダッシュ処理
         bool isDashing = Input.GetKey(KeyCode.LeftShift) && playerStatus.currentEnergy > 0.1f;
         if (isDashing)
         {

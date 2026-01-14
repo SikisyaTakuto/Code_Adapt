@@ -117,35 +117,63 @@ public class SpeedController : MonoBehaviour
     /// </summary>
     private void HandleRotation()
     {
-        if (_tpsCamController == null) return;
+        if (_tpsCamController == null || _isAttacking || _isRestoringRotation) return;
 
-        if (_tpsCamController.LockOnTarget == null)
-            _tpsCamController.RotatePlayerToCameraDirection(); // 通常時：カメラの方向を向く
-        else
-            RotateTowards(GetLockOnTargetPosition(_tpsCamController.LockOnTarget)); // ロックオン時：敵の方向を向く
+        // ロックオン中のみ、強制的に敵の方向を向かせる
+        if (_tpsCamController.LockOnTarget != null)
+        {
+            RotateTowards(GetLockOnTargetPosition(_tpsCamController.LockOnTarget));
+        }
+        // 非ロックオン時の「カメラ正面を向く」処理は、
+        // HandleHorizontalMovement 内での自由旋回に任せるためここでは行わない
     }
 
     /// <summary>
     /// 水平方向（前後左右）の移動計算
     /// </summary>
+    /// <summary>
+    /// 水平方向（前後左右）の移動計算とモデルの回転処理
+    /// </summary>
     private Vector3 HandleHorizontalMovement()
     {
-        float h = Input.GetAxis("Horizontal");
-        float v = Input.GetAxis("Vertical");
+        // GetAxisRawを使用してレスポンスを向上
+        float h = Input.GetAxisRaw("Horizontal");
+        float v = Input.GetAxisRaw("Vertical");
+
         if (h == 0f && v == 0f) return Vector3.zero;
 
-        // カメラの向きに基づいた移動方向の計算
-        Vector3 moveDir = (_tpsCamController != null)
-            ? Quaternion.Euler(0, _tpsCamController.transform.eulerAngles.y, 0) * new Vector3(h, 0, v)
-            : (transform.right * h + transform.forward * v);
+        // 1. カメラの向き（Y軸のみ）を取得して基準軸を作る
+        Vector3 cameraForward = _tpsCamController.transform.forward;
+        cameraForward.y = 0;
+        cameraForward.Normalize();
 
-        // ダッシュ判定（Shiftキー + エナジー残量）
+        Vector3 cameraRight = _tpsCamController.transform.right;
+        cameraRight.y = 0;
+        cameraRight.Normalize();
+
+        // 2. カメラ基準の移動方向を計算
+        Vector3 moveDir = (cameraForward * v + cameraRight * h).normalized;
+
+        // 3. 【追加】入力がある場合、モデルをその進行方向に向ける
+        // 攻撃中や硬直中でない時のみ実行
+        if (moveDir != Vector3.zero && !_isAttacking && !_isStunned && !_isRestoringRotation)
+        {
+            // ロックオンしていない時は自由旋回
+            if (_tpsCamController.LockOnTarget == null)
+            {
+                Quaternion targetRotation = Quaternion.LookRotation(moveDir);
+                // スピードモードなので少し速めの 0.2f で回転（滑らかさ）
+                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, 0.2f);
+            }
+        }
+
+        // ダッシュ判定
         bool isDashing = Input.GetKey(KeyCode.LeftShift) && playerStatus.currentEnergy > 0.1f;
         float currentSpeed = (isDashing ? _moveSpeed * dashMultiplier : _moveSpeed) * _debuffMoveMultiplier;
 
         if (isDashing) playerStatus.ConsumeEnergy(15.0f * Time.deltaTime);
 
-        return moveDir.normalized * currentSpeed;
+        return moveDir * currentSpeed;
     }
 
     /// <summary>
