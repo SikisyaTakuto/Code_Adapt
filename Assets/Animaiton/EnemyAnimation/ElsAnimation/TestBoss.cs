@@ -4,6 +4,9 @@ using UnityEngine;
 [RequireComponent(typeof(CharacterController))]
 public class TestBoss : MonoBehaviour
 {
+    // ボスの動きを制御するためのフラグ
+    public bool isActivated = false;
+
     // Attack2 をステートに追加
     public enum BossState { Idle, Hovering, Relocating, BeamAttack, StabbingAttack, Attack2, Attack1 }
 
@@ -84,24 +87,27 @@ public class TestBoss : MonoBehaviour
 
     void Update()
     {
-        if (_player == null) return;
-
-        // 攻撃動作中（特に盾ビーム中）はLookAtを停止、またはアニメーションに任せる
-        if (_currentState != BossState.BeamAttack &&
-            _currentState != BossState.StabbingAttack &&
-            _currentState != BossState.Attack2)
+        if (isActivated)
         {
-            LookAtPlayer();
-        }
+            if (_player == null) return;
 
-        switch (_currentState)
-        {
-            case BossState.Hovering:
-                UpdateHovering();
-                break;
-            case BossState.Relocating:
-                MoveTowardsTarget(_relocateSpeed, 1.0f);
-                break;
+            // 攻撃動作中（特に盾ビーム中）はLookAtを停止、またはアニメーションに任せる
+            if (_currentState != BossState.BeamAttack &&
+                _currentState != BossState.StabbingAttack &&
+                _currentState != BossState.Attack2)
+            {
+                LookAtPlayer();
+            }
+
+            switch (_currentState)
+            {
+                case BossState.Hovering:
+                    UpdateHovering();
+                    break;
+                case BossState.Relocating:
+                    MoveTowardsTarget(_relocateSpeed, 1.0f);
+                    break;
+            }
         }
     }
 
@@ -167,7 +173,7 @@ public class TestBoss : MonoBehaviour
         shieldCol.SetColliderActive(false);
 
         // 硬直
-        yield return new WaitForSeconds(0.5f);
+        yield return new WaitForSeconds(6.0f);
 
         _isActionInProgress = false;
         _currentState = BossState.Hovering;
