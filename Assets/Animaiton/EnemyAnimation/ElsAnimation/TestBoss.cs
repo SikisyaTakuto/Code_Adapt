@@ -50,6 +50,16 @@ public class TestBoss : MonoBehaviour
     [SerializeField] private float _attack2StunDuration = 12.0f; // 撃ち終わった後の硬直時間
     [SerializeField] private float _heightMatchSpeed = 5.0f; // 高さ合わせの移動速度
 
+    [Header("--- Collision Settings ---")]
+    [SerializeField] private LayerMask _wallLayer;    // 壁用レイヤー
+    [SerializeField] private LayerMask _ceilingLayer; // 天井用レイヤー
+    [SerializeField] private float _collisionCheckRadius = 2.0f;// ボスの衝突判定サイズ
+    [SerializeField] private int _maxRelocateAttempts = 15;// 再ポジショニングの最大試行回数
+
+    private int _combinedCollisionLayers => _wallLayer | _ceilingLayer;
+    private float _relocateTimer = 0f;
+    private const float RELOCATE_TIMEOUT = 3.0f; // 3秒経っても着かなければ諦める
+
     private CharacterController _controller;
     private Vector3 _targetPosition;
     private bool _isActionInProgress = false;
@@ -91,7 +101,6 @@ public class TestBoss : MonoBehaviour
         {
             if (_player == null) return;
 
-            // 攻撃動作中（特に盾ビーム中）はLookAtを停止、またはアニメーションに任せる
             if (_currentState != BossState.BeamAttack &&
                 _currentState != BossState.StabbingAttack &&
                 _currentState != BossState.Attack2)
@@ -105,7 +114,16 @@ public class TestBoss : MonoBehaviour
                     UpdateHovering();
                     break;
                 case BossState.Relocating:
-                    MoveTowardsTarget(_relocateSpeed, 1.0f);
+                    // 移動中に壁にぶつかりそうかチェック
+                    if (IsHeadingIntoWall())
+                    {
+                        // 壁があったら再度新しい位置を探す
+                        SetState(BossState.Relocating, GetRandomPositionNearPlayer());
+                    }
+                    else
+                    {
+                        MoveTowardsTarget(_relocateSpeed, 1.5f);
+                    }
                     break;
             }
         }
@@ -126,20 +144,21 @@ public class TestBoss : MonoBehaviour
 
     private void ChooseNextAction()
     {
+        // 常に最新の距離で判定
         float distance = Vector3.Distance(transform.position, _player.position);
 
         if (distance > _stoppingDistance + 5f)
         {
             _isActionInProgress = true;
+            // プレイヤーの「今の位置」の近くをターゲットにする
             SetState(BossState.Relocating, GetRandomPositionNearPlayer());
         }
         else
         {
             float rand = Random.value;
-            // 3つの攻撃を均等に近い確率で実行
-            if (rand < 0.3f) StartCoroutine(ExecuteAttack1()); // 薙ぎ払い
-            else if (rand < 0.6f) StartCoroutine(ExecuteAttack2()); // ビーム
-            else StartCoroutine(ExecuteStabbingAttack()); // 突き
+            if (rand < 0.3f) StartCoroutine(ExecuteAttack1());
+            else if (rand < 0.6f) StartCoroutine(ExecuteAttack2());
+            else StartCoroutine(ExecuteStabbingAttack());
         }
     }
 
@@ -149,31 +168,34 @@ public class TestBoss : MonoBehaviour
         _isActionInProgress = true;
         _currentState = BossState.Attack1;
 
-        // 1. プレイヤーに急速接近
-        while (Vector3.Distance(transform.position, _player.position) > _swipeDistance)
+        // 1. プレイヤーに急速接近 (プレイヤーが逃げても追い続ける)
+        float approachTimeout = 3.0f;
+        while (Vector3.Distance(transform.position, _player.position) > _swipeDistance && approachTimeout > 0)
         {
-            Vector3 targetPos = _player.position + (transform.position - _player.position).normalized * _swipeDistance;
-            targetPos.y = _player.position.y + 2f; // 少し浮いた位置を維持
-            transform.position = Vector3.MoveTowards(transform.position, targetPos, _swipeApproachSpeed * Time.deltaTime);
+            approachTimeout -= Time.deltaTime;
+
+            // ターゲット地点を毎フレーム、プレイヤーの「最新位置」に基づいて更新
+            Vector3 toMe = (transform.position - _player.position).normalized;
+            Vector3 currentTargetPos = _player.position + toMe * _swipeDistance;
+            currentTargetPos.y = _player.position.y + 2f;
+
+            transform.position = Vector3.MoveTowards(transform.position, currentTargetPos, _swipeApproachSpeed * Time.deltaTime);
             LookAtPlayer();
             yield return null;
         }
 
-        // 2. アニメーション再生
+        // 2. 攻撃アニメーション実行 (以下略)
         if (_animator) _animator.SetTrigger("Attack1");
 
-        // 3. 当たり判定の有効化 (BitCollisionスクリプトを盾にも付けておく)
         BitCollision shieldCol = _swipeShield.GetComponent<BitCollision>();
         if (shieldCol == null) shieldCol = _swipeShield.gameObject.AddComponent<BitCollision>();
 
         yield return new WaitForSeconds(_swipeHitActiveTime);
         shieldCol.SetColliderActive(true);
-
         yield return new WaitForSeconds(_swipeHitDuration);
         shieldCol.SetColliderActive(false);
 
-        // 硬直
-        yield return new WaitForSeconds(6.0f);
+        yield return new WaitForSeconds(3.0f); // 硬直短縮
 
         _isActionInProgress = false;
         _currentState = BossState.Hovering;
@@ -398,21 +420,86 @@ public class TestBoss : MonoBehaviour
     #region 移動・補助
     private void UpdateHovering()
     {
-        Vector3 hoverOffset = new Vector3(Mathf.Sin(Time.time) * 7f, _hoverHeight + Mathf.Cos(Time.time * 0.5f) * 3f, Mathf.Cos(Time.time) * 7f);
-        _controller.Move(((_player.position + hoverOffset) - transform.position) * _hoverSpeed * Time.deltaTime);
+        // プレイヤーの周囲を浮遊（常に最新の _player.position を基準にする）
+        Vector3 hoverOffset = new Vector3(Mathf.Sin(Time.time) * 7f, _hoverHeight, Mathf.Cos(Time.time) * 7f);
+        Vector3 targetHoverPos = _player.position + hoverOffset;
+
+        Vector3 moveDir = (targetHoverPos - transform.position);
+
+        // 壁と天井の両方をチェック
+        if (!Physics.SphereCast(transform.position, _collisionCheckRadius, moveDir.normalized, out _, 1.0f, _combinedCollisionLayers))
+        {
+            _controller.Move(moveDir * _hoverSpeed * Time.deltaTime);
+        }
     }
 
     private void MoveTowardsTarget(float speed, float stopRange)
     {
         Vector3 dir = (_targetPosition - transform.position);
-        if (dir.magnitude > stopRange) _controller.Move(dir.normalized * speed * Time.deltaTime);
-        else { _isActionInProgress = false; _currentState = BossState.Hovering; }
+        _relocateTimer += Time.deltaTime;
+
+        // 到着したか、あるいはタイムアウト（スタック防止）
+        if (dir.magnitude > stopRange && _relocateTimer < RELOCATE_TIMEOUT)
+        {
+            _controller.Move(dir.normalized * speed * Time.deltaTime);
+        }
+        else
+        {
+            _relocateTimer = 0f;
+            _isActionInProgress = false;
+            _currentState = BossState.Hovering;
+        }
     }
 
+    /// <summary>
+    /// 進んでいる方向に壁があるかチェック
+    /// </summary>
+    private bool IsHeadingIntoWall()
+    {
+        Vector3 direction = (_targetPosition - transform.position).normalized;
+        // 壁または天井にぶつかりそうか
+        return Physics.SphereCast(transform.position, _collisionCheckRadius, direction, out _, 2.0f, _combinedCollisionLayers);
+    }
+
+    /// <summary>
+    /// 安全な座標（壁の中にない座標）を取得する
+    /// </summary>
     private Vector3 GetRandomPositionNearPlayer()
     {
-        Vector2 randomCircle = Random.insideUnitCircle.normalized * _stoppingDistance;
-        return _player.position + new Vector3(randomCircle.x, _hoverHeight + Random.Range(-3f, 6f), randomCircle.y);
+        Vector3 finalPos = transform.position;
+        bool foundSafePos = false;
+
+        for (int i = 0; i < _maxRelocateAttempts; i++)
+        {
+            // プレイヤーの「現在の位置」を基準にランダム地点を計算
+            Vector2 randomCircle = Random.insideUnitCircle.normalized * _stoppingDistance;
+            Vector3 candidatePos = _player.position + new Vector3(randomCircle.x, _hoverHeight + Random.Range(-2f, 4f), randomCircle.y);
+
+            // 1. 壁や天井の中に埋まっていないか
+            if (!Physics.CheckSphere(candidatePos, _collisionCheckRadius, _combinedCollisionLayers))
+            {
+                // 2. 天井を突き抜けていないか（ candidatePos のすぐ上に天井がないか厳密にチェック）
+                if (!Physics.Raycast(candidatePos, Vector3.up, 3.0f, _ceilingLayer))
+                {
+                    // 3. 移動経路に壁がないか
+                    Vector3 dir = (candidatePos - transform.position);
+                    if (!Physics.Raycast(transform.position, dir.normalized, dir.magnitude, _wallLayer))
+                    {
+                        finalPos = candidatePos;
+                        foundSafePos = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // 安全な場所がない場合、プレイヤーから少し離れただけの場所を返す（初期位置に戻らない）
+        if (!foundSafePos)
+        {
+            finalPos = transform.position; // その場に留まる
+        }
+
+        return finalPos;
     }
 
     private void LookAtPlayer()
