@@ -432,6 +432,15 @@ public class BlanceController : MonoBehaviour
         GameObject target = hitCollider.gameObject;
         bool isHit = false;
 
+        // --- 1. ボス(TestBoss)への判定を追加 ---
+        // 直接のオブジェクト、または親階層に TestBoss がついているか確認
+        var boss = target.GetComponentInParent<TestBoss>();
+        if (boss != null)
+        {
+            boss.TakeDamage(damage);
+            isHit = true;
+        }
+
         // 敵の種類（各コンポーネント）に応じてダメージを適用
         if (target.TryGetComponent<SoldierMoveEnemy>(out var s1)) { s1.TakeDamage(damage); isHit = true; }
         else if (target.TryGetComponent<SoliderEnemy>(out var s2)) { s2.TakeDamage(damage); isHit = true; }

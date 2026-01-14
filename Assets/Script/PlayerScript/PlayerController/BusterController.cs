@@ -457,6 +457,14 @@ public class BusterController : MonoBehaviour
         GameObject target = hitCollider.gameObject;
         bool isHit = false;
 
+        // --- 1. ボス(TestBoss)への判定を追加 ---
+        var boss = target.GetComponentInParent<TestBoss>();
+        if (boss != null)
+        {
+            boss.TakeDamage(damageAmount);
+            isHit = true;
+        }
+
         // 敵の各部位や種類に応じたダメージスクリプトの取得を試みる（ポリモーフィズムがない場合の暫定処理）
         if (target.TryGetComponent<SoldierMoveEnemy>(out var s1)) { s1.TakeDamage(damageAmount); isHit = true; }
         else if (target.TryGetComponent<SoliderEnemy>(out var s2)) { s2.TakeDamage(damageAmount); isHit = true; }

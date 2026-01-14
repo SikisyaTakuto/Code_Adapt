@@ -389,6 +389,15 @@ public class SpeedController : MonoBehaviour
         Component[] components = hitCollider.GetComponentsInParent<Component>();
         foreach (var comp in components)
         {
+            // --- 1. ボス(TestBoss)への判定を追加 ---
+            if (comp is TestBoss boss)
+            {
+                boss.TakeDamage(damageAmount);
+                isHit = true;
+                break; // 判定が見つかったのでループを抜ける
+            }
+
+            // --- 2. 既存の雑魚敵・部位への判定 ---
             if (comp is SoldierMoveEnemy s1) { s1.TakeDamage(damageAmount); isHit = true; break; }
             if (comp is SoliderEnemy s2) { s2.TakeDamage(damageAmount); isHit = true; break; }
             if (comp is TutorialEnemyController s3) { s3.TakeDamage(damageAmount); isHit = true; break; }

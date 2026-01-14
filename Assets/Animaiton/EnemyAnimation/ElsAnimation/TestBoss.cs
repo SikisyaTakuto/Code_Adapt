@@ -13,8 +13,9 @@ public class TestBoss : MonoBehaviour
     [Header("Basic Settings")]
     [SerializeField] private BossState _currentState = BossState.Idle;
     [SerializeField] private Transform _player;
-    [SerializeField] private float _maxHealth = 1000f;
+    [SerializeField] private float _maxHealth = 2000f; // É{ÉXÇ»ÇÃÇ≈ëΩÇﬂÇ…ê›íË
     private float _currentHealth;
+    private bool _isDead = false;
     private Animator _animator;
 
     [Header("Movement Settings")]
