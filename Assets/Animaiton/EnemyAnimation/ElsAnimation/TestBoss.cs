@@ -14,6 +14,7 @@ public class TestBoss : MonoBehaviour
     [SerializeField] private BossState _currentState = BossState.Idle;
     [SerializeField] private Transform _player;
     [SerializeField] private float _maxHealth = 2000f; // ボスなので多めに設定
+    public UnityEngine.UI.Slider bossHpBar;
     private float _currentHealth;
     private bool _isDead = false;
     private Animator _animator;
@@ -72,7 +73,9 @@ public class TestBoss : MonoBehaviour
     {
         _controller = GetComponent<CharacterController>();
         _animator = GetComponent<Animator>();
+        bossHpBar.gameObject.SetActive(false);
         _currentHealth = _maxHealth;
+        bossHpBar.value = 1;
 
         if (_player == null)
             _player = GameObject.FindGameObjectWithTag("Player")?.transform;
@@ -98,6 +101,12 @@ public class TestBoss : MonoBehaviour
 
     void Update()
     {
+        // アクティブ化されたらHPバーを表示
+        if (isActivated && !bossHpBar.gameObject.activeSelf)
+        {
+            bossHpBar.gameObject.SetActive(true);
+        }
+
         if (isActivated)
         {
             if (_player == null) return;
@@ -512,6 +521,8 @@ public class TestBoss : MonoBehaviour
     public void TakeDamage(float amount)
     {
         _currentHealth -= amount;
+
+        bossHpBar.value = (float)_currentHealth / (float)_maxHealth;
         if (_currentHealth <= 0) Die();
     }
 
