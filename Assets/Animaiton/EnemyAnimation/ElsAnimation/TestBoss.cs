@@ -5,7 +5,7 @@ using UnityEngine;
 public class TestBoss : MonoBehaviour
 {
     // Attack2 をステートに追加
-    public enum BossState { Idle, Hovering, Relocating, BeamAttack, StabbingAttack, Attack2 }
+    public enum BossState { Idle, Hovering, Relocating, BeamAttack, StabbingAttack, Attack2, Attack1 }
 
     [Header("Basic Settings")]
     [SerializeField] private BossState _currentState = BossState.Idle;
@@ -20,6 +20,13 @@ public class TestBoss : MonoBehaviour
     [SerializeField] private float _stoppingDistance = 15f;
     [SerializeField] private float _hoverHeight = 10f;
 
+    [Header("Attack 1 (Shield Swipe)")]
+    [SerializeField] private Transform _swipeShield;       // 薙ぎ払いに使う盾
+    [SerializeField] private float _swipeApproachSpeed = 25f; // 接近速度
+    [SerializeField] private float _swipeDistance = 4f;    // 攻撃を開始する距離
+    [SerializeField] private float _swipeHitActiveTime = 0.4f; // 当たり判定が出るまでの遅延
+    [SerializeField] private float _swipeHitDuration = 0.5f;   // 当たり判定が出ている時間
+
     [Header("Existing Beam Attack (2 Bits)")]
     [SerializeField] private Transform[] _beamBits;
     [SerializeField] private GameObject _beamEffectPrefab;
@@ -32,7 +39,7 @@ public class TestBoss : MonoBehaviour
     [SerializeField] private float _stabDashSpeed = 55f;
     [SerializeField] private float _stabReturnSpeed = 20f;
 
-    [Header("New Attack 2 (4 Shields Beam)")]
+    [Header("Attack 2 (4 Shields Beam)")]
     [SerializeField] private Transform[] _shields;          // ボスが持っている4つの盾を登録
     [SerializeField] private GameObject _shieldBeamPrefab;  // 盾用ビームのエフェクト
     [SerializeField] private float _attack2Delay = 2.0f;        // アニメ開始から発射までの溜め
@@ -123,15 +130,49 @@ public class TestBoss : MonoBehaviour
         else
         {
             float rand = Random.value;
-            // 確率を調整（Attack2を30%で追加）
-            if (rand < 0.30f)
-                StartCoroutine(ExecuteAttack2());
-            else if (rand < 0.65f)
-                StartCoroutine(ExecuteBeamAttack());
-            else
-                StartCoroutine(ExecuteStabbingAttack());
+            // 3つの攻撃を均等に近い確率で実行
+            if (rand < 0.3f) StartCoroutine(ExecuteAttack1()); // 薙ぎ払い
+            else if (rand < 0.6f) StartCoroutine(ExecuteAttack2()); // ビーム
+            else StartCoroutine(ExecuteStabbingAttack()); // 突き
         }
     }
+
+    #region Attack 1 (薙ぎ払い攻撃)
+    private IEnumerator ExecuteAttack1()
+    {
+        _isActionInProgress = true;
+        _currentState = BossState.Attack1;
+
+        // 1. プレイヤーに急速接近
+        while (Vector3.Distance(transform.position, _player.position) > _swipeDistance)
+        {
+            Vector3 targetPos = _player.position + (transform.position - _player.position).normalized * _swipeDistance;
+            targetPos.y = _player.position.y + 2f; // 少し浮いた位置を維持
+            transform.position = Vector3.MoveTowards(transform.position, targetPos, _swipeApproachSpeed * Time.deltaTime);
+            LookAtPlayer();
+            yield return null;
+        }
+
+        // 2. アニメーション再生
+        if (_animator) _animator.SetTrigger("Attack1");
+
+        // 3. 当たり判定の有効化 (BitCollisionスクリプトを盾にも付けておく)
+        BitCollision shieldCol = _swipeShield.GetComponent<BitCollision>();
+        if (shieldCol == null) shieldCol = _swipeShield.gameObject.AddComponent<BitCollision>();
+
+        yield return new WaitForSeconds(_swipeHitActiveTime);
+        shieldCol.SetColliderActive(true);
+
+        yield return new WaitForSeconds(_swipeHitDuration);
+        shieldCol.SetColliderActive(false);
+
+        // 硬直
+        yield return new WaitForSeconds(0.5f);
+
+        _isActionInProgress = false;
+        _currentState = BossState.Hovering;
+    }
+    #endregion
 
     private void SetState(BossState newState, Vector3 targetPos = default)
     {
