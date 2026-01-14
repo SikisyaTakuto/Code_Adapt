@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 [RequireComponent(typeof(CharacterController))]
 public class TestBoss : MonoBehaviour
@@ -528,8 +529,30 @@ public class TestBoss : MonoBehaviour
 
     private void Die()
     {
+        if (_isDead) return; // 二重実行防止
+        _isDead = true;
+
         StopAllCoroutines();
-        Destroy(gameObject);
+
+        Debug.Log("ボス撃破！");
+
+        // 1. ミッションマネージャーに完了を通知
+        if (MissionManager.Instance != null)
+        {
+            MissionManager.Instance.CompleteCurrentMission();
+        }
+
+        // 2. シーン遷移 (少し余韻を持たせるなら Invoke を使用)
+        // 直接遷移する場合：
+        // SceneManager.LoadScene("ClearScene2");
+
+        // 3秒後にクリアシーンへ移動（爆発エフェクトなどを見せる時間）
+        Invoke(nameof(GoToClearScene), 3.0f);
+    }
+
+    private void GoToClearScene()
+    {
+        SceneManager.LoadScene("ClearScene2");
     }
     #endregion
 }

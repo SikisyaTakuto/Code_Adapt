@@ -65450,7 +65450,7 @@ MonoBehaviour:
   sceneMappings:
   - gameSceneName: TutorialScene
     gameOverSceneName: GameOverScene
-  defaultGameOverSceneName: GameOverScene
+  defaultGameOverSceneName: GameOverScene 2
 --- !u!114 &1594058236
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -90955,7 +90955,8 @@ MonoBehaviour:
   isActivated: 0
   _currentState: 0
   _player: {fileID: 1569446823}
-  _maxHealth: 50000
+  _maxHealth: 1000
+  bossHpBar: {fileID: 1047491482}
   _hoverSpeed: 5
   _relocateSpeed: 20
   _stoppingDistance: 15
