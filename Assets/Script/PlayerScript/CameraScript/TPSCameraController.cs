@@ -168,13 +168,20 @@ public class TPSCameraController : MonoBehaviour
     {
         if (_lockOnTarget != null)
         {
-            Vector3 dir = (_lookTargetPosition - transform.position).normalized;
-            if (dir == Vector3.zero) return transform.rotation;
-            Quaternion rot = Quaternion.LookRotation(dir);
-            _yaw = rot.eulerAngles.y;
-            _pitch = rot.eulerAngles.x;
-            if (_pitch > 180) _pitch -= 360;
-            return rot;
+            // 注目点（敵の胸あたりなど）への方向
+            Vector3 lookAtPos = _lockOnTarget.position + Vector3.up * 1.5f;
+            Vector3 dir = (lookAtPos - transform.position).normalized;
+
+            if (dir != Vector3.zero)
+            {
+                Quaternion rot = Quaternion.LookRotation(dir);
+                // 現在の yaw, pitch を更新しておく（ロックオン解除時にカメラが飛ばないように）
+                Vector3 rotEuler = rot.eulerAngles;
+                _yaw = rotEuler.y;
+                _pitch = rotEuler.x;
+                if (_pitch > 180) _pitch -= 360;
+                return rot;
+            }
         }
 
         bool isGamepad = false;
@@ -323,9 +330,29 @@ public class TPSCameraController : MonoBehaviour
 
     public void RotatePlayerToLockOnTarget()
     {
-        Vector3 d = Vector3.ProjectOnPlane(_lockOnTarget.position - target.position, Vector3.up);
-        if (d.sqrMagnitude < 0.001f) return;
-        target.rotation = Quaternion.Slerp(target.rotation, Quaternion.LookRotation(d), Time.deltaTime * smoothSpeed * 1.5f);
+        if (_lockOnTarget == null || target == null) return;
+
+        // 1. ターゲットへの方向ベクトルを計算
+        Vector3 directionToEnemy = _lockOnTarget.position - target.position;
+
+        // 2. Y軸（高さ）の成分を 0 にして水平方向のみにする
+        directionToEnemy.y = 0;
+
+        // 3. ベクトルがほぼゼロ（重なっている状態）でないか確認
+        if (directionToEnemy.sqrMagnitude > 0.001f)
+        {
+            // 4. 水平方向を向く回転値を計算
+            Quaternion targetRotation = Quaternion.LookRotation(directionToEnemy);
+
+            // 5. プレイヤーの回転を補間（スムーズに回転）
+            // smoothSpeed * 1.5f だとカメラに追いつかない場合があるため、
+            // ロックオン時は lockOnRotationSpeed を使用するのが理想的です
+            target.rotation = Quaternion.Slerp(
+                target.rotation,
+                targetRotation,
+                Time.deltaTime * lockOnRotationSpeed // ここを専用の速度に
+            );
+        }
     }
 
     private void HandleFixedViewMode()
