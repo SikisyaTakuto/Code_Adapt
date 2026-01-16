@@ -531,7 +531,7 @@ public class TestBoss : MonoBehaviour
     {
         if (_isDead) return; // 二重実行防止
         _isDead = true;
-
+        isActivated = false;
         StopAllCoroutines();
 
         Debug.Log("ボス撃破！");
