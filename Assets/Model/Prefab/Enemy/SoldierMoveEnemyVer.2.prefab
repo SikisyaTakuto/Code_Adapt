@@ -475,7 +475,7 @@ MonoBehaviour:
   shootDuration: 0.5
   maxAmmo: 10
   reloadTime: 3
-  bulletPrefab: {fileID: 1877806789679844970, guid: 4b58e66d44c5e66408f91609aab1bad4, type: 3}
+  bulletPrefab: {fileID: 2122773977752915486, guid: f0a4b39bf56e66441a35c283f802d0ab, type: 3}
   muzzlePoint: {fileID: 3177394728276170781}
   shootSound: {fileID: 8300000, guid: c4b65ca2929b9d14382891611ed72d56, type: 3}
 --- !u!82 &1052159033580850742
@@ -500,9 +500,9 @@ AudioSource:
   Priority: 128
   DopplerLevel: 1
   MinDistance: 1
-  MaxDistance: 500
+  MaxDistance: 30
   Pan2D: 0
-  rolloffMode: 0
+  rolloffMode: 2
   BypassEffects: 0
   BypassListenerEffects: 0
   BypassReverbZones: 0
@@ -535,7 +535,7 @@ AudioSource:
     m_Curve:
     - serializedVersion: 3
       time: 0
-      value: 0
+      value: 1
       inSlope: 0
       outSlope: 0
       tangentMode: 0
@@ -3212,7 +3212,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2849172739826964573, guid: fcb50aebdc5f92f4ca69f9e10f93b429, type: 3}
       propertyPath: m_Layer
-      value: 9
+      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 6478093414801024802, guid: fcb50aebdc5f92f4ca69f9e10f93b429, type: 3}
       propertyPath: m_LocalScale.x

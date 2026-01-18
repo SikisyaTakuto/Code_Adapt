@@ -17,16 +17,12 @@ public class BlanceController : MonoBehaviour
     [Header("Core Components")]
     [Tooltip("移動を制御する標準コンポーネント")]
     [SerializeField] private CharacterController _playerController;
-
     [Tooltip("カメラ制御スクリプト（ロックオン情報の取得に使用）")]
     [SerializeField] private TPSCameraController _tpsCamController;
-
     [Tooltip("武器やアーマーの見た目・ステータス倍率を管理")]
     public PlayerModesAndVisuals _modesAndVisuals;
-
     [Tooltip("HPやエネルギーの残量を管理")]
     public PlayerStatus playerStatus;
-
     [Header("Attack VFX & Points")]
     [Tooltip("遠距離攻撃用ビームのプレハブ")]
     public BeamController beamPrefab;
@@ -63,9 +59,9 @@ public class BlanceController : MonoBehaviour
     public float lockOnTargetHeightOffset = 1.0f; // 非コライダー対象を狙う際の高さ補正
 
     [Header("Animation Timings")]
-    public float swordComboTime = 1.5f;     // 剣を振っている間の時間
-    public float beamFiringTime = 1.0f;    // ビームを照射している時間
-    public float doubleGunDuration = 1.2f; // 2丁拳銃攻撃時の移動不能時間
+    public float swordComboTime = 0.8f;     // 剣を振っている（判定がある）時間
+    public float doubleGunDuration = 3.0f;  // 2.0から3.0へ：照射時間を長く
+    public float attackRecoveryTime = 1.5f; // 0.5から1.5へ：撃ち終わった後の硬直を大幅に増加
     public float landStunDuration = 0.2f;  // 着地時に発生する短い硬直時間
 
     [Header("Audio Resources")]
@@ -195,10 +191,9 @@ public class BlanceController : MonoBehaviour
         {
             // 攻撃中やロックオン中でなければ、移動方向にスムーズに回転
             // ロックオン中に移動方向を向かせたくない場合は && _tpsCamController.LockOnTarget == null を追加
-            if (!_isAttacking)
+            if (!_isAttacking && !_isStunned)
             {
                 Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
-                // 0.15fなどの数値で回転の滑らかさを調整（大きいほど速い）
                 transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, 0.15f);
             }
         }
@@ -294,6 +289,13 @@ public class BlanceController : MonoBehaviour
     {
         bool isAttack2 = (_modesAndVisuals.CurrentWeaponMode == PlayerModesAndVisuals.WeaponMode.Attack2);
 
+        // ロックオンしている時だけ、攻撃開始時に敵の方を向く
+        if (_tpsCamController != null && _tpsCamController.LockOnTarget != null)
+        {
+            Vector3 targetPos = FindBestAutoAimTarget();
+            RotateTowards(targetPos);
+        }
+
         // アクティブなアーマーのアニメーションスクリプトを自動取得
         BalanceAnimation balAnim = GetComponentInChildren<BalanceAnimation>(true);
         BusterAnimation busAnim = GetComponentInChildren<BusterAnimation>(true);
@@ -320,34 +322,23 @@ public class BlanceController : MonoBehaviour
     private IEnumerator HandleComboAttackRoutine()
     {
         _isAttacking = true;
-        _rotationBeforeAttack = transform.rotation;
-
-        Vector3 targetPos = FindBestAutoAimTarget();
-        RotateTowards(targetPos);
-        Quaternion attackRotation = transform.rotation;
-
-        // 硬直時間は設定された合計時間を使用
-        StartAttackStun(swordComboTime + beamFiringTime);
+        // 合計硬直時間 = 攻撃時間 + 後隙
+        StartAttackStun(swordComboTime + attackRecoveryTime);
 
         if (swordObject != null) swordObject.SetActive(true);
 
-        // --- 修正ポイント：2連撃に合わせて分割 ---
         int comboCount = 2;
         float interval = swordComboTime / (float)comboCount;
 
-        for (int i = 0; i < comboCount; i++) // 2連撃
+        for (int i = 0; i < comboCount; i++)
         {
             if (audioSource != null && swordSwingSound != null) audioSource.PlayOneShot(swordSwingSound);
-
-            // 今回のスイングで叩いた敵のリストをリセット
             HashSet<GameObject> alreadyHitEnemies = new HashSet<GameObject>();
-
             float elapsedInSwing = 0;
+
             while (elapsedInSwing < interval)
             {
-                transform.rotation = attackRotation;
-
-                // 剣の当たり判定
+                // 攻撃中は回転を固定（またはターゲット追従）
                 Collider[] hits = Physics.OverlapSphere(transform.position, meleeAttackRange, enemyLayer);
                 foreach (var col in hits)
                 {
@@ -357,14 +348,16 @@ public class BlanceController : MonoBehaviour
                         alreadyHitEnemies.Add(col.gameObject);
                     }
                 }
-
                 elapsedInSwing += Time.deltaTime;
                 yield return null;
             }
         }
 
         if (swordObject != null) swordObject.SetActive(false);
-        transform.rotation = _rotationBeforeAttack;
+
+        // 攻撃判定は消えたが、まだ _isStunned なので動けない状態が続く
+        yield return new WaitForSeconds(attackRecoveryTime);
+        _isAttacking = false;
     }
 
     /// <summary>
@@ -373,23 +366,44 @@ public class BlanceController : MonoBehaviour
     private void HandleDoubleGunAttack()
     {
         if (!playerStatus.ConsumeEnergy(beamAttackEnergyCost)) return;
+        _isAttacking = true;
         StartCoroutine(DoubleGunRoutine());
     }
 
     private IEnumerator DoubleGunRoutine()
     {
-        _rotationBeforeAttack = transform.rotation;
-        StartAttackStun(doubleGunDuration);
+        // 合計硬直時間 = 照射時間 + 後隙
+        StartAttackStun(doubleGunDuration + attackRecoveryTime);
 
         if (swordObject != null) swordObject.SetActive(false);
 
-        // ビーム発射（同時にターゲットの方向を向く）
-        Vector3 target = FireDualBeams();
-        RotateTowards(target);
+        float elapsed = 0f;
+        float fireInterval = 0.1f;
+        float nextFireTime = 0f;
 
-        yield return new WaitForSeconds(doubleGunDuration);
+        // ビーム照射フェーズ
+        while (elapsed < doubleGunDuration)
+        {
+            if (elapsed >= nextFireTime)
+            {
+                FireDualBeams();
+                nextFireTime += fireInterval;
+            }
 
-        transform.rotation = _rotationBeforeAttack;
+            if (_tpsCamController != null && _tpsCamController.LockOnTarget != null)
+            {
+                RotateTowards(FindBestAutoAimTarget());
+            }
+
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        // 照射終了後の「後隙」フェーズ
+        // ここでビームのエフェクトを止める処理などがあれば入れる
+        yield return new WaitForSeconds(attackRecoveryTime);
+
+        _isAttacking = false;
     }
 
     /// <summary>
@@ -399,24 +413,39 @@ public class BlanceController : MonoBehaviour
     {
         if (beamFirePoints == null || beamPrefab == null) return transform.position + transform.forward;
 
+        // ロックオン中かどうかを確認
+        bool isLockingOn = (_tpsCamController?.LockOnTarget != null);
         Vector3 targetPosition = FindBestAutoAimTarget();
 
         foreach (var firePoint in beamFirePoints)
         {
             if (firePoint == null) continue;
-            Vector3 origin = firePoint.position;
-            Vector3 dir = (targetPosition - origin).normalized;
 
-            // ヒットスキャン方式で当たり判定を行う
+            Vector3 origin = firePoint.position;
+            Vector3 dir;
+
+            if (isLockingOn)
+            {
+                // ロックオン中はターゲットを正確に狙う
+                dir = (targetPosition - origin).normalized;
+            }
+            else
+            {
+                // ★【ここを修正】カメラではなく、銃口(firePoint)の正面方向に真っ直ぐ飛ばす
+                dir = firePoint.forward;
+            }
+
+            // ヒット判定
             bool didHit = Physics.Raycast(origin, dir, out RaycastHit hit, beamMaxDistance, ~0);
             Vector3 endPoint = didHit ? hit.point : origin + dir * beamMaxDistance;
 
             if (didHit) ApplyDamageToEnemy(hit.collider, beamDamage);
 
-            // ビームのビジュアルを生成
+            // ビームのビジュアルを生成（銃口の向き dir を適用）
             BeamController beam = Instantiate(beamPrefab, origin, Quaternion.LookRotation(dir));
             beam.Fire(origin, endPoint, didHit);
         }
+
         return targetPosition;
     }
 

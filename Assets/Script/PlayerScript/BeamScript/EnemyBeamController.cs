@@ -1,79 +1,62 @@
 using UnityEngine;
 
-/// <summary>
-/// 敵が発射するビームの視覚効果と、プレイヤーへの衝突判定を制御します。
-/// </summary>
 public class EnemyBeamController : MonoBehaviour
 {
     [Header("Visual Settings")]
-    [Tooltip("ビームの持続時間")]
     public float lifetime = 0.5f;
-
-    [Tooltip("ビーム本体のエフェクトまたはモデル（これをZ軸方向にスケールする）")]
     public Transform beamVisual;
 
     [Header("Damage Settings")]
-    [Tooltip("プレイヤーに与えるダメージ量")]
-    public int damage = 20;
+    public float damageAmount = 20f; // floatに統一
 
-    void Awake()
-    {
-        if (beamVisual == null)
-        {
-            Debug.LogError("EnemyBeamController: Beam Visual が設定されていません。");
-        }
-    }
+    private bool hasDealtDamage = false; // 重複ダメージ防止
 
-    /// <summary>
-    /// ビームを生成し、ヒット判定がある場合はプレイヤーにダメージを与えます。
-    /// ScorpionEnemyなどの「発射側」から呼び出されます。
-    /// </summary>
     public void Fire(Vector3 startPoint, Vector3 endPoint, bool didHit, GameObject hitObject = null)
     {
-        // 1. ビームの長さを計算して見た目を反映
-        if (beamVisual != null)
-        {
-            float distance = Vector3.Distance(startPoint, endPoint);
-            Vector3 localScale = beamVisual.localScale;
-            localScale.z = distance;
-            beamVisual.localScale = localScale;
-        }
+        // 【デバッグ用】そもそも何かに当たっているかログを出す
+        Debug.Log($"Beam Fire: didHit={didHit}, hitObject={(hitObject != null ? hitObject.name : "null")}");
 
-        // 2. 何かに当たっており、かつ対象が指定されている場合
-        if (didHit && hitObject != null)
+        if (beamVisual != null) { /* 省略 */ }
+
+        if (didHit && hitObject != null && !hasDealtDamage)
         {
             ApplyDamage(hitObject);
         }
-
-        // 3. 持続時間後に自身を破棄
         Destroy(gameObject, lifetime);
     }
 
-    /// <summary>
-    /// ヒットしたオブジェクトからプレイヤーのコントローラーを探してダメージを適用します。
-    /// </summary>
-    // EnemyBeamController.cs の ApplyDamage を修正
     private void ApplyDamage(GameObject target)
     {
-        // ヒットしたオブジェクト自体、またはその親が "Player" タグを持っているか確認
-        if (target.CompareTag("Player") || (target.transform.parent != null && target.transform.parent.CompareTag("Player")))
+        // ヒットした本人、親、子のどこかに "Player" タグがあるか広く探す
+        bool isPlayer = target.CompareTag("Player") ||
+                        (target.transform.parent != null && target.transform.parent.CompareTag("Player")) ||
+                        (target.GetComponentInChildren<PlayerStatus>() != null);
+
+        if (isPlayer)
         {
-            bool damageApplied = false;
+            // 先ほどのBulletスクリプトと同じロジックで PlayerStatus を取得
+            PlayerStatus status = target.GetComponentInParent<PlayerStatus>() ??
+                                 target.GetComponentInChildren<PlayerStatus>() ??
+                                 target.GetComponent<PlayerStatus>();
 
-            // 3つのコントローラーを「自分・親・子」すべてから探す
-            var blance = target.GetComponentInParent<BlanceController>() ?? target.GetComponentInChildren<BlanceController>();
-            if (blance != null) { blance.TakeDamage(damage); damageApplied = true; }
-
-            if (!damageApplied)
+            if (status != null)
             {
+                hasDealtDamage = true;
+
+                // 防御力の取得（コントローラーを検索）
+                float defense = 1.0f;
+                var balance = target.GetComponentInParent<BlanceController>() ?? target.GetComponentInChildren<BlanceController>();
                 var buster = target.GetComponentInParent<BusterController>() ?? target.GetComponentInChildren<BusterController>();
-                if (buster != null) { buster.TakeDamage(damage); damageApplied = true; }
-            }
-
-            if (!damageApplied)
-            {
                 var speed = target.GetComponentInParent<SpeedController>() ?? target.GetComponentInChildren<SpeedController>();
-                if (speed != null) { speed.TakeDamage(damage); damageApplied = true; }
+
+                // ※必要に応じてここで defense の値を書き換える
+
+                status.TakeDamage(damageAmount, defense);
+                Debug.Log($"[Beam] {target.name} にダメージ適用！");
+            }
+            else
+            {
+                Debug.LogWarning($"[Beam] Playerタグを検出しましたが、PlayerStatusが見つかりません: {target.name}");
             }
         }
     }

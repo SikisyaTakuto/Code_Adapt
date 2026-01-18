@@ -248,27 +248,29 @@ public class SpeedController : MonoBehaviour
 
     /// <summary>
     /// [コルーチン] スピードモード近接連撃ルーチン
+    /// 硬直時間を長くし、不要な音（ビーム音など）が混ざらないよう制御。
     /// </summary>
     private IEnumerator HandleSpeedMeleeRoutine()
     {
         Animator anim = GetComponentInChildren<Animator>();
         _isAttacking = true;
-        if (anim != null) anim.applyRootMotion = false; // 制御をスクリプトで行うためルートモーションを切る
+        if (anim != null) anim.applyRootMotion = false;
 
-        StartAttackStun(); // 硬直開始
-        _stunTimer = 1.5f; // この攻撃全体の想定時間
+        StartAttackStun();
+        _stunTimer = 2.5f; // 全体の硬直時間を長めに設定
 
-        Quaternion attackRotation = transform.rotation; // 攻撃中の向きを固定
+        Quaternion attackRotation = transform.rotation;
 
         // 1-3回目：通常振り
         for (int i = 0; i < 3; i++)
         {
+            // 近接用の音のみを再生
             PlaySound(_meleeSwingSound);
             ApplyMeleeSphereDamage(meleeDamage);
 
-            // 1振りの待機時間（向きを固定し続ける）
+            // 1振りあたりの硬直時間を長く (0.5秒)
             float stepTimer = 0;
-            while (stepTimer < 0.25f)
+            while (stepTimer < 0.5f)
             {
                 transform.rotation = attackRotation;
                 stepTimer += Time.deltaTime;
@@ -276,32 +278,36 @@ public class SpeedController : MonoBehaviour
             }
         }
 
-        // 4回目：トドメのひっかき
-        yield return new WaitForSeconds(0.1f);
+        // 4回目：トドメのひっかき (予備動作を少し入れる)
+        yield return new WaitForSeconds(0.2f);
         PlaySound(_scratchAttackSound);
         ApplyMeleeSphereDamage(meleeDamage * 1.5f);
 
         // トドメの後のバックステップ（演出）
         float timer = 0f;
-        while (timer < 0.25f)
+        while (timer < 0.3f)
         {
             transform.rotation = attackRotation;
-            _playerController.Move(-transform.forward * 12f * Time.deltaTime);
+            _playerController.Move(-transform.forward * 10f * Time.deltaTime);
             timer += Time.deltaTime;
             yield return null;
         }
 
+        // 【調整】完全に動けるようになるまでの後隙
+        yield return new WaitForSeconds(0.5f);
+
         if (anim != null) anim.applyRootMotion = true;
-        yield return StartCoroutine(RestoreRotationRoutine(_rotationBeforeAttack)); // 向きを滑らかに戻す
+        yield return StartCoroutine(RestoreRotationRoutine(_rotationBeforeAttack));
         ResetAttackStates();
     }
 
     /// <summary>
     /// [コルーチン] しゃがみビーム発射ルーチン
+    /// ループ処理によって「連射」を実現します。
     /// </summary>
     private IEnumerator HandleSpeedCrouchBeamRoutine()
     {
-        // エナジー不足なら中断
+        // 消費エナジーをチェック
         if (!playerStatus.ConsumeEnergy(beamAttackEnergyCost)) yield break;
 
         Animator anim = GetComponentInChildren<Animator>();
@@ -309,18 +315,23 @@ public class SpeedController : MonoBehaviour
         if (anim != null) anim.applyRootMotion = false;
 
         StartAttackStun();
-        _stunTimer = 1.0f;
+        _stunTimer = 2.0f; // 連射に合わせて硬直を延長
 
         Quaternion attackRotation = transform.rotation;
 
-        // 溜め時間
-        yield return WaitForRotationFixed(attackRotation, 0.3f);
+        // 最初の溜め時間
+        yield return WaitForRotationFixed(attackRotation, 0.4f);
 
-        // ビーム発射実行
-        ExecuteBeamLogic();
+        // --- ビーム連射ロジック (3連射) ---
+        for (int i = 0; i < 3; i++)
+        {
+            ExecuteBeamLogic();
+            // 次の弾を撃つまでの短い間隔
+            yield return WaitForRotationFixed(attackRotation, 0.15f);
+        }
 
-        // 発射後の後隙
-        yield return WaitForRotationFixed(attackRotation, 0.7f);
+        // 発射後の大きな後隙
+        yield return WaitForRotationFixed(attackRotation, 0.8f);
 
         if (anim != null) anim.applyRootMotion = true;
         yield return StartCoroutine(RestoreRotationRoutine(_rotationBeforeAttack));

@@ -1,14 +1,21 @@
 ﻿using UnityEngine;
 
+[RequireComponent(typeof(Rigidbody))]
 public class Bullet : MonoBehaviour
 {
+    [Header("移動設定")]
     public float speed = 50f;
-    public float damage = 10f;
     public float lifetime = 3f;
 
-    // 💡 Rigidbodyコンポーネネントへの参照を追加
+    [Header("ダメージ設定")]
+    [Tooltip("弾が与える基本ダメージ量")]
+    public float damageAmount = 10f;
+
+    [Header("エフェクト設定")]
+    public GameObject hitEffectPrefab;
+
     private Rigidbody rb;
-    private bool isBeingDestroyed = false;
+    private bool isProcessed = false;
 
     void Awake()
     {
@@ -16,48 +23,84 @@ public class Bullet : MonoBehaviour
         rb = GetComponent<Rigidbody>();
         if (rb == null)
         {
-            Debug.LogError("Bullet プレハブには Rigidbody コンポーネントが必要です。", this);
-            enabled = false; // Rigidbodyがない場合、スクリプトを無効にする
+            Debug.LogError($"{gameObject.name}: Rigidbody コンポーネントが必要です。", this);
+            enabled = false;
         }
     }
 
     void Start()
     {
+        // 一定時間後に自動消滅
         Destroy(gameObject, lifetime);
 
         if (rb != null)
         {
-            // 💡 もし弾が「お尻」を向けて飛んでいるなら 
-            // transform.forward の代わりに -transform.forward (マイナス) を使う
+            // 向いている方向に力を加える
+            // もし逆向きに飛ぶ場合は -transform.forward に変更してください
             rb.linearVelocity = transform.forward * speed;
-
-            // 💡 もし「横」を向いて飛んでいるなら
-            // rb.velocity = transform.right * speed; 
-            // など、ここを書き換えるだけで飛ぶ方向を調整できます。
         }
     }
 
-    // 💡 Update() 関数は、移動処理がないため、このままでは不要ですが、残しておきます。
-    void Update()
+    private void OnTriggerEnter(Collider other)
     {
-        // 💡 移動処理はRigidbodyが担当するため、Translateは不要になりました。
-    }
+        // 既に何かに当たっていたら処理しない
+        if (isProcessed) return;
 
-    void OnTriggerEnter(Collider other)
-    {
-        if (isBeingDestroyed) return;
-
-        // プレイヤーに当たったかチェック
+        // 1. プレイヤーに当たった場合
         if (other.CompareTag("Player"))
         {
-            Debug.Log("プレイヤーに弾丸がヒット！");
-            // ダメージ処理を実装
+            isProcessed = true;
+            ApplyDamageToStatus(other.gameObject);
+            HandleHitImpact();
         }
+        // 2. 壁や特定のレイヤーに当たった場合
+        else if (other.CompareTag("Wall") || other.gameObject.layer == LayerMask.NameToLayer("Object"))
+        {
+            isProcessed = true;
+            HandleHitImpact();
+        }
+    }
 
-        // 💡 破壊フラグを設定し、即時破棄を実行
-        isBeingDestroyed = true;
-
-        // 衝突で弾丸が停止した後に少し遅延を設けて破壊するなど、演出に合わせて調整可能
+    /// <summary>
+    /// エフェクト生成と弾の削除を一括で行います
+    /// </summary>
+    private void HandleHitImpact()
+    {
+        if (hitEffectPrefab != null)
+        {
+            GameObject effect = Instantiate(hitEffectPrefab, transform.position, transform.rotation);
+            Destroy(effect, 2f);
+        }
         Destroy(gameObject);
+    }
+
+    /// <summary>
+    /// ターゲットから PlayerStatus を探し、ダメージを適用します
+    /// </summary>
+    private void ApplyDamageToStatus(GameObject target)
+    {
+        // 自身の親、あるいは子から PlayerStatus を検索
+        PlayerStatus status = target.GetComponentInParent<PlayerStatus>() ?? target.GetComponentInChildren<PlayerStatus>();
+
+        if (status != null)
+        {
+            float defenseMultiplier = 1.0f; // デフォルトは等倍
+
+            // 現在のアーマー（コントローラー）から防御倍率を取得する試み
+            // 優先度やアーマーの状態に合わせて調整してください
+            var balance = target.GetComponentInParent<BlanceController>() ?? target.GetComponentInChildren<BlanceController>();
+            var buster = target.GetComponentInParent<BusterController>() ?? target.GetComponentInChildren<BusterController>();
+            var speedCtrl = target.GetComponentInParent<SpeedController>() ?? target.GetComponentInChildren<SpeedController>();
+
+            // ※ここに各コントローラーから防御力を取得するロジックを追加可能
+            // 例: if (balance != null) defenseMultiplier = balance.defenseRate;
+
+            status.TakeDamage(damageAmount, defenseMultiplier);
+            Debug.Log($"[Bullet] {target.name} に {damageAmount} ダメージを適用。");
+        }
+        else
+        {
+            Debug.LogWarning($"{target.name} に Playerタグがありますが、PlayerStatusが見つかりません。");
+        }
     }
 }

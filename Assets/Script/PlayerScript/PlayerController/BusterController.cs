@@ -52,7 +52,7 @@ public class BusterController : MonoBehaviour
     [Header("Special Attack (Full Burst)")]
     public float backstepForce = 20f;       // 全弾発射時の反動（後ろに飛ぶ力）
     public float gatlingFireRate = 0.05f;   // ガトリングの連射間隔（秒）
-    public int gatlingBurstCount = 10;      // ガトリングの連射数
+    public int gatlingBurstCount = 20;      // ガトリングの連射数
     public float gatlingEnergyCostTotal = 10f; // 特殊攻撃全体のEN消費量
     #endregion
 
@@ -330,7 +330,7 @@ public class BusterController : MonoBehaviour
     }
 
     /// <summary>
-    /// 特殊攻撃コルーチン: バックステップ → ビーム → ガトリング連射 のコンボ
+    /// 特殊攻撃コルーチン: バックステップ → ビーム → ガトリング長連射
     /// </summary>
     private IEnumerator FullBurstRoutine()
     {
@@ -342,62 +342,67 @@ public class BusterController : MonoBehaviour
         RotateTowards(initialTargetPos);
         Quaternion attackRotation = transform.rotation;
 
-        // 【バックステップ】後方へのベクトルと、わずかな浮き上がりを付与
+        // 1. 【バックステップ】
         Vector3 backDir = -transform.forward;
         _velocity = backDir * backstepForce + Vector3.up * 2f;
-        _stunTimer = 5.0f; // ループ制御のため一旦長めに設定
 
-        // 第一波：メインビーム発射
+        // 攻撃全体の硬直管理。ループ中は常に上書きするので、まずは安全値。
+        _stunTimer = 2.0f;
+
+        // 2. 【第一波：メインビーム】
         if (playerStatus.ConsumeEnergy(beamAttackEnergyCost))
         {
             FireSpecificGuns(true, false, initialTargetPos, true);
         }
 
-        // 発射後の溜め時間（硬直）
-        float timer = 0;
-        while (timer < 1.0f)
-        {
-            transform.rotation = attackRotation;
-            timer += Time.deltaTime;
-            yield return null;
-        }
+        // ビーム後の溜め
+        yield return new WaitForSeconds(0.8f);
 
-        // 第二波：ガトリング連射開始
-        if (playerStatus.ConsumeEnergy(gatlingEnergyCostTotal))
+        // 3. 【第二波：ガトリング長連射】
+        // gatlingBurstCountをインスペクタで「20～30」程度に増やすとより長く撃ちます
+        int burstLimit = gatlingBurstCount * 4; // スクリプト側で倍に調整
+        float energyPerShot = gatlingEnergyCostTotal / burstLimit;
+
+        for (int i = 0; i < burstLimit; i++)
         {
-            for (int i = 0; i < gatlingBurstCount; i++)
+            // ENが切れたら強制終了
+            if (playerStatus.currentEnergy <= 0.1f) break;
+            playerStatus.ConsumeEnergy(energyPerShot);
+
+            // 硬直を常に延長（1秒先に更新し続ける）
+            _isStunned = true;
+            _stunTimer = 1.0f;
+
+            Vector3 currentTargetPos = GetAutoAimTargetPosition();
+
+            // 揺れ計算（iの係数を小さくすると、ゆっくり大きく揺れます）
+            float baseSway = Mathf.Sin(i * 0.3f) * 12.0f;
+            FireSpecificGuns(false, true, currentTargetPos, true, baseSway);
+
+            // 次の弾までの待機
+            float shotInterval = 0;
+            while (shotInterval < gatlingFireRate)
             {
-                _isStunned = true;
-                _stunTimer = 1.0f; // 連射中は常に硬直時間を上書き維持
-
-                // 連射中も微調整としてターゲットを追い続ける
-                Vector3 currentTargetPos = GetAutoAimTargetPosition();
-                RotateTowards(currentTargetPos);
-                attackRotation = transform.rotation;
-
-                FireSpecificGuns(false, true, currentTargetPos, true);
-
-                // 連射間隔待機中も回転を固定
-                float shotInterval = 0;
-                while (shotInterval < gatlingFireRate)
-                {
-                    transform.rotation = attackRotation;
-                    shotInterval += Time.deltaTime;
-                    yield return null;
-                }
+                transform.rotation = attackRotation; // 向きを固定
+                shotInterval += Time.deltaTime;
+                yield return null;
             }
         }
 
-        // 【残心】すべての弾を撃ち終えた後のフォロースルー時間
-        timer = 0;
-        while (timer < 0.6f)
+        // 4. 【残心 / フォロースルー】
+        // 全弾発射後の大きな隙。ここを長くすることで「撃ちきった重厚感」を出します。
+        float followThroughTime = 1.8f; 
+        float timer = 0;
+        while (timer < followThroughTime)
         {
+            _isStunned = true;
+            _stunTimer = 0.5f; // 解除されないよう維持
             transform.rotation = attackRotation;
             timer += Time.deltaTime;
             yield return null;
         }
 
-        // 状態をリセットして通常移動へ戻す
+        // 状態リセット
         transform.rotation = _rotationBeforeAttack;
         _isAttacking = false;
         _stunTimer = 0.01f;
@@ -407,11 +412,11 @@ public class BusterController : MonoBehaviour
     #region 8. 発射・ダメージ処理 (Projectile & Damage)
     // =======================================================
 
-    private void FireSpecificGuns(bool useBeam, bool useGatling, Vector3 targetPosition, bool isLockedOn)
+    // 引数の最後に float swayAmount = 0 を追加
+    private void FireSpecificGuns(bool useBeam, bool useGatling, Vector3 targetPosition, bool isLockedOn, float swayAmount = 0)
     {
         Vector3 playerForward = transform.forward;
 
-        // 複数ある発射ポイント（FirePoints）を巡回してプレハブを生成
         if (useBeam && beamFirePoints != null)
         {
             foreach (var fp in beamFirePoints)
@@ -420,8 +425,20 @@ public class BusterController : MonoBehaviour
 
         if (useGatling && gatlingFirePoints != null)
         {
-            foreach (var fp in gatlingFirePoints)
-                if (fp != null) FireProjectile(fp, targetPosition, isLockedOn, playerForward, false);
+            // forループに変更してインデックスを取得できるようにする
+            for (int i = 0; i < gatlingFirePoints.Length; i++)
+            {
+                Transform fp = gatlingFirePoints[i];
+                if (fp == null) continue;
+
+                // インデックスが 0 なら右→左(そのまま)、1 なら左→右(反転)
+                // 銃口が2つの場合、片方は swayAmount、もう片方は -swayAmount になる
+                float individualSway = (i % 2 == 0) ? swayAmount : -swayAmount;
+                Vector3 swayOffset = transform.right * individualSway;
+
+                // 個別の揺れを加算して発射
+                FireProjectile(fp, targetPosition + swayOffset, isLockedOn, playerForward, false);
+            }
         }
     }
 
@@ -430,6 +447,18 @@ public class BusterController : MonoBehaviour
         Vector3 origin = firePoint.position;
         // ロックオン時は敵の方向、非ロックオン時は正面へ飛ばす
         Vector3 fireDirection = isLockedOn ? (targetPos - origin).normalized : forward;
+
+        if (!isBeam)
+        {
+            // 上下左右に最大2度程度のランダムな角度をつける
+            float spread = 2.0f;
+            Quaternion randomRotation = Quaternion.Euler(
+                Random.Range(-spread, spread),
+                Random.Range(-spread, spread),
+                0
+            );
+            fireDirection = randomRotation * fireDirection;
+        }
 
         // 【即着弾判定】レイキャストを使用して壁や敵に当たるか確認
         bool didHit = Physics.Raycast(origin, fireDirection, out RaycastHit hit, beamMaxDistance, ~0);
@@ -495,22 +524,18 @@ public class BusterController : MonoBehaviour
     // =======================================================
 
     /// <summary>
-    /// ロックオン中ならターゲット、そうでなければ画面中央（レティクル）のワールド座標を返す
+    /// ロックオン中ならターゲット、そうでなければプレイヤーの正面方向の座標を返す
     /// </summary>
     private Vector3 GetAutoAimTargetPosition()
     {
         // 1. ロックオン対象がいればその中心
         if (_tpsCamController?.LockOnTarget != null)
-            return GetLockOnTargetPosition(_tpsCamController.LockOnTarget, true);
-
-        // 2. 非ロックオン時：カメラの中心から正面にレイを飛ばしてヒットした地点をターゲットにする
-        if (Camera.main != null)
         {
-            Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
-            if (Physics.Raycast(ray, out RaycastHit hit, beamMaxDistance, ~0)) return hit.point;
-            return ray.origin + ray.direction * beamMaxDistance;
+            return GetLockOnTargetPosition(_tpsCamController.LockOnTarget, true);
         }
 
+        // 2. 非ロックオン時：プレイヤーの正面(transform.forward)へ真っ直ぐ飛ばす
+        // カメラの向きではなく、モデルが向いている方向を基準にします
         return transform.position + transform.forward * beamMaxDistance;
     }
 
