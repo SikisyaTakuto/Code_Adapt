@@ -59,6 +59,10 @@ public class SuicideEnemy : MonoBehaviour
     // 🚧 壁のタグ
     private const string WALL_TAG = "Wall";
 
+    [Header("Tire Settings")]
+    public Transform[] tires;        // 4つのタイヤをインスペクターでアサイン
+    public float tireRadius = 0.5f;   // タイヤの半径
+
     void Start()
     {
         currentHP = maxHP;
@@ -123,6 +127,22 @@ public class SuicideEnemy : MonoBehaviour
             {
                 agent.isStopped = false;
                 agent.SetDestination(playerTarget.position);
+            }
+        }
+
+        // タイヤの回転処理
+        if (tires != null && agent.enabled)
+        {
+            float speed = agent.velocity.magnitude;
+            float rotationDegree = (speed * Time.deltaTime / tireRadius) * Mathf.Rad2Deg;
+
+            foreach (Transform tire in tires)
+            {
+                if (tire != null)
+                {
+                    // ローカルのX軸で回転
+                    tire.Rotate(Vector3.right, rotationDegree);
+                }
             }
         }
     }

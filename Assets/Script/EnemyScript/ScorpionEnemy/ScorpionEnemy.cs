@@ -144,12 +144,22 @@ public class ScorpionEnemy : MonoBehaviour
     }
 
     // 徘徊ロジックを共通化
+    // 徘徊ロジックを共通化
     private void HandleWanderLogic()
     {
-        if (agent == null || !agent.enabled) return;
+        // エージェントが存在しない、または無効、またはNavMesh上にいない場合は処理しない
+        if (agent == null || !agent.enabled || !agent.isOnNavMesh)
+        {
+            return;
+        }
 
+        // ここで安全に isStopped を操作できる
         agent.isStopped = false;
-        bool needNewDestination = !agent.hasPath || agent.remainingDistance < destinationThreshold || (Time.time - lastMoveTime) >= maxIdleTime;
+
+        bool needNewDestination = !agent.hasPath ||
+                                  agent.remainingDistance < destinationThreshold ||
+                                  (Time.time - lastMoveTime) >= maxIdleTime;
+
         if (needNewDestination) Wander();
     }
 
