@@ -23159,7 +23159,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   player: {fileID: 1336833482}
   followSpeed: 2
+  rotationSpeed: 5
   offset: {x: 0, y: 1, z: 2}
+  minDistance: 1.5
+  lockZRotation: 1
+  minYAngle: -60
+  maxYAngle: 60
 --- !u!1 &1300493520
 GameObject:
   m_ObjectHideFlags: 0
@@ -54083,10 +54088,10 @@ Transform:
   - {fileID: 7309311922816414000}
   - {fileID: 3844671947235016129}
   - {fileID: 8795690738971337498}
+  - {fileID: 834176816}
   - {fileID: 3499255504167262037}
   - {fileID: 428546855162481343}
   - {fileID: 6494225129593780571}
-  - {fileID: 834176816}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &7222679939466214469
