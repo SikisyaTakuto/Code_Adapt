@@ -27,37 +27,37 @@ public class EnemyBeamController : MonoBehaviour
 
     private void ApplyDamage(GameObject target)
     {
-        // ヒットした本人、親、子のどこかに "Player" タグがあるか広く探す
-        bool isPlayer = target.CompareTag("Player") ||
-                        (target.transform.parent != null && target.transform.parent.CompareTag("Player")) ||
-                        (target.GetComponentInChildren<PlayerStatus>() != null);
+        // 1. 当たったオブジェクトそのもの、あるいはその親や子のどこかに PlayerStatus があるか探す
+        // これにより、タグの有無に依存せず「ダメージを受けられる存在か」で判定できます
+        PlayerStatus status = target.GetComponentInParent<PlayerStatus>() ??
+                             target.GetComponentInChildren<PlayerStatus>() ??
+                             target.GetComponent<PlayerStatus>();
 
-        if (isPlayer)
+        // 2. status が見つかれば、それはプレイヤー（またはダメージ対象）であると確定
+        if (status != null)
         {
-            // 先ほどのBulletスクリプトと同じロジックで PlayerStatus を取得
-            PlayerStatus status = target.GetComponentInParent<PlayerStatus>() ??
-                                 target.GetComponentInChildren<PlayerStatus>() ??
-                                 target.GetComponent<PlayerStatus>();
+            hasDealtDamage = true;
 
-            if (status != null)
-            {
-                hasDealtDamage = true;
+            // 防御倍率の計算
+            float defense = 1.0f;
 
-                // 防御力の取得（コントローラーを検索）
-                float defense = 1.0f;
-                var balance = target.GetComponentInParent<BlanceController>() ?? target.GetComponentInChildren<BlanceController>();
-                var buster = target.GetComponentInParent<BusterController>() ?? target.GetComponentInChildren<BusterController>();
-                var speed = target.GetComponentInParent<SpeedController>() ?? target.GetComponentInChildren<SpeedController>();
+            // 各コントローラーの取得（親・子・自身から検索）
+            var balance = target.GetComponentInParent<BlanceController>() ?? target.GetComponentInChildren<BlanceController>() ?? target.GetComponent<BlanceController>();
+            var buster = target.GetComponentInParent<BusterController>() ?? target.GetComponentInChildren<BusterController>() ?? target.GetComponent<BusterController>();
+            var speed = target.GetComponentInParent<SpeedController>() ?? target.GetComponentInChildren<SpeedController>() ?? target.GetComponent<SpeedController>();
 
-                // ※必要に応じてここで defense の値を書き換える
+            // ここで各アーマーごとの防御倍率処理を記述可能（例）
+            // if (balance != null) defense = balance.defenseRate;
 
-                status.TakeDamage(damageAmount, defense);
-                Debug.Log($"[Beam] {target.name} にダメージ適用！");
-            }
-            else
-            {
-                Debug.LogWarning($"[Beam] Playerタグを検出しましたが、PlayerStatusが見つかりません: {target.name}");
-            }
+            // ダメージ適用
+            status.TakeDamage(damageAmount, defense);
+
+            Debug.Log($"[Beam] {status.gameObject.name} にダメージ適用！ (HitObject: {target.name})");
+        }
+        else
+        {
+            // PlayerStatus が見つからなかった場合は、プレイヤー以外（壁など）に当たったとみなす
+            Debug.Log($"[Beam] プレイヤー以外にヒット: {target.name}");
         }
     }
 }

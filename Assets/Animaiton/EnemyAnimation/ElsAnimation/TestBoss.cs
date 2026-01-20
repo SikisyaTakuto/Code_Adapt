@@ -59,6 +59,10 @@ public class TestBoss : MonoBehaviour
     [SerializeField] private float _collisionCheckRadius = 2.0f;// ボスの衝突判定サイズ
     [SerializeField] private int _maxRelocateAttempts = 15;// 再ポジショニングの最大試行回数
 
+    [Header("Damage Settings")]
+    [SerializeField] private float _swipeDamage = 20f;     // Attack1 (薙ぎ払い) のダメージ
+    [SerializeField] private float _stabbingDamage = 15f;  // StabbingAttack (ビット突き) のダメージ
+
     private int _combinedCollisionLayers => _wallLayer | _ceilingLayer;
     private float _relocateTimer = 0f;
     private const float RELOCATE_TIMEOUT = 3.0f; // 3秒経っても着かなければ諦める
@@ -200,7 +204,7 @@ public class TestBoss : MonoBehaviour
 
         BitCollision shieldCol = _swipeShield.GetComponent<BitCollision>();
         if (shieldCol == null) shieldCol = _swipeShield.gameObject.AddComponent<BitCollision>();
-
+        shieldCol.Setup(_swipeDamage);
         yield return new WaitForSeconds(_swipeHitActiveTime);
         shieldCol.SetColliderActive(true);
         yield return new WaitForSeconds(_swipeHitDuration);
@@ -316,8 +320,10 @@ public class TestBoss : MonoBehaviour
         {
             bitCollisions[i] = _stabBits[i].GetComponent<BitCollision>();
             if (bitCollisions[i] == null) bitCollisions[i] = _stabBits[i].gameObject.AddComponent<BitCollision>();
-        }
 
+            // ここでダメージを設定 (エラーが消えます)
+            bitCollisions[i].Setup(_stabbingDamage);
+        }
         for (int i = 0; i < count; i++)
         {
             startWorldPos[i] = _stabBits[i].position;
