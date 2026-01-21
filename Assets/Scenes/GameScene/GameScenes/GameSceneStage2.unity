@@ -4703,7 +4703,7 @@ MonoBehaviour:
   groundCheckDistance: 0.3
   groundLayer:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 8
 --- !u!95 &107705940
 Animator:
   serializedVersion: 7
@@ -11825,7 +11825,7 @@ MonoBehaviour:
   - {fileID: 1441084825, guid: db2c7a21c2e892c46ba3a526ecf740cb, type: 3}
   - {fileID: -1346140634, guid: fd664a0a7b9e85f46988639ad48b12ee, type: 3}
   armorModels:
-  - {fileID: 0}
+  - {fileID: 1643362660}
   - {fileID: 107705937}
   - {fileID: 835424406}
   attack1Icon: {fileID: 2110674970}
@@ -19341,6 +19341,14 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 2886968244278748340, guid: fa94614ae55745245871094756dbaf2a, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2886968244278748340, guid: fa94614ae55745245871094756dbaf2a, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 5400682883800560994, guid: fa94614ae55745245871094756dbaf2a, type: 3}
       propertyPath: beamPrefab
       value: 
@@ -25742,6 +25750,14 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 2886968244278748340, guid: fa94614ae55745245871094756dbaf2a, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2886968244278748340, guid: fa94614ae55745245871094756dbaf2a, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 5400682883800560994, guid: fa94614ae55745245871094756dbaf2a, type: 3}
       propertyPath: beamPrefab
       value: 
@@ -30757,6 +30773,14 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1817922818780243698, guid: fa94614ae55745245871094756dbaf2a, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2886968244278748340, guid: fa94614ae55745245871094756dbaf2a, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2886968244278748340, guid: fa94614ae55745245871094756dbaf2a, type: 3}
+      propertyPath: m_AnchorMax.y
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5400682883800560994, guid: fa94614ae55745245871094756dbaf2a, type: 3}
