@@ -426,7 +426,8 @@ public class SoldierMoveEnemy : MonoBehaviour
     void LandingLogic()
     {
         if (rb == null) return;
-        rb.linearVelocity = Vector3.down * landingSpeed;
+        // Velocityを使わず、直接座標を動かす
+        transform.position += Vector3.down * landingSpeed * Time.fixedDeltaTime;
     }
 
     void TransitionToLanding()
