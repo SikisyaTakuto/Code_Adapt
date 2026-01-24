@@ -268,6 +268,7 @@ public class BlanceController : MonoBehaviour
     /// </summary>
     private void ApplyArmorStats()
     {
+        // _modesAndVisuals.CurrentArmorStats には合算された値が入っている
         var stats = _modesAndVisuals.CurrentArmorStats;
         _moveSpeed = baseMoveSpeed * (stats != null ? stats.moveSpeedMultiplier : 1.0f);
     }
@@ -436,7 +437,7 @@ public class BlanceController : MonoBehaviour
             }
 
             // ヒット判定
-            bool didHit = Physics.Raycast(origin, dir, out RaycastHit hit, beamMaxDistance, ~0);
+            bool didHit = Physics.Raycast(origin, dir, out RaycastHit hit, beamMaxDistance, ~0, QueryTriggerInteraction.Ignore);
             Vector3 endPoint = didHit ? hit.point : origin + dir * beamMaxDistance;
 
             if (didHit) ApplyDamageToEnemy(hit.collider, beamDamage);
@@ -494,6 +495,7 @@ public class BlanceController : MonoBehaviour
     public void TakeDamage(float damage)
     {
         var stats = _modesAndVisuals.CurrentArmorStats;
+        // stats.defenseMultiplier が 0.8 なら 20% 軽減してダメージを渡す
         float defense = (stats != null) ? stats.defenseMultiplier : 1.0f;
         playerStatus.TakeDamage(damage, defense);
     }
@@ -537,7 +539,7 @@ public class BlanceController : MonoBehaviour
         if (Camera.main != null)
         {
             Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
-            if (Physics.Raycast(ray, out RaycastHit hit, beamMaxDistance, ~0)) return hit.point;
+            if (Physics.Raycast(ray, out RaycastHit hit, beamMaxDistance, ~0, QueryTriggerInteraction.Ignore)) return hit.point;
             return ray.origin + ray.direction * beamMaxDistance;
         }
 
@@ -569,20 +571,6 @@ public class BlanceController : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Alpha1)) _modesAndVisuals.ChangeArmorBySlot(0);
         else if (Input.GetKeyDown(KeyCode.Alpha2)) _modesAndVisuals.ChangeArmorBySlot(1);
     }
-
-    /// <summary>
-    /// 剣の3連撃に合わせて時間差で音を鳴らすためのサブ処理。
-    /// </summary>
-    private IEnumerator PlayMeleeSwingSounds()
-    {
-        float interval = swordComboTime / 3f;
-        for (int i = 0; i < 3; i++)
-        {
-            if (audioSource != null && swordSwingSound != null) audioSource.PlayOneShot(swordSwingSound);
-            yield return new WaitForSeconds(interval);
-        }
-    }
-
     // 外部（敵の攻撃など）から機動力を下げたい場合に使用
     public void SetDebuff(float moveMult, float jumpMult) { _debuffMoveMultiplier = moveMult; _debuffJumpMultiplier = jumpMult; }
     public void ResetDebuff() { _debuffMoveMultiplier = 1.0f; _debuffJumpMultiplier = 1.0f; }

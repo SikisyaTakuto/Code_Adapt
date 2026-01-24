@@ -216,7 +216,7 @@ public class BusterController : MonoBehaviour
 
     private void ApplyArmorStats()
     {
-        // アーマーごとの移動速度倍率を適用
+        // _modesAndVisuals.CurrentArmorStats には合算された値が入っている
         var stats = _modesAndVisuals.CurrentArmorStats;
         _moveSpeed = baseMoveSpeed * (stats != null ? stats.moveSpeedMultiplier : 1.0f);
     }
@@ -461,7 +461,7 @@ public class BusterController : MonoBehaviour
         }
 
         // 【即着弾判定】レイキャストを使用して壁や敵に当たるか確認
-        bool didHit = Physics.Raycast(origin, fireDirection, out RaycastHit hit, beamMaxDistance, ~0);
+        bool didHit = Physics.Raycast(origin, fireDirection, out RaycastHit hit, beamMaxDistance, ~0, QueryTriggerInteraction.Ignore);
         Vector3 endPoint = didHit ? hit.point : origin + fireDirection * beamMaxDistance;
 
         // ダメージ適用
@@ -511,12 +511,12 @@ public class BusterController : MonoBehaviour
         }
     }
 
-    public void TakeDamage(float damageAmount)
+    public void TakeDamage(float damage)
     {
-        // アーマーの防御力係数を取得してダメージ計算を委譲
         var stats = _modesAndVisuals.CurrentArmorStats;
+        // stats.defenseMultiplier が 0.8 なら 20% 軽減してダメージを渡す
         float defense = (stats != null) ? stats.defenseMultiplier : 1.0f;
-        playerStatus.TakeDamage(damageAmount, defense);
+        playerStatus.TakeDamage(damage, defense);
     }
     #endregion
 

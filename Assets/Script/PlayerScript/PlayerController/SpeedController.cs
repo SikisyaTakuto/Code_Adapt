@@ -362,7 +362,7 @@ public class SpeedController : MonoBehaviour
             Vector3 fireDirection = (targetPos - origin).normalized;
 
             // レイキャストによるヒット確認
-            bool didHit = Physics.Raycast(origin, fireDirection, out RaycastHit hit, beamMaxDistance, ~0);
+            bool didHit = Physics.Raycast(origin, fireDirection, out RaycastHit hit, beamMaxDistance, ~0, QueryTriggerInteraction.Ignore);
             Vector3 endPoint = didHit ? hit.point : origin + fireDirection * beamMaxDistance;
 
             if (didHit) ApplyDamageToEnemy(hit.collider, beamDamage);
@@ -501,12 +501,25 @@ public class SpeedController : MonoBehaviour
 
     // 共通ヘルパー関数
     private void PlaySound(AudioClip clip) { if (_audioSource != null && clip != null) _audioSource.PlayOneShot(clip); }
-    private void ApplyArmorStats() => _moveSpeed = baseMoveSpeed * (_modesAndVisuals.CurrentArmorStats != null ? _modesAndVisuals.CurrentArmorStats.moveSpeedMultiplier : 1.0f);
+    private void ApplyArmorStats()
+    {
+        // _modesAndVisuals.CurrentArmorStats には合算された値が入っている
+        var stats = _modesAndVisuals.CurrentArmorStats;
+        _moveSpeed = baseMoveSpeed * (stats != null ? stats.moveSpeedMultiplier : 1.0f);
+    }
     private void RotateTowards(Vector3 target) { Vector3 dir = (target - transform.position).normalized; transform.rotation = Quaternion.LookRotation(new Vector3(dir.x, 0, dir.z)); }
     private Vector3 GetLockOnTargetPosition(Transform t, bool offset = false) { if (t.TryGetComponent<Collider>(out var c)) return c.bounds.center; return offset ? t.position + Vector3.up * lockOnTargetHeightOffset : t.position; }
 
     // 外部（ダメージ床や敵からの攻撃）から呼ばれるダメージ処理
-    public void TakeDamage(float amount) => playerStatus.TakeDamage(amount, (_modesAndVisuals.CurrentArmorStats != null) ? _modesAndVisuals.CurrentArmorStats.defenseMultiplier : 1.0f);
+    public void TakeDamage(float amount)
+    {
+        // defenseMultiplierが 0.8 なら、PlayerStatus側で 20% 軽減される仕組み
+        float defense = (_modesAndVisuals.CurrentArmorStats != null)
+                        ? _modesAndVisuals.CurrentArmorStats.defenseMultiplier
+                        : 1.0f;
+
+        playerStatus.TakeDamage(amount, defense);
+    }
     public void SetDebuff(float moveMult, float jumpMult) { _debuffMoveMultiplier = moveMult; _debuffJumpMultiplier = jumpMult; }
     public void ResetDebuff() { _debuffMoveMultiplier = 1.0f; _debuffJumpMultiplier = 1.0f; }
 

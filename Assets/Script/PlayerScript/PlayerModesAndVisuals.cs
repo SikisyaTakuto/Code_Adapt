@@ -15,8 +15,6 @@ public class PlayerModesAndVisuals : MonoBehaviour
         public float defenseMultiplier = 1.0f;
         public float moveSpeedMultiplier = 1.0f;
         public float energyRecoveryMultiplier = 1.0f;
-
-        // ★追加：技名の設定項目
         public string attack1Name = "Attack 1";
         public string attack2Name = "Attack 2";
     }
@@ -50,7 +48,14 @@ public class PlayerModesAndVisuals : MonoBehaviour
 
     void Awake()
     {
-        LoadAndApplyDualArmor();
+        // 1. まずステータスを合算計算する
+        RefreshTotalStats();
+
+        // 2. 初期表示するアーマーを決定（Slot0に設定されているものを表示）
+        int defaultArmor = PlayerPrefs.GetInt("SelectedArmor_Slot0", 0);
+
+        // 3. 重要：見た目と技名UIを、計算結果に基づいて強制更新する
+        UpdateArmorVisualAndIcon(defaultArmor);
     }
 
     void Start()
@@ -58,58 +63,40 @@ public class PlayerModesAndVisuals : MonoBehaviour
         UpdateWeaponUIEmphasis();
     }
 
-    // --- PlayerModesAndVisuals.cs 内の修正 ---
-
-    public void LoadAndApplyDualArmor()
+    public void RefreshTotalStats()
     {
+        // 1. PlayerPrefsから現在選ばれているスロットの状態を取得
         int slot0 = PlayerPrefs.GetInt("SelectedArmor_Slot0", 0);
-        int slot1 = PlayerPrefs.GetInt("SelectedArmor_Slot1", -1);
+        int slot1 = PlayerPrefs.GetInt("SelectedArmor_Slot1", 1);
 
-        // ステータスは「常に両方の合計」にする
-        _currentArmorStats.defenseMultiplier = 1.0f;
-        _currentArmorStats.moveSpeedMultiplier = 1.0f;
-        _currentArmorStats.energyRecoveryMultiplier = 1.0f;
+        // 2. 現在の「見た目（表示中）」のアーマーのインデックスを取得
+        // ChangeArmorBySlotなどで _currentVisibleArmorIndex が更新されている前提です
+        int activeIndex = _currentVisibleArmorIndex;
 
-        ApplyStatsOnly(slot0);
-        if (slot1 != -1) ApplyStatsOnly(slot1);
+        // 3. ステータスの適用（合算ではなく、表示中のもののみを抽出）
+        ApplyActiveStats(activeIndex);
 
-        // 見た目はスロット0（1つ目）を初期表示
-        UpdateArmorVisualAndIcon(slot0);
+        // 4. デバッグログを表示
+        LogCurrentStatus(slot0, slot1);
     }
 
-    // ステータス計算だけを行うメソッド
-    private void ApplyStatsOnly(int index)
-    {
-        if (index < 0 || index >= armorConfigurations.Count) return;
-        _currentArmorStats.defenseMultiplier *= armorConfigurations[index].defenseMultiplier;
-        _currentArmorStats.moveSpeedMultiplier *= armorConfigurations[index].moveSpeedMultiplier;
-        _currentArmorStats.energyRecoveryMultiplier *= armorConfigurations[index].energyRecoveryMultiplier;
-    }
-
-    // 引数に bool showModel を追加
-    private void ApplyStats(int index, bool showModel)
+    /// <summary>
+    /// 指定されたインデックスのアーマーステータスを現在のステータスとして完全に上書きします。
+    /// </summary>
+    private void ApplyActiveStats(int index)
     {
         if (index < 0 || index >= armorConfigurations.Count) return;
 
-        // ステータス倍率はどちらのスロットでも計算する
-        _currentArmorStats.defenseMultiplier *= armorConfigurations[index].defenseMultiplier;
-        _currentArmorStats.moveSpeedMultiplier *= armorConfigurations[index].moveSpeedMultiplier;
-        _currentArmorStats.energyRecoveryMultiplier *= armorConfigurations[index].energyRecoveryMultiplier;
+        var cfg = armorConfigurations[index];
 
-        // 見た目（モデル）の表示は showModel が true の時だけ行う
-        if (showModel && index < armorModels.Length && armorModels[index] != null)
-        {
-            armorModels[index].SetActive(true);
-        }
-    }
+        // 合算 (*=) ではなく代入 (=) に変更
+        _currentArmorStats.defenseMultiplier = cfg.defenseMultiplier;
+        _currentArmorStats.moveSpeedMultiplier = cfg.moveSpeedMultiplier;
+        _currentArmorStats.energyRecoveryMultiplier = cfg.energyRecoveryMultiplier;
 
-    private void UpdateArmorIcon(int index)
-    {
-        if (currentArmorIconImage != null && armorSprites != null && index < armorSprites.Length)
-        {
-            currentArmorIconImage.sprite = armorSprites[index];
-            currentArmorIconImage.enabled = true;
-        }
+        // 技名も同期
+        _currentArmorStats.attack1Name = cfg.attack1Name;
+        _currentArmorStats.attack2Name = cfg.attack2Name;
     }
 
     public void SwitchWeapon()
@@ -143,24 +130,19 @@ public class PlayerModesAndVisuals : MonoBehaviour
         }
     }
 
-    public void SwitchArmor(ArmorMode newMode)
-    {
-        PlayerPrefs.SetInt("SelectedArmor_Slot0", (int)newMode);
-        PlayerPrefs.SetInt("SelectedArmor_Slot1", -1);
-        LoadAndApplyDualArmor();
-    }
-
-    // スロット番号(0か1)を指定してアーマーを切り替える
+    // スロット番号(0か1)を指定してアーマー（見た目と能力）を切り替える
     public void ChangeArmorBySlot(int slotNumber)
     {
         string key = (slotNumber == 0) ? "SelectedArmor_Slot0" : "SelectedArmor_Slot1";
         int armorIndex = PlayerPrefs.GetInt(key, -1);
 
-        // スロット1が未設定（-1）の場合は切り替えない
         if (armorIndex == -1) return;
 
-        // 見た目とアイコンを更新
+        // 1. まず見た目と現在のインデックスを更新
         UpdateArmorVisualAndIcon(armorIndex);
+
+        // 2. そのインデックスに基づいてステータスを「上書き」更新
+        RefreshTotalStats();
     }
 
     // 見た目とアイコンだけを更新（ステータス合算は維持）
@@ -182,5 +164,28 @@ public class PlayerModesAndVisuals : MonoBehaviour
 
         // ★アーマーが変わったので、技名表示も更新する
         UpdateWeaponUIEmphasis();
+    }
+
+    // --- LogCurrentStatus メソッドの修正 ---
+    private void LogCurrentStatus(int s0, int s1)
+    {
+        // 修正ポイント1: armorName ではなく .name を参照する
+        string armor0Name = (s0 >= 0 && s0 < armorConfigurations.Count) ? armorConfigurations[s0].name : "None";
+        string armor1Name = (s1 >= 0 && s1 < armorConfigurations.Count) ? armorConfigurations[s1].name : "None";
+
+        // 修正ポイント2: _currentMode の代わりに、現在表示されているアーマーの名前を取得
+        string currentVisibleName = "None";
+        if (_currentVisibleArmorIndex >= 0 && _currentVisibleArmorIndex < armorConfigurations.Count)
+        {
+            currentVisibleName = armorConfigurations[_currentVisibleArmorIndex].name;
+        }
+
+        Debug.Log($"<color=cyan><b>[Player Status Report]</b></color>\n" +
+                  $"構成アーマー: [<color=yellow>{armor0Name}</color>] & [<color=yellow>{armor1Name}</color>]\n" +
+                  $"表示中の外見: <color=orange>{currentVisibleName}</color>\n" + // _currentMode を currentVisibleName に
+                  $"--- 合算ステータス ---\n" +
+                  $"- 移動速度倍率: {_currentArmorStats.moveSpeedMultiplier:F2}x\n" +
+                  $"- 防御倍率 (被ダメ): {_currentArmorStats.defenseMultiplier:F2}x\n" +
+                  $"- エナジー回復倍率: {_currentArmorStats.energyRecoveryMultiplier:F2}x");
     }
 }

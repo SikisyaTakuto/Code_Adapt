@@ -54,11 +54,6 @@ public class SoliderEnemy : MonoBehaviour
     private Quaternion targetIdleRotation;
     private bool isRotatingInIdle = false;
 
-    // AI制御スクリプトへの参照 (Die()用)
-    private EnemyAI aiA;
-    private ChaserAI aiB;
-    private JuggernautStaticAI aiOld;
-
     void Start()
     {
         currentHealth = maxHealth;
@@ -84,11 +79,6 @@ public class SoliderEnemy : MonoBehaviour
             rb.useGravity = false;
             rb.freezeRotation = true;
         }
-
-        // 外部AI参照取得
-        aiA = GetComponent<EnemyAI>();
-        aiB = GetComponent<ChaserAI>();
-        aiOld = GetComponent<JuggernautStaticAI>();
 
         if (animator == null) Debug.LogError("Animatorがありません。");
 
@@ -189,9 +179,6 @@ public class SoliderEnemy : MonoBehaviour
             this.enabled = false;
 
             if (animator != null) animator.enabled = false;
-            if (aiA != null) aiA.enabled = false;
-            if (aiB != null) aiB.enabled = false;
-            if (aiOld != null) aiOld.enabled = false;
 
             if (rb != null) rb.isKinematic = true;
             if (enemyCollider != null) enemyCollider.enabled = false;

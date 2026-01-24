@@ -9,6 +9,11 @@ public class SpeedAnimation : MonoBehaviour
     public LayerMask groundLayer;
     private bool isGrounded = true;
 
+    [Header("Idle Settings")]
+    [Tooltip("何秒入力がないとIdle2に移行するか")]
+    public float idle2Threshold = 10.0f;
+    private float idleTimer = 0f; // 何もしていない時間をカウント
+
     // パラメーターハッシュ
     private readonly int IsWalkingHash = Animator.StringToHash("IsWalking");
     private readonly int IsDashingHash = Animator.StringToHash("IsDashing");
@@ -19,6 +24,7 @@ public class SpeedAnimation : MonoBehaviour
     private readonly int IsGroundedHash = Animator.StringToHash("IsGrounded");
     private readonly int LandTriggerHash = Animator.StringToHash("LandTrigger");
     private readonly int JumpTriggerHash = Animator.StringToHash("JumpTrigger");
+    private readonly int Idle2Hash = Animator.StringToHash("Idle2"); // 追加
 
     void Start()
     {
@@ -31,14 +37,43 @@ public class SpeedAnimation : MonoBehaviour
         CheckIsGrounded();
         HandleGroundAndAirState();
         HandleMovement();
-        // HandleAttackInput(); // 削除：コントローラー側で制御
-        // HandleOtherInput();  // 削除：コントローラー側で制御
+        HandleIdleTimer(); // ★追加
     }
 
-    // ★追加：コントローラーから呼ばれる攻撃アニメ再生メソッド
+    // ★追加：放置時間を計測して Idle2 を制御する
+    private void HandleIdleTimer()
+    {
+        // 移動・上昇・攻撃などの入力があるかチェック
+        bool hasInput = (Input.GetAxisRaw("Horizontal") != 0 ||
+                         Input.GetAxisRaw("Vertical") != 0 ||
+                         Input.GetKey(KeyCode.Space) ||
+                         Input.GetMouseButton(0));
+
+        if (hasInput || !isGrounded)
+        {
+            // 何か操作している、または空中にいる時はタイマーリセット
+            idleTimer = 0f;
+            animator.SetBool(Idle2Hash, false);
+        }
+        else
+        {
+            // 地上で何もしていない時だけタイマーを進める
+            idleTimer += Time.deltaTime;
+
+            if (idleTimer >= idle2Threshold)
+            {
+                animator.SetBool(Idle2Hash, true);
+            }
+        }
+    }
+
     public void PlayAttackAnimation(bool isModeTwo)
     {
         if (animator == null) return;
+        // 攻撃した瞬間にIdle2を解除
+        idleTimer = 0f;
+        animator.SetBool(Idle2Hash, false);
+
         int attackHash = isModeTwo ? Attack2TriggerHash : Attack1TriggerHash;
         animator.SetTrigger(attackHash);
     }

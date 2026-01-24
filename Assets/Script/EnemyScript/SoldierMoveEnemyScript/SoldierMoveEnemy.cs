@@ -73,10 +73,6 @@ public class SoldierMoveEnemy : MonoBehaviour
     private AudioSource audioSource;
     private NavMeshAgent agent;
 
-    private EnemyAI aiA;
-    private ChaserAI aiB;
-    private JuggernautStaticAI aiOld;
-
     void Start()
     {
         currentHealth = maxHealth;
@@ -101,11 +97,6 @@ public class SoldierMoveEnemy : MonoBehaviour
             rb.useGravity = false;
             rb.freezeRotation = true;
         }
-
-        // --- 外部AI参照取得 ---
-        aiA = GetComponent<EnemyAI>();
-        aiB = GetComponent<ChaserAI>();
-        aiOld = GetComponent<JuggernautStaticAI>();
 
         // 💡 起動時にプレイヤーを検索
         FindPlayerWithTag();
@@ -282,10 +273,6 @@ public class SoldierMoveEnemy : MonoBehaviour
 
         CancelInvoke();
         StopAllCoroutines();
-
-        if (aiA != null) aiA.enabled = false;
-        if (aiB != null) aiB.enabled = false;
-        if (aiOld != null) aiOld.enabled = false;
 
         if (agent != null)
         {
