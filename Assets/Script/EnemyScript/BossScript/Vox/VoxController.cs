@@ -137,10 +137,10 @@ public class VoxController : MonoBehaviour
                 }
             }
 
-            if (isEnraged && isBodyMoving)
-            {
-                MoveBossBody();
-            }
+            //if (isEnraged && isBodyMoving)
+            //{
+            //    MoveBossBody();
+            //}
 
             // デバッグ用: Kキーで全アームにダメージを与える
             if (Input.GetKeyDown(KeyCode.K))
@@ -240,9 +240,9 @@ public class VoxController : MonoBehaviour
             isEnraged = true;
             moveSpeed = fastMoveSpeed; // 全体速度を高速化
 
-            bodyTargetZ = Random.Range(-200f, -150f);
-            isBodyMoving = true;
-            Debug.Log("<color=red>HP半分以下：発狂モード突入！速度アップ ＆ 移動範囲拡大！</color>");
+            //bodyTargetZ = Random.Range(-200f, -150f);
+            //isBodyMoving = true;
+            //Debug.Log("<color=red>HP半分以下：発狂モード突入！速度アップ ＆ 移動範囲拡大！</color>");
 
             // 現在の移動を中断して、即座に新しい広い範囲の目標へ向かわせる
             ForceRetargetAll();
