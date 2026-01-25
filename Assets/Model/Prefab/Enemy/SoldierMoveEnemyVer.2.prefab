@@ -281,8 +281,8 @@ GameObject:
   - component: {fileID: 9192802043041120835}
   - component: {fileID: 6365027962539422469}
   - component: {fileID: 55993951237342706}
-  - component: {fileID: 5030108269748454517}
   - component: {fileID: 3394665406370183991}
+  - component: {fileID: 5030108269748454517}
   - component: {fileID: 4555947641249918595}
   - component: {fileID: 1052159033580850742}
   m_Layer: 9
@@ -359,36 +359,9 @@ CapsuleCollider:
   m_Enabled: 1
   serializedVersion: 2
   m_Radius: 0.6953459
-  m_Height: 2.244162
+  m_Height: 1.9962094
   m_Direction: 1
-  m_Center: {x: -0.004221916, y: 0.87791896, z: 0}
---- !u!54 &5030108269748454517
-Rigidbody:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1076332922253201779}
-  serializedVersion: 4
-  m_Mass: 80
-  m_Drag: 0
-  m_AngularDrag: 0.05
-  m_CenterOfMass: {x: 0, y: 0, z: 0}
-  m_InertiaTensor: {x: 1, y: 1, z: 1}
-  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ImplicitCom: 1
-  m_ImplicitTensor: 1
-  m_UseGravity: 1
-  m_IsKinematic: 0
-  m_Interpolate: 0
-  m_Constraints: 112
-  m_CollisionDetection: 1
+  m_Center: {x: -0.004221916, y: 1.0018953, z: -0}
 --- !u!65 &3394665406370183991
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -408,8 +381,35 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1, y: 2.2375135, z: 1}
-  m_Center: {x: -0, y: 0.87823534, z: -0}
+  m_Size: {x: 1, y: 1.9725533, z: 1}
+  m_Center: {x: -0, y: 1.0107155, z: -0}
+--- !u!54 &5030108269748454517
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1076332922253201779}
+  serializedVersion: 4
+  m_Mass: 1
+  m_Drag: 0
+  m_AngularDrag: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 112
+  m_CollisionDetection: 1
 --- !u!114 &4555947641249918595
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -468,7 +468,7 @@ MonoBehaviour:
   dashJumpDistanceMultiplier: 1.5
   dashJumpHeightMultiplier: 1.3
   initialWaitTime: 1
-  landingSpeed: 2
+  landingSpeed: 20
   groundTag: Ground
   bulletsPerBurst: 3
   timeBetweenShots: 0.1
@@ -477,7 +477,6 @@ MonoBehaviour:
   reloadTime: 3
   bulletPrefab: {fileID: 2122773977752915486, guid: f0a4b39bf56e66441a35c283f802d0ab, type: 3}
   muzzlePoint: {fileID: 3177394728276170781}
-  shootSound: {fileID: 8300000, guid: c4b65ca2929b9d14382891611ed72d56, type: 3}
 --- !u!82 &1052159033580850742
 AudioSource:
   m_ObjectHideFlags: 0
@@ -3232,7 +3231,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6478093414801024802, guid: fcb50aebdc5f92f4ca69f9e10f93b429, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0
+      value: 0.2
       objectReference: {fileID: 0}
     - target: {fileID: 6478093414801024802, guid: fcb50aebdc5f92f4ca69f9e10f93b429, type: 3}
       propertyPath: m_LocalPosition.z

@@ -49,6 +49,12 @@ public class DebuffPanel : MonoBehaviour
     {
         if (other.CompareTag("Player"))
         {
+            var status = other.GetComponent<PlayerStatus>();
+            if (status != null)
+            {
+                status.isMovementSlowed = true;
+                // ここで実際の移動速度を遅くする処理を呼ぶ（必要であれば）
+            }
             ApplyDebuff(other, true);
         }
     }
@@ -58,6 +64,12 @@ public class DebuffPanel : MonoBehaviour
     {
         if (other.CompareTag("Player"))
         {
+            var status = other.GetComponent<PlayerStatus>();
+            if (status != null)
+            {
+                status.isMovementSlowed = false;
+                // 速度を元に戻す処理
+            }
             ApplyDebuff(other, false);
         }
     }

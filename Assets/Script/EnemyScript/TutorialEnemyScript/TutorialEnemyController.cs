@@ -197,12 +197,20 @@ public class TutorialEnemyController : MonoBehaviour
         if (isDead) return;
         isDead = true;
 
-        // すべてのUI（強調表示とHPバー）を非表示にする
+        // UIを非表示にする
         if (highlightUI != null) highlightUI.SetActive(false);
         if (healthBarCanvas != null) healthBarCanvas.SetActive(false);
 
-        onDeath?.Invoke();
-        Destroy(gameObject);
+        // イベントを発火（TutorialManagerに通知）
+        if (onDeath != null)
+        {
+            onDeath.Invoke();
+        }
+
+        // ★重要: すぐにDestroyせず、極小時間待ってから消すか、
+        // もしくはコルーチンで少し待機してからDestroyする
+        // これによりTutorialManagerがフラグを拾う余裕を作ります
+        Destroy(gameObject, 0.05f);
     }
 
     private void OnDrawGizmosSelected()

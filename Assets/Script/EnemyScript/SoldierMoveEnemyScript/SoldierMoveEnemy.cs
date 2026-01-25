@@ -46,7 +46,7 @@ public class SoldierMoveEnemy : MonoBehaviour
 
     [Header("着地設定")]
     public float initialWaitTime = 1.0f;
-    public float landingSpeed = 2.0f;
+    public float landingSpeed =50.0f;
     public string groundTag = "Ground";
 
     // --- 攻撃設定 ---
@@ -62,8 +62,8 @@ public class SoldierMoveEnemy : MonoBehaviour
     [SerializeField] private GameObject bulletPrefab;
     public Transform muzzlePoint;
 
-    [Header("オーディオ設定")]
-    public AudioClip shootSound; // ★サブマシンガンの音をアサインしてください
+    //[Header("オーディオ設定")]
+    //public AudioClip shootSound; // ★サブマシンガンの音をアサインしてください
     // ====================================================================
     // --- 3. コンポーネントと初期化 ---
     // ====================================================================
@@ -93,8 +93,8 @@ public class SoldierMoveEnemy : MonoBehaviour
 
         if (rb != null)
         {
-            rb.isKinematic = true;
-            rb.useGravity = false;
+            rb.isKinematic = false; 
+            rb.useGravity = true;
             rb.freezeRotation = true;
         }
 
@@ -147,6 +147,11 @@ public class SoldierMoveEnemy : MonoBehaviour
         {
             FindPlayerWithTag();
             if (player == null) return;
+        }
+
+        if (currentState == EnemyState.Landing)
+        {
+            return; // LandingLogic() は呼び出さない
         }
 
         // NavMeshAgent が OffMeshLink 上にいる場合、ジャンプ処理へ移行
@@ -412,9 +417,7 @@ public class SoldierMoveEnemy : MonoBehaviour
 
     void LandingLogic()
     {
-        if (rb == null) return;
-        // Velocityを使わず、直接座標を動かす
-        transform.position += Vector3.down * landingSpeed * Time.fixedDeltaTime;
+        // 何もしない。RigidbodyのuseGravity = true によって自然に落下します。
     }
 
     void TransitionToLanding()
@@ -443,35 +446,32 @@ public class SoldierMoveEnemy : MonoBehaviour
         if (rb != null)
         {
             rb.isKinematic = false;
-            rb.useGravity = false;
+            rb.useGravity = true; // ★重力を有効にする
+            // rb.linearVelocity = Vector3.zero; // 必要に応じて初期速度をリセット
         }
     }
 
     IEnumerator FinishLandingCoroutine()
     {
         if (isDead) yield break;
-        yield return new WaitForFixedUpdate();
-        yield return new WaitForFixedUpdate();
 
+        // すでに StartFalling で true になっていますが、念のため
         if (rb != null)
         {
-            rb.linearVelocity = Vector3.zero;
-            rb.isKinematic = false;
             rb.useGravity = true;
+            rb.linearVelocity = Vector3.zero;
         }
+
+        yield return new WaitForSeconds(0.05f);
 
         if (agent != null) agent.enabled = true;
-        if (enemyCollider != null) enemyCollider.enabled = true;
         if (animator != null) animator.SetBool("IsFloating", false);
 
+        // 状態遷移
         if (player != null && Vector3.Distance(transform.position, player.position) <= sightRange)
-        {
             TransitionToChase();
-        }
         else
-        {
             TransitionToIdle();
-        }
     }
 
     // ====================================================================
@@ -565,12 +565,12 @@ public class SoldierMoveEnemy : MonoBehaviour
 
         currentAmmo--;
 
-        // --- 音の再生を追加 ---
-        if (audioSource != null && shootSound != null)
-        {
-            // PlayOneShotを使うことで、連射しても音が途切れず重なって再生されます
-            audioSource.PlayOneShot(shootSound);
-        }
+        //// --- 音の再生を追加 ---
+        //if (audioSource != null && shootSound != null)
+        //{
+        //    // PlayOneShotを使うことで、連射しても音が途切れず重なって再生されます
+        //    audioSource.PlayOneShot(shootSound);
+        //}
 
         Vector3 targetPosition = player.position;
         Vector3 directionToPlayer = (targetPosition - muzzlePoint.position).normalized;
@@ -582,21 +582,10 @@ public class SoldierMoveEnemy : MonoBehaviour
 
     private void OnCollisionEnter(Collision collision)
     {
+        // Groundタグに触れたら「敵の状態」をLandingからIdle/Chaseに変えるだけ
         if (currentState == EnemyState.Landing && collision.gameObject.CompareTag(groundTag))
         {
-            StopCoroutine("FinishLandingCoroutine");
-            CancelInvoke("StartFalling");
-
-            if (rb != null)
-            {
-                rb.linearVelocity = Vector3.zero;
-                float contactY = collision.contacts[0].point.y;
-                if (enemyCollider != null)
-                {
-                    enemyCollider.enabled = false;
-                    transform.position = new Vector3(transform.position.x, contactY + enemyCollider.bounds.extents.y, transform.position.z);
-                }
-            }
+            // rb.isKinematic = true; ← これを消すことで、重力が効き続けます
             StartCoroutine(FinishLandingCoroutine());
         }
     }

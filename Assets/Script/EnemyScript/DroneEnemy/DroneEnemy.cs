@@ -20,9 +20,9 @@ public class DroneEnemy : MonoBehaviour
     [Header("エフェクト設定")]
     public GameObject explosionPrefab;
 
-    [Header("音声設定")]
-    private AudioSource droneAudioSource; // コンポーネント保持用
-    [SerializeField] private AudioClip shotClip;              // 発射音のClip
+    //[Header("音声設定")]
+    //private AudioSource droneAudioSource; // コンポーネント保持用
+    //[SerializeField] private AudioClip shotClip;              // 発射音のClip
 
     // --- 索敵用パラメータ ---
     [Header("ターゲット設定")]
@@ -94,7 +94,7 @@ public class DroneEnemy : MonoBehaviour
         UpdateHealthBarColor();
 
         // --- 既存のAwake処理 ---
-        droneAudioSource = GetComponent<AudioSource>();
+        //droneAudioSource = GetComponent<AudioSource>();
         GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
         if (playerObject != null) playerTarget = playerObject.transform;
         SetNewDriftTarget();
@@ -215,10 +215,10 @@ public class DroneEnemy : MonoBehaviour
             return;
         }
 
-        if (droneAudioSource != null && shotClip != null)
-        {
-            droneAudioSource.PlayOneShot(shotClip);
-        }
+        //if (droneAudioSource != null && shotClip != null)
+        //{
+        //    droneAudioSource.PlayOneShot(shotClip);
+        //}
 
         // 銃がすでにPlayerの方向を向いているため、beamOrigin.rotationを使用
         Quaternion bulletRotation = beamOrigin.rotation;

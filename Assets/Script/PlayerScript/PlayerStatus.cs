@@ -27,6 +27,10 @@ public class PlayerStatus : MonoBehaviour
 
     public SceneBasedGameOverManager gameOverManager;
 
+    // 重力パネルに触れているかどうかを保持するフラグ
+    [HideInInspector] // インスペクターで隠したい場合
+    public bool isMovementSlowed = false;
+
     void Awake()
     {
         _currentHP = maxHP;
@@ -61,9 +65,6 @@ public class PlayerStatus : MonoBehaviour
         if (_isDead) return;
         float finalDamage = rawDamage * defenseMultiplier;
         _currentHP = Mathf.Max(0, _currentHP - finalDamage);
-
-        Debug.Log($"[PlayerStatus] ダメージ受領: 元{rawDamage} / 補正後{finalDamage} / 残りHP{_currentHP}");
-
         if (_currentHP <= 0) Die();
     }
 

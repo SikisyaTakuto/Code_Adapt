@@ -487,7 +487,7 @@ public class BusterController : MonoBehaviour
         bool isHit = false;
 
         // --- 1. ƒ{ƒX(TestBoss)‚Ö‚Ì”»’è‚ð’Ç‰Á ---
-        var boss = target.GetComponentInParent<TestBoss>();
+        var boss = target.GetComponentInParent<ElsController>();
         if (boss != null)
         {
             boss.TakeDamage(damageAmount);

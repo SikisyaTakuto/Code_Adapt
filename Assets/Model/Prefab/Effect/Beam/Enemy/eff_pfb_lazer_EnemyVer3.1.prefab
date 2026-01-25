@@ -19461,8 +19461,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5445679957556829644}
-  - component: {fileID: 5338994820448643516}
   - component: {fileID: 6790190855392866669}
+  - component: {fileID: -2226584797242559797}
   m_Layer: 0
   m_Name: eff_pfb_lazer_EnemyVer3.1
   m_TagString: Untagged
@@ -19486,21 +19486,6 @@ Transform:
   - {fileID: 9097838975309059492}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &5338994820448643516
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2416649738203431239}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ca60c35e7074fd84583241f3a51a1cac, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  lifetime: 0.2
-  beamVisual: {fileID: 9097838975309059492}
-  damageAmount: 100
 --- !u!82 &6790190855392866669
 AudioSource:
   m_ObjectHideFlags: 0
@@ -19598,6 +19583,21 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &-2226584797242559797
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2416649738203431239}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 45d8140efa42e3241b9632ca34f54c1e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  lifetime: 0.5
+  beamVisual: {fileID: 9097838975309059492}
+  damageAmount: 20
 --- !u!1 &4237452614804672071
 GameObject:
   m_ObjectHideFlags: 0

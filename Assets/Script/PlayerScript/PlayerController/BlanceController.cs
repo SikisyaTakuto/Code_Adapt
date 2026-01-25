@@ -33,6 +33,10 @@ public class BlanceController : MonoBehaviour
     [Tooltip("攻撃対象となるレイヤー（Enemy等）")]
     public LayerMask enemyLayer;
 
+    [Header("Visual References")]
+    [Tooltip("非表示にしたい銃やキャノンのゲームオブジェクト（剣を振る時用）")]
+    public GameObject[] weaponModels;
+
     // ======================================================================================
     // 2. 移動・飛行パラメータ (Movement Parameters)
     // ======================================================================================
@@ -60,9 +64,9 @@ public class BlanceController : MonoBehaviour
 
     [Header("Animation Timings")]
     public float swordComboTime = 0.8f;     // 剣を振っている（判定がある）時間
-    public float doubleGunDuration = 3.0f;  // 2.0から3.0へ：照射時間を長く
-    public float attackRecoveryTime = 1.5f; // 0.5から1.5へ：撃ち終わった後の硬直を大幅に増加
-    public float landStunDuration = 0.2f;  // 着地時に発生する短い硬直時間
+    public float swordRecoveryTime = 0.4f;  // ★追加：剣を振り終わった後の短い硬直
+    public float doubleGunDuration = 1.0f;  // ★ビームの表示時間（0.5から1.0へ）
+    public float attackRecoveryTime = 0.5f; // 全体的な基本硬直（1.5から0.5へ短縮
 
     [Header("Audio Resources")]
     public AudioSource audioSource;
@@ -318,13 +322,15 @@ public class BlanceController : MonoBehaviour
 
     /// <summary>
     /// 【攻撃パターン1】剣での2連撃。
-    /// 回数を3回から2回に変更し、判定時間を調整しました。
+    /// 硬直時間を大幅に短縮しました。
     /// </summary>
     private IEnumerator HandleComboAttackRoutine()
     {
         _isAttacking = true;
-        // 合計硬直時間 = 攻撃時間 + 後隙
-        StartAttackStun(swordComboTime + attackRecoveryTime);
+        SetWeaponModelsActive(false);
+
+        // 硬直時間を「剣専用」の短い時間で設定
+        StartAttackStun(swordComboTime + swordRecoveryTime);
 
         if (swordObject != null) swordObject.SetActive(true);
 
@@ -339,7 +345,6 @@ public class BlanceController : MonoBehaviour
 
             while (elapsedInSwing < interval)
             {
-                // 攻撃中は回転を固定（またはターゲット追従）
                 Collider[] hits = Physics.OverlapSphere(transform.position, meleeAttackRange, enemyLayer);
                 foreach (var col in hits)
                 {
@@ -355,57 +360,92 @@ public class BlanceController : MonoBehaviour
         }
 
         if (swordObject != null) swordObject.SetActive(false);
+        SetWeaponModelsActive(true);
 
-        // 攻撃判定は消えたが、まだ _isStunned なので動けない状態が続く
-        yield return new WaitForSeconds(attackRecoveryTime);
+        // 振り終わった後の待ち時間を短縮
+        yield return new WaitForSeconds(swordRecoveryTime);
         _isAttacking = false;
     }
 
     /// <summary>
     /// 【攻撃パターン2】2丁拳銃ビーム。
+    /// 継続照射から単発発射に変更されました。
     /// </summary>
     private void HandleDoubleGunAttack()
     {
+        // 単発なのでコスト消費判定をここで行う
         if (!playerStatus.ConsumeEnergy(beamAttackEnergyCost)) return;
+
         _isAttacking = true;
-        StartCoroutine(DoubleGunRoutine());
+        StartCoroutine(SingleBeamRoutine());
     }
 
-    private IEnumerator DoubleGunRoutine()
+    /// <summary>
+    /// 単発だが「長く残る」ビーム用のコルーチン
+    /// </summary>
+    private IEnumerator SingleBeamRoutine()
     {
-        // 合計硬直時間 = 照射時間 + 後隙
-        StartAttackStun(doubleGunDuration + attackRecoveryTime);
-
+        SetWeaponModelsActive(true);
         if (swordObject != null) swordObject.SetActive(false);
 
-        float elapsed = 0f;
-        float fireInterval = 0.1f;
-        float nextFireTime = 0f;
-
-        // ビーム照射フェーズ
-        while (elapsed < doubleGunDuration)
+        if (_tpsCamController != null && _tpsCamController.LockOnTarget != null)
         {
-            if (elapsed >= nextFireTime)
-            {
-                FireDualBeams();
-                nextFireTime += fireInterval;
-            }
-
-            if (_tpsCamController != null && _tpsCamController.LockOnTarget != null)
-            {
-                RotateTowards(FindBestAutoAimTarget());
-            }
-
-            elapsed += Time.deltaTime;
-            yield return null;
+            RotateTowards(FindBestAutoAimTarget());
         }
 
-        // 照射終了後の「後隙」フェーズ
-        // ここでビームのエフェクトを止める処理などがあれば入れる
-        yield return new WaitForSeconds(attackRecoveryTime);
+        // 発射設定
+        float beamDuration = 1.0f;   // ★1.0秒間ビームを表示し続ける
+        float fireRecovery = 0.2f;   // 操作不能な後隙
+
+        StartAttackStun(beamDuration + fireRecovery);
+
+        // 発射（FireDualBeamsの中でビームが生成される）
+        FireDualBeams();
+
+        // ビームが残っている間待機
+        yield return new WaitForSeconds(beamDuration);
+
+        // 後隙
+        yield return new WaitForSeconds(fireRecovery);
 
         _isAttacking = false;
     }
+    ///// <summary>
+    ///// 【攻撃パターン2】2丁拳銃ビーム。
+    ///// </summary>
+    //private IEnumerator DoubleGunRoutine()
+    //{
+    //    // ★ビーム攻撃時は銃を表示しておく（念のため呼び出し）
+    //    SetWeaponModelsActive(true);
+
+    //    StartAttackStun(doubleGunDuration + attackRecoveryTime);
+
+    //    if (swordObject != null) swordObject.SetActive(false);
+
+    //    float elapsed = 0f;
+    //    float fireInterval = 0.1f;
+    //    float nextFireTime = 0f;
+
+    //    while (elapsed < doubleGunDuration)
+    //    {
+    //        if (elapsed >= nextFireTime)
+    //        {
+    //            FireDualBeams();
+    //            nextFireTime += fireInterval;
+    //        }
+
+    //        if (_tpsCamController != null && _tpsCamController.LockOnTarget != null)
+    //        {
+    //            RotateTowards(FindBestAutoAimTarget());
+    //        }
+
+    //        elapsed += Time.deltaTime;
+    //        yield return null;
+    //    }
+
+    //    yield return new WaitForSeconds(attackRecoveryTime);
+    //    _isAttacking = false;
+    //}
 
     /// <summary>
     /// 左右の発射口からビームを生成し、ダメージ判定を行います。
@@ -454,6 +494,19 @@ public class BlanceController : MonoBehaviour
     // 8. ダメージ・デバフ・ユーティリティ (Utilities)
     // ======================================================================================
 
+
+    /// <summary>
+    /// 全ての武器モデルの表示・非表示を一括切り替え
+    /// </summary>
+    private void SetWeaponModelsActive(bool active)
+    {
+        if (weaponModels == null) return;
+        foreach (var model in weaponModels)
+        {
+            if (model != null) model.SetActive(active);
+        }
+    }
+
     /// <summary>
     /// 命中したオブジェクトのコンポーネントをチェックし、適切なダメージメソッドを呼び出します。
     /// </summary>
@@ -464,7 +517,7 @@ public class BlanceController : MonoBehaviour
 
         // --- 1. ボス(TestBoss)への判定を追加 ---
         // 直接のオブジェクト、または親階層に TestBoss がついているか確認
-        var boss = target.GetComponentInParent<TestBoss>();
+        var boss = target.GetComponentInParent<ElsController>();
         if (boss != null)
         {
             boss.TakeDamage(damage);

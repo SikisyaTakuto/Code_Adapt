@@ -1,7 +1,8 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
-using System;
-using System.Collections.Generic;
 
 public class PlayerModesAndVisuals : MonoBehaviour
 {
@@ -34,6 +35,12 @@ public class PlayerModesAndVisuals : MonoBehaviour
     public Text attack2Text;
     public Color emphasizedColor = Color.white;
     public Color normalColor = new Color(0.5f, 0.5f, 0.5f);
+
+    [Header("Switch Effects")]
+    public GameObject switchEffectObject; // フェードさせる演出用オブジェクト
+    public float effectDuration = 1.0f;   // 表示時間
+
+    private Coroutine _effectCoroutine;
 
     // キャッシュ用に現在の表示アーマーのインデックスを保持
     private int _currentVisibleArmorIndex = 0;
@@ -138,11 +145,42 @@ public class PlayerModesAndVisuals : MonoBehaviour
 
         if (armorIndex == -1) return;
 
+        // --- 追加：エフェクトの再生 ---
+        if (switchEffectObject != null)
+        {
+            if (_effectCoroutine != null) StopCoroutine(_effectCoroutine);
+            _effectCoroutine = StartCoroutine(PlaySwitchEffect());
+        }
+
         // 1. まず見た目と現在のインデックスを更新
         UpdateArmorVisualAndIcon(armorIndex);
 
         // 2. そのインデックスに基づいてステータスを「上書き」更新
         RefreshTotalStats();
+    }
+
+    // エフェクトを表示して消すコルーチン
+    private IEnumerator PlaySwitchEffect()
+    {
+        switchEffectObject.SetActive(true);
+
+        // CanvasGroupがアタッチされている場合はフェードイン演出が可能
+        CanvasGroup cg = switchEffectObject.GetComponent<CanvasGroup>();
+
+        float elapsed = 0;
+        while (elapsed < effectDuration)
+        {
+            elapsed += Time.deltaTime;
+            if (cg != null)
+            {
+                // 後半に向けてフェードアウトする例
+                cg.alpha = Mathf.Lerp(1f, 0f, elapsed / effectDuration);
+            }
+            yield return null;
+        }
+
+        switchEffectObject.SetActive(false);
+        if (cg != null) cg.alpha = 1f; // アルファ値を戻しておく
     }
 
     // 見た目とアイコンだけを更新（ステータス合算は維持）

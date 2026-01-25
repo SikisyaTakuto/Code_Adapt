@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections; // コルーチンに必要
 
 public class TargetObject : MonoBehaviour
 {
@@ -7,6 +8,12 @@ public class TargetObject : MonoBehaviour
     [Tooltip("これが最後のターゲットならチェックを入れる（完了後に消えます）")]
     public bool isLastTarget = false;
 
+    [Header("Lever Rotation Settings")]
+    [Tooltip("回転させたいパーツ（空なら自分自身）")]
+    public Transform targetRotationObject;
+    [SerializeField] private Vector3 rotationAmount = new Vector3(0, 90, 0);
+    [SerializeField] private float rotationDuration = 1.0f; // 何秒かけて回転するか
+
     [Header("Animation")]
     public Animator animator;
     public string animationTrigger = "Activate";
@@ -14,9 +21,9 @@ public class TargetObject : MonoBehaviour
     [Header("Input")]
     public KeyCode interactKey = KeyCode.F;
 
-    [Header("Audio")] // ★オーディオ設定を追加
+    [Header("Audio")]
     public AudioSource audioSource;
-    public AudioClip leverSound; // レバーを倒す時の音
+    public AudioClip leverSound;
 
     private bool isActivated = false;
     private bool isPlayerInRange = false;
@@ -38,15 +45,9 @@ public class TargetObject : MonoBehaviour
         if (other.CompareTag("Player"))
         {
             isPlayerInRange = true;
-
             if (gameObject.CompareTag("TargetCheck") && !isActivated)
             {
-                Debug.Log("TargetCheckに接触：自動で更新します");
                 ExecuteLogic();
-            }
-            else if (gameObject.CompareTag("Lever") && !isActivated)
-            {
-                Debug.Log("Leverに接触：Fキーを押してください");
             }
         }
     }
@@ -64,43 +65,63 @@ public class TargetObject : MonoBehaviour
         if (isActivated) return;
         isActivated = true;
 
-        // ★ 0. 効果音の再生
+        // --- 滑らかな回転を開始 ---
+        Transform objToRotate = (targetRotationObject != null) ? targetRotationObject : transform;
+        StartCoroutine(SmoothRotation(objToRotate));
+
+        // --- 以下、各種Nullチェック付き処理 ---
         if (audioSource != null && leverSound != null)
         {
             audioSource.PlayOneShot(leverSound);
         }
 
-        // 1. アニメーション再生
         if (animator != null)
         {
             animator.SetTrigger(animationTrigger);
         }
 
-        // 2. 扉を開ける処理
         if (doorController != null)
         {
             doorController.OpenDoor();
         }
 
-        // 3. ミッションテキストを更新
         if (MissionManager.Instance != null)
         {
             MissionManager.Instance.CompleteCurrentMission();
         }
 
-        // 4. 矢印を次の目的地へ更新
         if (TargetManager.Instance != null)
         {
             TargetManager.Instance.CompleteCurrentObjective();
         }
 
-        // 5. 最後のターゲットなら消去
         if (isLastTarget)
         {
-            // 音が途切れないよう、Destoryの時間を少し余裕を持たせます
-            Destroy(gameObject, 1.5f);
+            // 回転時間を考慮して少し遅めに消去
+            Destroy(gameObject, rotationDuration + 0.5f);
+        }
+    }
+
+    // 滑らかに回転させるコルーチン
+    private IEnumerator SmoothRotation(Transform target)
+    {
+        Quaternion startRotation = target.localRotation;
+        Quaternion endRotation = startRotation * Quaternion.Euler(rotationAmount);
+        float elapsed = 0f;
+
+        while (elapsed < rotationDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / rotationDuration;
+
+            // イージング（滑らかな動き出しと終わり）をつける
+            float smoothT = Mathf.SmoothStep(0f, 1f, t);
+
+            target.localRotation = Quaternion.Slerp(startRotation, endRotation, smoothT);
+            yield return null;
         }
 
-        Debug.Log($"{gameObject.name} の処理が完了しました。");
+        // 最後に確実に目標角度に固定
+        target.localRotation = endRotation;
     }
 }

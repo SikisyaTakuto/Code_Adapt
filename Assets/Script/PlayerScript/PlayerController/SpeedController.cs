@@ -248,7 +248,7 @@ public class SpeedController : MonoBehaviour
 
     /// <summary>
     /// [コルーチン] スピードモード近接連撃ルーチン
-    /// 硬直時間を長くし、不要な音（ビーム音など）が混ざらないよう制御。
+    /// アニメーションの振りの速さに合わせて音と判定のタイミングを同期させました。
     /// </summary>
     private IEnumerator HandleSpeedMeleeRoutine()
     {
@@ -257,20 +257,25 @@ public class SpeedController : MonoBehaviour
         if (anim != null) anim.applyRootMotion = false;
 
         StartAttackStun();
-        _stunTimer = 2.5f; // 全体の硬直時間を長めに設定
+        _stunTimer = 2.2f; // 全体の硬直をアニメーションの長さに調整
 
         Quaternion attackRotation = transform.rotation;
 
-        // 1-3回目：通常振り
+        // --- 1?3段目：高速な斬撃 ---
+        // 動画の動きに合わせて、0.2秒?0.25秒間隔で音を鳴らします
+        float[] strikeIntervals = { 0.2f, 0.3f, 0.4f };
+
         for (int i = 0; i < 3; i++)
         {
-            // 近接用の音のみを再生
+            // アニメーションの「振り」に合わせて少し待ってから音と判定を出す
+            yield return new WaitForSeconds(0.1f);
+
             PlaySound(_meleeSwingSound);
             ApplyMeleeSphereDamage(meleeDamage);
 
-            // 1振りあたりの硬直時間を長く (0.5秒)
+            // 次の攻撃動作までの繋ぎ
             float stepTimer = 0;
-            while (stepTimer < 0.5f)
+            while (stepTimer < strikeIntervals[i])
             {
                 transform.rotation = attackRotation;
                 stepTimer += Time.deltaTime;
@@ -278,23 +283,34 @@ public class SpeedController : MonoBehaviour
             }
         }
 
-        // 4回目：トドメのひっかき (予備動作を少し入れる)
-        yield return new WaitForSeconds(0.2f);
-        PlaySound(_scratchAttackSound);
-        ApplyMeleeSphereDamage(meleeDamage * 1.5f);
-
-        // トドメの後のバックステップ（演出）
-        float timer = 0f;
-        while (timer < 0.3f)
+        // --- 4段目：トドメのひっかき ---
+        // 動画では3段目の後に少し「溜め」があるので、待機時間を増やします
+        float chargeTime = 0.7f;
+        float chargeTimer = 0f;
+        while (chargeTimer < chargeTime)
         {
             transform.rotation = attackRotation;
-            _playerController.Move(-transform.forward * 10f * Time.deltaTime);
-            timer += Time.deltaTime;
+            chargeTimer += Time.deltaTime;
             yield return null;
         }
 
-        // 【調整】完全に動けるようになるまでの後隙
-        yield return new WaitForSeconds(0.5f);
+        // ひっかき音と判定
+        PlaySound(_scratchAttackSound);
+        ApplyMeleeSphereDamage(meleeDamage * 2.0f);
+
+        // トドメの後のバックステップ（演出）
+        float dashTimer = 0f;
+        while (dashTimer < 0.3f)
+        {
+            transform.rotation = attackRotation;
+            // 勢いよく後ろに下がる
+            _playerController.Move(-transform.forward * 12f * Time.deltaTime);
+            dashTimer += Time.deltaTime;
+            yield return null;
+        }
+
+        // 完全に動けるようになるまでの余韻（後隙）
+        yield return new WaitForSeconds(0.3f);
 
         if (anim != null) anim.applyRootMotion = true;
         yield return StartCoroutine(RestoreRotationRoutine(_rotationBeforeAttack));
@@ -401,7 +417,7 @@ public class SpeedController : MonoBehaviour
         foreach (var comp in components)
         {
             // --- 1. ボス(TestBoss)への判定を追加 ---
-            if (comp is TestBoss boss)
+            if (comp is ElsController boss)
             {
                 boss.TakeDamage(damageAmount);
                 isHit = true;

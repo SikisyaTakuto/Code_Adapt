@@ -7,16 +7,7 @@ public class TutoialManager : MonoBehaviour
 {
     public enum TutorialStep
     {
-        Move,
-        Dash,
-        Fly,
-        Damage,
-        LockOn,
-        Attack1,        // 「攻撃しましょう」
-        SwitchWeapon,
-        Attack2,        // 「切り替えた武装で攻撃してください」
-        SwitchArmor,
-        Complete
+        Move, Dash, Fly, GravityPanel, Damage, LockOn, Attack1, SwitchWeapon, Attack2, SwitchArmor, Complete
     }
 
     [Header("UI References")]
@@ -26,6 +17,9 @@ public class TutoialManager : MonoBehaviour
     [Header("Player References")]
     public PlayerModesAndVisuals modesAndVisuals;
     public PlayerStatus playerStatus;
+
+    [Header("Tutorial Gimmicks")]
+    public GameObject gravityPanelObject;
 
     [Header("Enemy Spawning")]
     public GameObject enemyPrefab;
@@ -40,68 +34,82 @@ public class TutoialManager : MonoBehaviour
     private TutorialStep currentStep = TutorialStep.Move;
     private bool stepCleared = false;
     private bool enemyIsDead = false;
+    private bool isSpawning = false; // 生成中の重複防止
     private float initialHp;
 
     void Start()
     {
         _tpsCam = FindObjectOfType<TPSCameraController>();
         if (playerStatus == null) playerStatus = FindObjectOfType<PlayerStatus>();
-
         checkmarkIcon.SetActive(false);
         UpdateTutorialUI();
     }
 
     void Update()
     {
-        if (stepCleared) return;
+        if (stepCleared || isSpawning) return;
 
         switch (currentStep)
         {
             case TutorialStep.Move:
-                if (Mathf.Abs(Input.GetAxis("Horizontal")) > 0.1f || Mathf.Abs(Input.GetAxis("Vertical")) > 0.1f)
-                    OnActionSuccess();
+                if (Mathf.Abs(Input.GetAxis("Horizontal")) > 0.1f || Mathf.Abs(Input.GetAxis("Vertical")) > 0.1f) OnActionSuccess();
                 break;
-
             case TutorialStep.Dash:
-                bool hasMovementInput = Mathf.Abs(Input.GetAxis("Horizontal")) > 0.1f || Mathf.Abs(Input.GetAxis("Vertical")) > 0.1f;
-                if (Input.GetKey(KeyCode.LeftShift) && hasMovementInput)
-                    OnActionSuccess();
+                if (Input.GetKey(KeyCode.LeftShift) && (Mathf.Abs(Input.GetAxis("Horizontal")) > 0.1f || Mathf.Abs(Input.GetAxis("Vertical")) > 0.1f)) OnActionSuccess();
                 break;
-
             case TutorialStep.Fly:
-                if (Input.GetKey(KeyCode.Space))
-                    OnActionSuccess();
+                if (Input.GetKey(KeyCode.Space)) OnActionSuccess();
                 break;
-
+            case TutorialStep.GravityPanel:
+                if (playerStatus != null && playerStatus.isMovementSlowed) OnActionSuccess();
+                break;
             case TutorialStep.Damage:
                 if (_currentEnemy == null) SpawnTutorialEnemy(true);
-                if (playerStatus != null && playerStatus.CurrentHP < initialHp)
-                    OnActionSuccess();
+                if (playerStatus != null && playerStatus.CurrentHP < initialHp) OnActionSuccess();
                 break;
-
             case TutorialStep.LockOn:
                 if (_currentEnemy == null) SpawnTutorialEnemy(false);
-                if (_tpsCam != null && _tpsCam.LockOnTarget != null)
-                    OnActionSuccess();
+                if (_tpsCam != null && _tpsCam.LockOnTarget != null) OnActionSuccess();
                 break;
-
             case TutorialStep.Attack1:
-                if (enemyIsDead) OnActionSuccess();
-                break;
-
-            case TutorialStep.SwitchWeapon:
-                if (Input.GetKeyDown(KeyCode.E))
+                // enemyIsDeadフラグが立つか、敵がシーンから消えたら成功
+                if (enemyIsDead || (_currentEnemy == null && !isSpawning))
+                {
                     OnActionSuccess();
+                }
+                break;
+            case TutorialStep.SwitchWeapon:
+                // 【修正】Eキーを押した、あるいは「すでにAttack2モードになっている」なら合格
+                bool isAttack2Now = modesAndVisuals != null && modesAndVisuals.CurrentWeaponMode == PlayerModesAndVisuals.WeaponMode.Attack2;
+                if (Input.GetKeyDown(KeyCode.E) || isAttack2Now)
+                {
+                    OnActionSuccess();
+                }
                 break;
 
             case TutorialStep.Attack2:
-                if (_currentEnemy == null) SpawnTutorialEnemy(false);
-                if (enemyIsDead) OnActionSuccess();
+                if (_currentEnemy == null && !isSpawning) SpawnTutorialEnemy(false);
+
+                bool isCorrectMode = modesAndVisuals != null && modesAndVisuals.CurrentWeaponMode == PlayerModesAndVisuals.WeaponMode.Attack2;
+
+                // 敵が死んだ（または消滅した）判定
+                if (enemyIsDead || (_currentEnemy == null && !isSpawning))
+                {
+                    if (isCorrectMode)
+                    {
+                        OnActionSuccess();
+                    }
+                    else
+                    {
+                        // 違うモードで倒してしまった場合
+                        enemyIsDead = false;
+                        StartCoroutine(RespawnMessage());
+                    }
+                }
                 break;
 
             case TutorialStep.SwitchArmor:
-                if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Alpha2))
-                    OnActionSuccess();
+                if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Alpha2)) OnActionSuccess();
                 break;
         }
     }
@@ -109,7 +117,16 @@ public class TutoialManager : MonoBehaviour
     private void OnActionSuccess()
     {
         stepCleared = true;
+        enemyIsDead = false; // 次のステップのためにリセット
         StartCoroutine(ShowCheckmarkAndNext());
+    }
+
+    IEnumerator RespawnMessage()
+    {
+        missionText.text = "<color=red>Eキーで武装を切り替えてから\n攻撃してください！</color>";
+        yield return new WaitForSeconds(1.0f);
+        SpawnTutorialEnemy(false);
+        UpdateTutorialUI();
     }
 
     IEnumerator ShowCheckmarkAndNext()
@@ -123,61 +140,70 @@ public class TutoialManager : MonoBehaviour
         if (currentStep != TutorialStep.Complete)
         {
             currentStep++;
+            enemyIsDead = false; // 確実にリセット
             UpdateTutorialUI();
             stepCleared = false;
         }
     }
 
+    IEnumerator HideGravityPanelAfterDelay(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        if (gravityPanelObject != null && currentStep != TutorialStep.GravityPanel)
+        {
+            gravityPanelObject.SetActive(false);
+        }
+    }
+
     void UpdateTutorialUI()
     {
-        string message = "";
         if (playerStatus != null) initialHp = playerStatus.CurrentHP;
+
+        if (gravityPanelObject != null)
+        {
+            if (currentStep == TutorialStep.GravityPanel) gravityPanelObject.SetActive(true);
+            else if (currentStep == TutorialStep.Damage) StartCoroutine(HideGravityPanelAfterDelay(1.5f));
+        }
 
         switch (currentStep)
         {
-            case TutorialStep.Move: message = "・WASDで\n移動せよ"; break;
-            case TutorialStep.Dash: message = "・LeftShift+\nWASDで\nダッシュせよ"; break;
-            case TutorialStep.Fly: message = "・Spaceで\n上昇せよ"; break;
-            case TutorialStep.Damage: message = "・敵の攻撃を受け\n　ダメージを体験せよ"; break;
-            case TutorialStep.LockOn: message = "・右クリックで敵を\n　ロックオンせよ"; break;
-
+            case TutorialStep.Move: missionText.text = "・WASDで\n移動せよ"; break;
+            case TutorialStep.Dash: missionText.text = "・LeftShift+\nWASDで\nダッシュせよ"; break;
+            case TutorialStep.Fly: missionText.text = "・Spaceで\n上昇せよ"; break;
+            case TutorialStep.GravityPanel: missionText.text = "・重力パネルに触れ\n　速度低下を体験せよ"; break;
+            case TutorialStep.Damage: missionText.text = "・敵の攻撃を受け\n　ダメージを体験せよ"; break;
+            case TutorialStep.LockOn: missionText.text = "・右クリックで敵を\n　ロックオンせよ"; break;
             case TutorialStep.Attack1:
-                // ★修正箇所
-                message = "・左クリックで\n　攻撃しましょう";
+                missionText.text = "・左クリックで\n　攻撃しましょう";
                 if (_currentEnemy == null) SpawnTutorialEnemy(false);
                 break;
-
             case TutorialStep.SwitchWeapon:
-                message = "・Eキーで武器を切り替えろ";
+                missionText.text = "・Eキーで武器を切り替えろ";
                 break;
-
             case TutorialStep.Attack2:
-                // ★修正箇所
-                message = "・切り替えた武装で\n　攻撃してください";
+                // ステップ開始時に一度だけリセット
+                enemyIsDead = false;
                 if (_currentEnemy == null) SpawnTutorialEnemy(false);
+                // メッセージは Update メソッド内で動的に更新されるため、ここでは初期値のみ
+                missionText.text = "・切り替えた武装で\n　敵を撃破せよ";
                 break;
-
-            case TutorialStep.SwitchArmor:
-                message = "・1,2キー\nでアーマー換装";
-                break;
-
+            case TutorialStep.SwitchArmor: missionText.text = "・1,2キー\nでアーマー換装"; break;
             case TutorialStep.Complete:
                 missionText.color = Color.green;
                 checkmarkIcon.SetActive(true);
-                message = "・全ミッション完了！";
+                missionText.text = "・全ミッション完了！";
                 if (_currentEnemy != null) Destroy(_currentEnemy);
                 StartCoroutine(TransitionToClearScene());
                 break;
         }
-
         if (currentStep != TutorialStep.Complete) missionText.color = Color.white;
-        missionText.text = message;
     }
 
     private void SpawnTutorialEnemy(bool enableAttack)
     {
         if (enemyPrefab != null && spawnPoint != null)
         {
+            isSpawning = true;
             if (_currentEnemy != null) Destroy(_currentEnemy);
             _currentEnemy = Instantiate(enemyPrefab, spawnPoint.position, spawnPoint.rotation);
             enemyIsDead = false;
@@ -186,6 +212,7 @@ public class TutoialManager : MonoBehaviour
                 enemyCtrl.canShootBeam = enableAttack;
                 enemyCtrl.onDeath += () => { enemyIsDead = true; };
             }
+            isSpawning = false;
         }
     }
 
