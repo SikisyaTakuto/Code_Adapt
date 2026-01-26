@@ -3,7 +3,7 @@ using UnityEngine;
 public class GatlingBullet : MonoBehaviour
 {
     public float speed = 100f;        // 弾速
-    public float damage = 10f;       // 1発あたりのダメージ
+    public float damage = 400f;       // 1発あたりのダメージ
     public float lifeTime = 2f;      // 自然消滅までの時間
     public GameObject hitEffect;     // 着弾エフェクト
 

@@ -12,7 +12,7 @@ public class ElsController : MonoBehaviour
     [Header("Basic Settings")]
     [SerializeField] private BossState _currentState = BossState.Idle;
     [SerializeField] private Transform _player;
-    [SerializeField] private float _maxHealth = 2000f;
+    [SerializeField] private float _maxHealth = 10000f;
     public UnityEngine.UI.Slider bossHpBar;
 
     private float _currentHealth;

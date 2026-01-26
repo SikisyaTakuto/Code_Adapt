@@ -6,7 +6,7 @@ public class DroneEnemy : MonoBehaviour
 {
     // --- HP設定 ---
     [Header("耐久力設定")]
-    public float maxHealth = 100f; // 最大HP
+    public float maxHealth = 200f; // 最大HP
     private float currentHealth;    // 現在のHP
     private bool isDead = false;    // 死亡フラグ
 

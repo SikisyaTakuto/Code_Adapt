@@ -53,8 +53,8 @@ public class SpeedController : MonoBehaviour
     public bool canFly = true;            // 飛行可能かどうか
 
     [Header("戦闘パラメータ")]
-    public float meleeAttackRange = 2.0f;  // 近接攻撃の判定半径
-    public float meleeDamage = 50.0f;      // 近接攻撃の基本ダメージ
+    public float meleeAttackRange = 5.0f;  // 近接攻撃の判定半径
+    public float meleeDamage = 200.0f;      // 近接攻撃の基本ダメージ
     public float beamDamage = 50.0f;       // ビーム1本のダメージ
     public float beamAttackEnergyCost = 30.0f; // ビーム使用時のエナジー消費量
     public float beamMaxDistance = 100f;   // ビームの最大射程

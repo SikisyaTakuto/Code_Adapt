@@ -4,12 +4,12 @@ using UnityEngine.UI;
 public class PlayerStatus : MonoBehaviour
 {
     [Header("HP Settings")]
-    public float maxHP = 10000.0f;
+    public float maxHP = 5000.0f;
     private float _currentHP;
     public float CurrentHP => _currentHP;
 
     [Header("Energy Settings")]
-    public float maxEnergy = 1000.0f;
+    public float maxEnergy = 200.0f;
     public float energyRecoveryRate = 20.0f;
     public float recoveryDelay = 1.0f;
     private float _currentEnergy;

@@ -44,8 +44,8 @@ public class BusterController : MonoBehaviour
     public float landStunDuration = 0.2f;    // 高所着地時の隙
 
     [Header("Combat Settings")]
-    public float beamDamage = 50.0f;       // ビーム1発の威力
-    public float beamAttackEnergyCost = 30.0f; // ビーム消費EN
+    public float beamDamage = 100.0f;       // ビーム1発の威力
+    public float beamAttackEnergyCost = 50.0f; // ビーム消費EN
     public float beamMaxDistance = 100f;   // 射程距離
     public float lockOnTargetHeightOffset = 1.0f; // ロックオン対象の中心位置調整
 
@@ -53,7 +53,7 @@ public class BusterController : MonoBehaviour
     public float backstepForce = 20f;       // 全弾発射時の反動（後ろに飛ぶ力）
     public float gatlingFireRate = 0.05f;   // ガトリングの連射間隔（秒）
     public int gatlingBurstCount = 20;      // ガトリングの連射数
-    public float gatlingEnergyCostTotal = 10f; // 特殊攻撃全体のEN消費量
+    public float gatlingEnergyCostTotal = 30f; // 特殊攻撃全体のEN消費量
     #endregion
 
     #region 3. 内部ステータス & キャッシュ

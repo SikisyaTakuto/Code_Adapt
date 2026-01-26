@@ -12,7 +12,7 @@ public class VoxController : MonoBehaviour
 
     // --- Boss本体のHP ---
     [Header("Boss HP")]
-    [SerializeField] private int bossMaxHP = 100;
+    [SerializeField] private int bossMaxHP = 10000;
     private int bossCurrentHP;
     public UnityEngine.UI.Slider bossHpBar;
 
@@ -41,7 +41,7 @@ public class VoxController : MonoBehaviour
     [SerializeField] private float dropHeight = -2f;        // アームの位置からどれくらい上に爆弾を出すか (Y座標調整)
     [SerializeField] private float moveSpeed = 20f;         // Z軸の移動速度
     [SerializeField] private float rareChance = 0.05f;      // 確率で特殊座標を選ぶ (5%)
-    [SerializeField] private int maxHP = 5;                 // 各アームの初期HP
+    [SerializeField] private int maxHP = 500;                 // 各アームの初期HP
 
     [Header("Player Interaction")]
     [SerializeField] private Transform playerTransform;

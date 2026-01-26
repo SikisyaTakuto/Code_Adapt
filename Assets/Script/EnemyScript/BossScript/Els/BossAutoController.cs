@@ -20,7 +20,7 @@ public class BossAutoController : MonoBehaviour
     [SerializeField] private float _swipeDistance = 4f;
     [SerializeField] private float _swipeHitActiveTime = 0.4f;
     [SerializeField] private float _swipeHitDuration = 0.5f;
-    [SerializeField] private float _swipeDamage = 20f;
+    [SerializeField] private float _swipeDamage = 3000f;
 
     [Header("Attack 2 (4 Shields Beam)")]
     [SerializeField] private Transform[] _shields;
@@ -33,14 +33,14 @@ public class BossAutoController : MonoBehaviour
     [SerializeField] private Transform[] _stabBits;
     [SerializeField] private float _stabPrepareTime = 0.8f;
     [SerializeField] private float _stabDashSpeed = 55f;
-    [SerializeField] private float _stabbingDamage = 15f;
+    [SerializeField] private float _stabbingDamage = 2000f;
 
     [Header("Attack 4 (2 Bits Beam)")]
     [SerializeField] private Transform[] _beamBits;
     [SerializeField] private GameObject _beamEffectPrefab;
     [SerializeField] private float _beamDuration = 1.0f;
     [SerializeField] private float _beamAttackSpread = 6.0f;
-    [SerializeField] private float _beamDamage = 10f;
+    [SerializeField] private float _beamDamage = 1000f;
 
     private Vector3[] _beamBitLocalDefaults;
     private Vector3[] _stabBitLocalDefaults;

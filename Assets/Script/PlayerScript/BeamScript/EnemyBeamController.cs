@@ -7,7 +7,7 @@ public class EnemyBeamController : MonoBehaviour
     public Transform beamVisual;
 
     [Header("Damage Settings")]
-    public float damageAmount = 20f; // floatに統一
+    public float damageAmount = 100f; // floatに統一
 
     private bool hasDealtDamage = false; // 重複ダメージ防止
 

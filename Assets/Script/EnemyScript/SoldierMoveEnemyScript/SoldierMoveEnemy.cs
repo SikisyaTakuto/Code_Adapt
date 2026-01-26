@@ -9,7 +9,7 @@ public class SoldierMoveEnemy : MonoBehaviour
     // ====================================================================
     // --- 1. ヘルスと死亡設定 ---
     // ====================================================================
-    public float maxHealth = 100f;
+    public float maxHealth = 1000f;
     public float currentHealth;
     public GameObject deathExplosionPrefab;
 

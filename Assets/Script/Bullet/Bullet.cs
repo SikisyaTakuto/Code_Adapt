@@ -9,7 +9,7 @@ public class Bullet : MonoBehaviour
 
     [Header("ダメージ設定")]
     [Tooltip("弾が与える基本ダメージ量")]
-    public float damageAmount = 10f;
+    public float damageAmount = 50f;
 
     [Header("エフェクト設定")]
     public GameObject hitEffectPrefab;

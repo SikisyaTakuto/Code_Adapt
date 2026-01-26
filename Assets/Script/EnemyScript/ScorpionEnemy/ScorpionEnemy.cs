@@ -7,7 +7,7 @@ public class ScorpionEnemy : MonoBehaviour
 {
     // --- HP設定 ---
     [Header("ヘルス設定")]
-    public float maxHealth = 100f;
+    public float maxHealth = 1000f;
     private float currentHealth;
     private bool isDead = false;
 
@@ -36,7 +36,7 @@ public class ScorpionEnemy : MonoBehaviour
     public float attackRate = 1f;
     public GameObject beamPrefab;
     public float beamSpeed = 30f;
-    public int beamDamage = 20;
+    public int beamDamage = 1000;
 
     private const string WALL_TAG = "Wall";
 

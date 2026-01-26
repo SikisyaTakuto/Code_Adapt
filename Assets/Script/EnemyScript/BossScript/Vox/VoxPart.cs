@@ -1,20 +1,51 @@
-// ファイル名: VoxPart.cs
 using UnityEngine;
+using System.Collections;
 
 public class VoxPart : MonoBehaviour
 {
-    public VoxController mainController; // 親のVoxControllerをインスペクターでアタッチ
-    public int armIndex; // このパーツが何番目のアームか (0?7)
+    public VoxController mainController;
+    public int armIndex;
+
+    [Header("ダメージ演出設定")]
+    [SerializeField] private Renderer targetRenderer; // 色を変えるメッシュ
+    [SerializeField] private Color flashColor = Color.red; // 点滅時の色
+    [SerializeField] private float flashDuration = 0.1f; // 点滅時間
+
+    private Color originalColor;
+    private Material targetMaterial;
+
+    void Start()
+    {
+        // Rendererが未設定なら自分から取得
+        if (targetRenderer == null) targetRenderer = GetComponent<Renderer>();
+
+        if (targetRenderer != null)
+        {
+            targetMaterial = targetRenderer.material;
+            originalColor = targetMaterial.color;
+        }
+    }
 
     public void TakeDamage(float damage)
-    {    
+    {
         if (mainController != null)
         {
-            // アーム自体のHPを減らす
             mainController.DamageArm(armIndex, Mathf.CeilToInt(damage));
-
-            // 本体にも少し（あるいは全額）ダメージを与える
             mainController.DamageBoss(Mathf.CeilToInt(damage * 1f));
+
+            // ダメージ演出（赤く光らせる）を開始
+            StopAllCoroutines();
+            StartCoroutine(FlashRoutine());
+        }
+    }
+
+    private IEnumerator FlashRoutine()
+    {
+        if (targetMaterial != null)
+        {
+            targetMaterial.color = flashColor;
+            yield return new WaitForSeconds(flashDuration);
+            targetMaterial.color = originalColor;
         }
     }
 }

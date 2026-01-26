@@ -12,10 +12,11 @@ public class LongArmBossAI : MonoBehaviour
     public Vector3 followOffset = new Vector3(0, 15, 0);
 
     [Header("叩きつけ(Slam)設定")]
-    public float slamRange = 500f;
+    public Transform damageSource;
+    public float slamRange = 15f;
     public float slamSpeed = 150f;
     public float anticipationTime = 0.1f;
-    public float slamDamage = 20.0f;
+    public float slamDamage = 200.0f;
 
     [Header("共通設定")]
     public float recoveryTime = 0.5f;
@@ -74,10 +75,14 @@ public class LongArmBossAI : MonoBehaviour
 
     private void CheckSlamHit()
     {
-        if (Vector3.Distance(transform.position, player.position) < damageDistance)
+        // 判定の基準点を決定（damageSourceが未設定なら自分自身の位置を使う）
+        Vector3 sourcePos = (damageSource != null) ? damageSource.position : transform.position;
+
+        // sourcePos（腕の先など）とプレイヤーの距離で判定
+        if (Vector3.Distance(sourcePos, player.position) < damageDistance)
         {
             ApplyDamageToPlayer(player.gameObject, slamDamage);
-            Debug.Log("<color=red>ボスの叩きつけがプレイヤーにヒット！</color>");
+            Debug.Log("<color=red>ボスの腕の先端がプレイヤーにヒット！</color>");
         }
     }
 
@@ -116,4 +121,15 @@ public class LongArmBossAI : MonoBehaviour
     IEnumerator CooldownRoutine() { yield return new WaitForSeconds(attackCooldown); isCooldown = false; }
     void MoveTowardsPlayer() { transform.position = Vector3.Lerp(transform.position, player.position + followOffset, Time.deltaTime * followSpeed); }
     void LookAtPlayer() { if (isAttacking) return; Vector3 direction = (player.position - transform.position).normalized; if (direction != Vector3.zero) transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(direction), Time.deltaTime * rotationSpeed); }
+    // ギズモも基準点に合わせて表示するように修正
+    private void OnDrawGizmos()
+    {
+        Vector3 sourcePos = (damageSource != null) ? damageSource.position : transform.position;
+
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(sourcePos, damageDistance);
+
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireSphere(transform.position, slamRange);
+    }
 }

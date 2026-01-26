@@ -33,7 +33,7 @@ public class SuicideEnemy : MonoBehaviour
     public float explosionRadius = 5.0f;
 
     // 自爆がプレイヤーに与えるダメージ
-    public int explosionDamage = 50;
+    public int explosionDamage = 2000;
 
     // 爆発エフェクトのPrefab (Inspectorから設定)
     public GameObject explosionEffectPrefab;

@@ -54,7 +54,7 @@ public class BlanceController : MonoBehaviour
     [Header("Melee Settings")]
     public GameObject swordObject;        // 近接攻撃中に表示される剣のモデル
     public float meleeAttackRange = 2.0f; // 剣の攻撃判定が届く距離
-    public float meleeDamage = 50.0f;     // 剣の1ヒットあたりのダメージ
+    public float meleeDamage = 300.0f;     // 剣の1ヒットあたりのダメージ
 
     [Header("Range Settings")]
     public float beamDamage = 50.0f;      // ビーム1発のダメージ
