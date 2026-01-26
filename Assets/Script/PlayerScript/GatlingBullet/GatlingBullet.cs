@@ -8,6 +8,7 @@ public class GatlingBullet : MonoBehaviour
     public GameObject hitEffect;     // 着弾エフェクト
 
     private Vector3 direction;
+    private float spawnTime;
 
     // 発射時に方向を設定するメソッド
     public void Launch(Vector3 dir)
@@ -27,56 +28,53 @@ public class GatlingBullet : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        // プレイヤー自身やトリガーには当たらないようにする
-        if (other.CompareTag("Player") || other.isTrigger) return;
-
-        // ダメージ処理をBusterControllerのApplyDamageToEnemyと同じロジックで実行
-        // ここでは簡単に敵のコンポーネントがあるかチェック
-        ApplyBulletDamage(other);
-
-        // 着弾エフェクト
-        if (hitEffect != null)
+        // 1. プレイヤー（自分自身）の全パーツ・全トリガーを最優先で無視
+        if (other.CompareTag("Player") || other.name == "Player" || other.gameObject.layer == LayerMask.NameToLayer("Player"))
         {
-            Instantiate(hitEffect, transform.position, Quaternion.identity);
+            return; // ログすら出さずに即終了
         }
 
-        // 当たったら消える
-        Destroy(gameObject);
+        // 2. デバッグログ（プレイヤー以外に当たった時だけ出す）
+        Debug.Log($"[Bullet Hit Debug] Name: {other.name} | IsTrigger: {other.isTrigger}");
+
+        // 3. 弾丸同士の衝突を無視
+        if (other.GetComponent<GatlingBullet>() != null) return;
+
+        // 4. ダメージ判定
+        bool isHit = ApplyBulletDamage(other);
+
+        // 5. 消滅ロジック
+        // 敵にヒットした、または「トリガーではない物理的な壁や地面」に当たった場合のみ消える
+        if (isHit || !other.isTrigger)
+        {
+            if (hitEffect != null)
+            {
+                Instantiate(hitEffect, transform.position, Quaternion.identity);
+            }
+            Destroy(gameObject);
+        }
     }
 
-    private void ApplyBulletDamage(Collider hitCollider)
+    private bool ApplyBulletDamage(Collider hitCollider)
     {
         GameObject target = hitCollider.gameObject;
         bool isHit = false;
 
-        // --- 指定された敵判定ロジックの統合 ---
-        if (target.TryGetComponent<SoldierMoveEnemy>(out var s1)) { s1.TakeDamage(damage); isHit = true; }
-        else if (target.TryGetComponent<SoliderEnemy>(out var s2)) { s2.TakeDamage(damage); isHit = true; }
-        else if (target.TryGetComponent<TutorialEnemyController>(out var s3)) { s3.TakeDamage(damage); isHit = true; }
-        else if (target.TryGetComponent<ScorpionEnemy>(out var s4)) { s4.TakeDamage(damage); isHit = true; }
-        else if (target.TryGetComponent<SuicideEnemy>(out var s5)) { s5.TakeDamage(damage); isHit = true; }
-        else if (target.TryGetComponent<DroneEnemy>(out var s6)) { s6.TakeDamage(damage); isHit = true; }
-        // 本体のパーツ（胴体など）
-        else if (target.TryGetComponent<VoxBodyPart>(out var bodyPart))
-        {
-            bodyPart.TakeDamage(damage);
-            isHit = true;
-        }
-        // ボスのパーツ（アームなど）
-        else if (target.TryGetComponent<VoxPart>(out var part))
-        {
-            part.TakeDamage(damage);
-            isHit = true;
-        }
+        // --- 修正：GetComponentInParent を使うことで、子オブジェクトのコライダーに当たっても親のスクリプトを探せるようにします ---
+        if (target.GetComponentInParent<SoldierMoveEnemy>() is var s1 && s1 != null) { s1.TakeDamage(damage); isHit = true; }
+        else if (target.GetComponentInParent<SoliderEnemy>() is var s2 && s2 != null) { s2.TakeDamage(damage); isHit = true; }
+        else if (target.GetComponentInParent<TutorialEnemyController>() is var s3 && s3 != null) { s3.TakeDamage(damage); isHit = true; }
+        else if (target.GetComponentInParent<ScorpionEnemy>() is var s4 && s4 != null) { s4.TakeDamage(damage); isHit = true; }
+        else if (target.GetComponentInParent<SuicideEnemy>() is var s5 && s5 != null) { s5.TakeDamage(damage); isHit = true; }
+        else if (target.GetComponentInParent<DroneEnemy>() is var s6 && s6 != null) { s6.TakeDamage(damage); isHit = true; }
+        else if (target.GetComponentInParent<VoxBodyPart>() is var bodyPart && bodyPart != null) { bodyPart.TakeDamage(damage); isHit = true; }
+        else if (target.GetComponentInParent<VoxPart>() is var part && part != null) { part.TakeDamage(damage); isHit = true; }
 
-        // ダメージが入った場合のみエフェクトを生成
         if (isHit)
         {
             Debug.Log($"Gatling hit: {target.name} - Damage: {damage}");
-            if (hitEffect != null)
-            {
-                Instantiate(hitEffect, hitCollider.bounds.center, Quaternion.identity);
-            }
         }
+
+        return isHit;
     }
 }

@@ -12,9 +12,9 @@ GameObject:
   - component: {fileID: 8348880391246189711}
   - component: {fileID: 8797997068863316470}
   - component: {fileID: 8264937007022233310}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: Sphere
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -119,7 +119,7 @@ GameObject:
   - component: {fileID: 586202801248182008}
   - component: {fileID: 4256052739762337970}
   - component: {fileID: 5620569965085674236}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: Particle System
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -5011,9 +5011,9 @@ GameObject:
   - component: {fileID: 8120252051966683685}
   - component: {fileID: 8093197359365612049}
   - component: {fileID: 1237216334872405233}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: Particle SystemZ
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -9847,7 +9847,7 @@ GameObject:
   - component: {fileID: 5479112327341469027}
   - component: {fileID: 4314252815935594502}
   - component: {fileID: 334651460196094904}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: Particle SystemY
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -14680,7 +14680,7 @@ GameObject:
   - component: {fileID: 2553531205835573610}
   - component: {fileID: 7106441762188652271}
   - component: {fileID: 5209130240741827360}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: Particle SystemX
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -19514,9 +19514,10 @@ GameObject:
   - component: {fileID: 8778088472654212936}
   - component: {fileID: 3513957710674817079}
   - component: {fileID: 5594927209059799110}
-  m_Layer: 0
+  - component: {fileID: 2295862162061157902}
+  m_Layer: 15
   m_Name: EnergyCube
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -19557,7 +19558,7 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 0.5
+  m_Radius: 0.86
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &3513957710674817079
 MonoBehaviour:
@@ -19672,3 +19673,30 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!54 &2295862162061157902
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8226266856776454249}
+  serializedVersion: 4
+  m_Mass: 1
+  m_Drag: 0
+  m_AngularDrag: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 0
+  m_IsKinematic: 1
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
