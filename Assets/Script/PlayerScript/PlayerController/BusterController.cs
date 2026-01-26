@@ -376,7 +376,7 @@ public class BusterController : MonoBehaviour
             Vector3 currentTargetPos = GetAutoAimTargetPosition();
 
             // 揺れ計算（iの係数を小さくすると、ゆっくり大きく揺れます）
-            float baseSway = Mathf.Sin(i * 0.3f) * 12.0f;
+            float baseSway = Mathf.Sin(i * 0.3f) * 2.0f;
             FireSpecificGuns(false, true, currentTargetPos, true, baseSway);
 
             // 次の弾までの待機
@@ -445,36 +445,30 @@ public class BusterController : MonoBehaviour
     private void FireProjectile(Transform firePoint, Vector3 targetPos, bool isLockedOn, Vector3 forward, bool isBeam)
     {
         Vector3 origin = firePoint.position;
-        // ロックオン時は敵の方向、非ロックオン時は正面へ飛ばす
         Vector3 fireDirection = isLockedOn ? (targetPos - origin).normalized : forward;
 
         if (!isBeam)
         {
-            // 上下左右に最大2度程度のランダムな角度をつける
-            float spread = 2.0f;
-            Quaternion randomRotation = Quaternion.Euler(
-                Random.Range(-spread, spread),
-                Random.Range(-spread, spread),
-                0
-            );
+            float spread = 0.5f;
+            Quaternion randomRotation = Quaternion.Euler(Random.Range(-spread, spread), Random.Range(-spread, spread), 0);
             fireDirection = randomRotation * fireDirection;
         }
 
-        // 【即着弾判定】レイキャストを使用して壁や敵に当たるか確認
-        bool didHit = Physics.Raycast(origin, fireDirection, out RaycastHit hit, beamMaxDistance, ~0, QueryTriggerInteraction.Ignore);
-        Vector3 endPoint = didHit ? hit.point : origin + fireDirection * beamMaxDistance;
-
-        // ダメージ適用
-        if (didHit) ApplyDamageToEnemy(hit.collider, isBeam ? beamDamage : 10.0f);
-
-        // ビームまたは弾丸の視覚エフェクト生成
+        // --- 【修正ポイント】ガトリングの場合は Raycast でダメージを与えない ---
         if (isBeam)
         {
+            // ビームは即着弾のまま
+            bool didHit = Physics.Raycast(origin, fireDirection, out RaycastHit hit, beamMaxDistance, ~0, QueryTriggerInteraction.Ignore);
+            Vector3 endPoint = didHit ? hit.point : origin + fireDirection * beamMaxDistance;
+
+            if (didHit) ApplyDamageToEnemy(hit.collider, beamDamage);
+
             BeamController beamInstance = Instantiate(beamPrefab, origin, Quaternion.LookRotation(fireDirection));
             beamInstance.Fire(origin, endPoint, didHit);
         }
         else if (gatlingBulletPrefab != null)
         {
+            // ガトリングは弾を生成するだけ（ダメージは弾側のスクリプトに任せる）
             GameObject bulletObj = Instantiate(gatlingBulletPrefab, origin, Quaternion.LookRotation(fireDirection));
             GatlingBullet bullet = bulletObj.GetComponent<GatlingBullet>();
             if (bullet != null) bullet.Launch(fireDirection);
