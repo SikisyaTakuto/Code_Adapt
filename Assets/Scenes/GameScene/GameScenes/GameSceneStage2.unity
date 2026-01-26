@@ -4521,8 +4521,7 @@ Transform:
   m_LocalPosition: {x: 1.03007875e-16, y: 1.518702, z: 1.9872992e-16}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 1533010525}
+  m_Children: []
   m_Father: {fileID: 67069410}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &105101619
@@ -4956,7 +4955,7 @@ Transform:
   m_GameObject: {fileID: 109482235}
   serializedVersion: 2
   m_LocalRotation: {x: 0.084820144, y: 0.2290768, z: -0.020041624, w: 0.9694987}
-  m_LocalPosition: {x: -0.34349632, y: -0.63879067, z: -0.5330658}
+  m_LocalPosition: {x: -0.34349632, y: 0.05, z: -0.5330658}
   m_LocalScale: {x: 2.3144417, y: 2.3144417, z: 2.3144417}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -6546,12 +6545,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 139274592}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.9658217, y: 0.06783224, z: 0.23898049, w: -0.07399754}
-  m_LocalPosition: {x: -0.79, y: 0.49, z: -0.32}
+  m_LocalRotation: {x: 0.000000014901161, y: -0.000000007450581, z: 0.00000008940697, w: 1}
+  m_LocalPosition: {x: -0.12240982, y: -0.8537278, z: -1.592865}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 1782483916}
+  m_Father: {fileID: 4758320567804340872}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &139673164 stripped
 Transform:
@@ -6955,7 +6954,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &148463473
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7095,8 +7094,6 @@ Transform:
   - {fileID: 1888582600}
   - {fileID: 502889155}
   - {fileID: 602277164}
-  - {fileID: 768661373}
-  - {fileID: 244536381}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &151243306
@@ -11453,11 +11450,15 @@ PrefabInstance:
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 148463477}
+    m_TransformParent: {fileID: 4758320567804340872}
     m_Modifications:
     - target: {fileID: 2849172739826964573, guid: fcb50aebdc5f92f4ca69f9e10f93b429, type: 3}
       propertyPath: m_Name
       value: EnemyMapPin
+      objectReference: {fileID: 0}
+    - target: {fileID: 2849172739826964573, guid: fcb50aebdc5f92f4ca69f9e10f93b429, type: 3}
+      propertyPath: m_Layer
+      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 6478093414801024802, guid: fcb50aebdc5f92f4ca69f9e10f93b429, type: 3}
       propertyPath: m_LocalPosition.x
@@ -11465,7 +11466,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6478093414801024802, guid: fcb50aebdc5f92f4ca69f9e10f93b429, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.08
+      value: -1.02
       objectReference: {fileID: 0}
     - target: {fileID: 6478093414801024802, guid: fcb50aebdc5f92f4ca69f9e10f93b429, type: 3}
       propertyPath: m_LocalPosition.z
@@ -11481,11 +11482,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6478093414801024802, guid: fcb50aebdc5f92f4ca69f9e10f93b429, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 6478093414801024802, guid: fcb50aebdc5f92f4ca69f9e10f93b429, type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 6478093414801024802, guid: fcb50aebdc5f92f4ca69f9e10f93b429, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -25675,7 +25676,7 @@ GameObject:
   - component: {fileID: 451402968}
   - component: {fileID: 451402970}
   - component: {fileID: 451402969}
-  m_Layer: 5
+  m_Layer: 9
   m_Name: Background
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -28865,7 +28866,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dcba512f5fc2dc24788101a01026a062, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  boss: {fileID: 148463474}
+  boss: {fileID: 5279102719521058868}
 --- !u!1 &491800573
 GameObject:
   m_ObjectHideFlags: 0
@@ -32887,12 +32888,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 565516728}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.9351948, y: 0.0001728051, z: -0.34109727, w: -0.095202036}
-  m_LocalPosition: {x: 0.14, y: 0.17, z: 0.7}
+  m_LocalRotation: {x: -0, y: -0, z: -0.000000059604638, w: 1}
+  m_LocalPosition: {x: -0.6956177, y: -0.8563137, z: -2.0222168}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 1195535588}
+  m_Father: {fileID: 4758320567804340872}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &569672102
 GameObject:
@@ -46042,12 +46043,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 732812653}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.9658217, y: 0.06783224, z: 0.23898052, w: -0.07399756}
-  m_LocalPosition: {x: 0.53, y: 0.41, z: -0.29}
+  m_LocalRotation: {x: 0.000000014901161, y: -0.000000022351742, z: 0.00000008940697, w: 1}
+  m_LocalPosition: {x: 0.020210266, y: -1.0607686, z: -2.2328491}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2136775442}
+  m_Father: {fileID: 4758320567804340872}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &737460968
 GameObject:
@@ -48101,7 +48102,7 @@ GameObject:
   - component: {fileID: 768661376}
   - component: {fileID: 768661375}
   - component: {fileID: 768661374}
-  m_Layer: 5
+  m_Layer: 9
   m_Name: Canvas (1)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -48121,7 +48122,7 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1782363623}
-  m_Father: {fileID: 148463477}
+  m_Father: {fileID: 4758320567804340872}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
@@ -64784,7 +64785,7 @@ GameObject:
   - component: {fileID: 1098707330}
   - component: {fileID: 1098707332}
   - component: {fileID: 1098707331}
-  m_Layer: 5
+  m_Layer: 9
   m_Name: Fill
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -66033,7 +66034,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1125740508}
-  m_Layer: 5
+  m_Layer: 9
   m_Name: Fill Area
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -69136,8 +69137,7 @@ Transform:
   m_LocalPosition: {x: -0.15060505, y: 1.5060148, z: -0.12523673}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 565516729}
+  m_Children: []
   m_Father: {fileID: 2045492347}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1195769968
@@ -82860,12 +82860,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1533010524}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.9351948, y: 0.0001728051, z: -0.34109727, w: -0.095202036}
-  m_LocalPosition: {x: -0.75, y: -0.08, z: -0.21}
+  m_LocalRotation: {x: -0, y: -0, z: -0.000000059604638, w: 1}
+  m_LocalPosition: {x: 0.54600525, y: -0.7883558, z: -1.8637085}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 103240268}
+  m_Father: {fileID: 4758320567804340872}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1533080572
 GameObject:
@@ -105804,7 +105804,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1782363623}
   - component: {fileID: 1782363622}
-  m_Layer: 5
+  m_Layer: 9
   m_Name: BossHPGauge
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -105911,8 +105911,7 @@ Transform:
   m_LocalPosition: {x: 0.43602234, y: 1.4119211, z: -0.22463386}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 139274593}
+  m_Children: []
   m_Father: {fileID: 79921414}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1782489733 stripped
@@ -129542,8 +129541,7 @@ Transform:
   m_LocalPosition: {x: 4.8068236e-16, y: 1.4946866, z: -4.452254e-16}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 732812654}
+  m_Children: []
   m_Father: {fileID: 1534125162}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2137519202
@@ -129952,7 +129950,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8976620163731102849}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_Off_L_Clavicle
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -129983,7 +129981,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4514539499819930010}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_lowleg_R
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -130047,7 +130045,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6154601549390746642}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_joint3
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -130165,7 +130163,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7502982505734841861}
   - component: {fileID: 2036076477312948555}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_polySurface405
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -130198,7 +130196,7 @@ GameObject:
   - component: {fileID: 1775363105626826367}
   - component: {fileID: 6030513749294016035}
   - component: {fileID: 3245315137619477339}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_group14_polySurface432
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -130214,7 +130212,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 9175751214476617873}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_Con_R_Hand
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -130307,7 +130305,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6531997287619902321}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_Con_L_Clavicle
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -130323,7 +130321,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4971889565357925470}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_Con_C_Waist
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -130370,7 +130368,7 @@ GameObject:
   m_Component:
   - component: {fileID: 684448024657576381}
   - component: {fileID: 4290613102831931233}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_polySurface388
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -130386,7 +130384,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 9180374469688156980}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_Con_R_Toe
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -130465,7 +130463,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5527407621665268949}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_buki1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -130481,7 +130479,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7497699850450627787}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_middle1_L
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -130576,7 +130574,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2733153454810459217}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: regwepon_joint_L80
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -130592,7 +130590,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1821130849739473891}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_index3_L
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -130624,7 +130622,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1583745926127049100}
   - component: {fileID: 6161302193237859060}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_pPlane56
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -130640,7 +130638,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1377679172681683386}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: ikHandle6
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -130656,7 +130654,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 563026656280786662}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_tump3_L
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -130672,7 +130670,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3985181161092490001}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: locator4
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -130719,7 +130717,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8186735277557828285}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_uparm_R
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -130736,7 +130734,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2542543609160020549}
   - component: {fileID: 8837192637147774286}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_polySurface410
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -130753,7 +130751,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7321430387558039230}
   - component: {fileID: 2899032953932645221}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_polySurface302
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -130785,7 +130783,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7300613096338944839}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_Off_C_Root
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -130801,7 +130799,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7483147371050113170}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_upleg_L
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -130936,7 +130934,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1027383860460293685}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_Off_L_Toe
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -130952,7 +130950,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2077113563702174604}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_ring1_R
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -130968,7 +130966,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 685680928082763693}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: locator1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -131001,7 +130999,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1114274740614644737}
   - component: {fileID: 2434569771956950479}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_pCylinder14
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -131018,7 +131016,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3176161566716730139}
   - component: {fileID: 7856752410628072801}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_kami1_avater_polySurface241
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -131127,7 +131125,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1357129076694887526}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: regwepon_joint_R79
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -131143,7 +131141,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6305302676094542667}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_Con_C_Spine2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -131357,7 +131355,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1672991804197258805}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_Con_C_Center
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -131389,7 +131387,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7972134328116416519}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_Grp_Rig
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -131420,7 +131418,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3516913636289064986}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: regwepon_joint_L83
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -131436,7 +131434,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3921710869267351187}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_huku
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -131452,7 +131450,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4761490839830474919}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_Con_R_Foot
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -131517,7 +131515,7 @@ GameObject:
   m_Component:
   - component: {fileID: 9080788120306324118}
   - component: {fileID: 252817241432783430}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_polySurface394
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -131533,7 +131531,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4130601156745431584}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_pinky3_R
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -131549,7 +131547,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7680135293323785153}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_Off_C_Spine2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -131701,7 +131699,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6767162860508096717}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_buki2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -131718,7 +131716,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7549119233876262176}
   - component: {fileID: 6564450863576451138}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_polySurface253
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -131783,7 +131781,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2842014569135323038}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: nurbsCircle1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -131799,7 +131797,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4043369110703064194}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_Off_C_Neck
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -131837,7 +131835,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1275623977260457854}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: group1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -131901,7 +131899,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6770009164185760850}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: regwepon_joint_L87
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -131993,7 +131991,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3632845481517051649}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_tump3_R
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -132041,7 +132039,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 902726601245854447}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_ring1_L
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -132089,7 +132087,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6251761091509600439}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_joint3
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -132121,7 +132119,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5268523078446700626}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: regwepon_joint_L79
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -132137,7 +132135,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4932547265031858201}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_pinky3_L
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -132153,7 +132151,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1570873472477136726}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_Off_C_Hip
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -132216,7 +132214,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3942271833986565802}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_Con_C_Hair2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -132232,7 +132230,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5142668157863058539}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_foot_R
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -132249,7 +132247,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4097683599030418041}
   - component: {fileID: 4663650618318483893}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_polySurface415
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -132511,7 +132509,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1914600847719764453}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_foot_L
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -132544,7 +132542,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6111123358453738768}
   - component: {fileID: 6459666798410615336}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_polySurface263
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -132560,7 +132558,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1202791733800644737}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_Con_L_Elbow
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -132608,7 +132606,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1897487901484076012}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_Dvn_C_Head
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -132895,7 +132893,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1868909128724868671}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_middle2_L
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -132911,7 +132909,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8584813739185437317}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: ikHandle2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -132975,7 +132973,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8440892705730961723}
   - component: {fileID: 5973054153212123515}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_pCylinder12
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -132992,7 +132990,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6482966669668101713}
   - component: {fileID: 6004311148871888119}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_polySurface395
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -133092,7 +133090,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6935679883310557408}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: asi_L
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -133108,7 +133106,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4290899618406977868}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_nurbsCircle3
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -133125,7 +133123,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6863435960184867552}
   - component: {fileID: 7271651936351378897}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_pPlane58
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -133141,7 +133139,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4564192987971646028}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_Off_L_Elbow
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -133158,7 +133156,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7837624170296771677}
   - component: {fileID: 1745765094855850295}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_polySurface413
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -133174,7 +133172,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4498882572479713048}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_lowarm_R
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -133190,7 +133188,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2729705782082043310}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_middle1_R
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -133207,7 +133205,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3796099884532293041}
   - component: {fileID: 4895917773125374027}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_pCube10
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -133258,7 +133256,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5554319114641582518}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_Off_C_Spine1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -133380,7 +133378,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3829766056245549335}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_hip
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -133428,7 +133426,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6729217415157579671}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_Off_C_Waist
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -133475,7 +133473,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1681397921546035883}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_toe_R
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -133549,7 +133547,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2476842526528039939}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: regwepon_joint_L85
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -133565,7 +133563,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3509779870275185571}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_toe_L
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -133582,7 +133580,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5583897371573991554}
   - component: {fileID: 8428322310679090719}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_polySurface441
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -133656,7 +133654,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8351094909335292048}
   - component: {fileID: 3413622516783760192}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_pCylinder13
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -133703,7 +133701,7 @@ GameObject:
   m_Component:
   - component: {fileID: 202985525689424715}
   - component: {fileID: 4217079311167696854}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_polySurface422
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -133751,7 +133749,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8222025971257269171}
   - component: {fileID: 8915919968676908733}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_pCube28
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -133767,7 +133765,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3862851695456887574}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_group3
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -133799,7 +133797,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7057369829107549108}
   - component: {fileID: 5062251087525819208}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_polySurface409
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -134038,7 +134036,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3756435280962678072}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_uparm_L
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -134147,7 +134145,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3784770412953911277}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_nurbsCircle4
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -134163,7 +134161,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2237168553434488893}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_group5
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -134180,7 +134178,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6844173527769865642}
   - component: {fileID: 8108637456571082166}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_polySurface417
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -134211,7 +134209,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 756066480106587883}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_index2_L
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -134332,7 +134330,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8802174922226329174}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: regwepon_joint_R84
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -134347,7 +134345,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3255951671977349614}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.53392714, y: -0.4635966, z: -0.53392714, w: 0.4635966}
+  m_LocalRotation: {x: 0.5250782, y: -0.45490786, z: -0.5442399, w: 0.470271}
   m_LocalPosition: {x: 2.753353e-15, y: 1.2494636, z: -0.052704897}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -134356,7 +134354,7 @@ Transform:
   - {fileID: 7483147371050113170}
   - {fileID: 2447857975795328148}
   m_Father: {fileID: 7972134328116416519}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: -0.074, y: -88.011, z: -98.268}
 --- !u!1 &3841391041040013072
 GameObject:
   m_ObjectHideFlags: 0
@@ -134367,7 +134365,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7701036201438498855}
   - component: {fileID: 9210284493291020482}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_group9_polySurface392
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -134430,7 +134428,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2680140766617216193}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_joint2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -134446,7 +134444,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3212894893741951097}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: regwepon_joint_L84
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -134517,7 +134515,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8518079859894701870}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: regwepon_joint_R78
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -134621,7 +134619,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4148179750887709446}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_Off_R_Toe
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -134652,7 +134650,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2415699169960819852}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_Off_R_Foot
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -134777,7 +134775,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 824255118441547043}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: regwepon_joint_L81
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -135018,7 +135016,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3633252178347329811}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_group6
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -135190,7 +135188,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8053081271454271294}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_Con_R_Elbow
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -135207,7 +135205,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7640887579347896092}
   - component: {fileID: 6104002930156233230}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_polySurface390
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -135223,7 +135221,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5518999796861559693}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_joint3
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -135239,7 +135237,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3961737609481859384}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: joint2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -135286,7 +135284,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4563721700751907027}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_Con_L_Foot
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -135318,7 +135316,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3269538524074751420}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_tump1_L
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -135433,7 +135431,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3500118721347001712}
   - component: {fileID: 5686468310715512232}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_pCylinder15
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -135449,7 +135447,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8008825432945906281}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_index1_L
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -135465,7 +135463,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1123984943173806508}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: regwepon_joint_L86
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -135603,7 +135601,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1630630003581549689}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: regwepon_joint_R85
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -135619,7 +135617,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8763151987745305231}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_hand_L
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -135635,7 +135633,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3871102522934802021}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_Off_R_Hand
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -135651,7 +135649,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2117982468972236642}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_Con_C_Neck
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -135668,7 +135666,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1786743322551689780}
   - component: {fileID: 2518484356243567898}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_polySurface420
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -135684,7 +135682,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4459966885976509798}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_middle3_R
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -135699,12 +135697,18 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5279102719521058866}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 35.792458, y: 5.9645185, z: -254.62741}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 34.99, y: 6.15, z: -256.89}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 7972134328116416519}
+  - {fileID: 768661373}
+  - {fileID: 244536381}
+  - {fileID: 1533010525}
+  - {fileID: 732812654}
+  - {fileID: 565516729}
+  - {fileID: 139274593}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &4761490839830474919
@@ -135795,7 +135799,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5242116963672794037}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_Con_L_Toe
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -135811,7 +135815,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6587059697599023499}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: locator2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -135885,7 +135889,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1125929541280184963}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_Con_C_Root
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -135916,7 +135920,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 9026035624526036271}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_daizi
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -135932,7 +135936,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8869321949585808159}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_Off_C_Head
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -135972,7 +135976,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4011325325732868423}
   - component: {fileID: 6007649316389811367}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_polySurface400
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -135988,7 +135992,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6202780025461143605}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_ring2_R
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -136266,7 +136270,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1840726974197313383}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: regwepon_joint_R81
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -136299,7 +136303,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3563193761348120360}
   - component: {fileID: 7954218326340615857}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_pCube9
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -136315,7 +136319,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8536699342307536123}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_Con_C_Head
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -136331,7 +136335,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2158186161959604755}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_joint2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -136378,7 +136382,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6189732879770569386}
   - component: {fileID: 731433499756329370}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_polySurface209
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -136394,7 +136398,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 418695521057297280}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: regwepon_joint_L79
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -136425,13 +136429,135 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4758320567804340872}
-  m_Layer: 0
+  - component: {fileID: 5279102719521058870}
+  - component: {fileID: 5279102719521058869}
+  - component: {fileID: 5279102719521058868}
+  - component: {fileID: 5279102719521058867}
+  m_Layer: 9
   m_Name: ava_UVC4
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+--- !u!114 &5279102719521058867
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5279102719521058866}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8dcced4b1e910a14b9ee64935384fa45, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _attackInterval: 3
+  _currentAttack: 0
+  _swipeShield: {fileID: 0}
+  _swipeApproachSpeed: 25
+  _swipeDistance: 4
+  _swipeHitActiveTime: 0.4
+  _swipeHitDuration: 5
+  _swipeDamage: 1000
+  _shields:
+  - {fileID: 1533010525}
+  - {fileID: 732812654}
+  - {fileID: 565516729}
+  - {fileID: 139274593}
+  _shieldBeamPrefab: {fileID: 2416649738203431239, guid: 5a794f43573278c4398a3c9aed0d1fcd, type: 3}
+  _attack2Delay: 6
+  _attack2BeamDuration: 6
+  _heightMatchSpeed: 5
+  _stabBits:
+  - {fileID: 0}
+  - {fileID: 0}
+  _stabPrepareTime: 0.8
+  _stabDashSpeed: 55
+  _stabbingDamage: 2000
+  _beamBits:
+  - {fileID: 0}
+  - {fileID: 0}
+  _beamEffectPrefab: {fileID: 216633344060643235, guid: 56270433300f33343afbd555b1604b35, type: 3}
+  _beamDuration: 1
+  _beamAttackSpread: 6
+  _beamDamage: 200
+--- !u!114 &5279102719521058868
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5279102719521058866}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d8437566ecb2ec45b2d2e6ef40b7a97, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  isActivated: 0
+  _currentState: 0
+  _player: {fileID: 296433118}
+  _maxHealth: 5000
+  bossHpBar: {fileID: 1782363622}
+  _hoverSpeed: 5
+  _relocateSpeed: 20
+  _stoppingDistance: 15
+  _hoverHeight: 10
+  _wallLayer:
+    serializedVersion: 2
+    m_Bits: 1024
+  _ceilingLayer:
+    serializedVersion: 2
+    m_Bits: 4096
+  _collisionCheckRadius: 10
+  _maxRelocateAttempts: 15
+--- !u!143 &5279102719521058869
+CharacterController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5279102719521058866}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Height: 2
+  m_Radius: 0.5
+  m_SlopeLimit: 45
+  m_StepOffset: 0.3
+  m_SkinWidth: 0.08
+  m_MinMoveDistance: 0.001
+  m_Center: {x: 0, y: 1.05, z: 0}
+--- !u!95 &5279102719521058870
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5279102719521058866}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: 1f613d6a2faa9bd4cbe7f95e71d22b09, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
 --- !u!1 &5283413635573096173
 GameObject:
   m_ObjectHideFlags: 0
@@ -136441,7 +136567,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8825336603587084700}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_Off_C_Center
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -136614,7 +136740,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3040081795701429453}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_hand_R
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -136630,7 +136756,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1331564207952978274}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: regwepon_joint_R80
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -136677,7 +136803,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3659268952566613914}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_clavicle_R
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -136694,7 +136820,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3536441520884913508}
   - component: {fileID: 7379244134687291593}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_pPlane43
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -136776,7 +136902,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4165215784598865167}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_neck
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -136807,7 +136933,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3266571208826545485}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_lowarm_L
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -136838,7 +136964,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7599737550735995623}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_joint5
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -136854,7 +136980,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8642018103764526674}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_spine1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -136989,7 +137115,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 109726138334378742}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_curve1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -137020,7 +137146,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 136014731747648762}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: regwepon_joint_R77
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -137069,7 +137195,7 @@ GameObject:
   m_Component:
   - component: {fileID: 42244249982407025}
   - component: {fileID: 1506082923362213922}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_pPlane44
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -137085,7 +137211,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2233394572119100286}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: joint5
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -137136,7 +137262,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5799733487310718252}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: regwepon_joint_R82
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -137153,7 +137279,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2851709255299173525}
   - component: {fileID: 6989001468158113306}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_polySurface414
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -137185,7 +137311,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5840252468857655115}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_index1_R
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -137217,7 +137343,7 @@ GameObject:
   m_Component:
   - component: {fileID: 364591614225641709}
   - component: {fileID: 4788389269249821182}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_polySurface382
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -137432,7 +137558,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 9002107319834637758}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: regwepon_joint_R87
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -137449,7 +137575,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8941280726931226766}
   - component: {fileID: 6050206109178072447}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_polySurface419
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -137545,7 +137671,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5457630393933436117}
   - component: {fileID: 1082524371076859122}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_polySurface443
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -137577,7 +137703,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7049819028331292383}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: joint4
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -137735,7 +137861,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5900286432883402399}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_head
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -137752,7 +137878,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7289818962374131611}
   - component: {fileID: 8414169849283782306}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_polySurface438
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -137852,7 +137978,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7516468179553389259}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_index3_R
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -137990,7 +138116,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2447857975795328148}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_upleg_R
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -138006,7 +138132,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5351298884470501032}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: regwepon_joint_R86
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -138022,7 +138148,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4043395501787297744}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: regwepon_joint_L77
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -138056,7 +138182,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 536245466332741636}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_Con_C_Spine1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -138072,7 +138198,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2206920802988846262}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_pinky2_R
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -138165,7 +138291,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1746719721966132604}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: regwepon_joint_L82
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -138199,7 +138325,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8226480697245887127}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: joint1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -138216,7 +138342,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2394209456777507757}
   - component: {fileID: 3790584323776521717}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_polySurface411
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -138308,7 +138434,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8455198598545814582}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_headtop
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -138339,7 +138465,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5175358297890815531}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: regwepon_joint_R83
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -138511,7 +138637,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7423398703686280209}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_ring3_L
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -138527,7 +138653,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5876102748710875523}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: ikHandle3
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -138670,7 +138796,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 482573787900196706}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_pinky1_L
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -138701,7 +138827,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4520324537596271107}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_joint1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -138733,7 +138859,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5240181801769301052}
   - component: {fileID: 5149188440373761110}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_pCylinder20
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -138764,7 +138890,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4649155974145780364}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_Con_L_Hand
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -138781,7 +138907,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5697088390342614137}
   - component: {fileID: 3566492612416005239}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_polySurface401
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -138860,7 +138986,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8296403645217409294}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_ring3_R
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -138907,7 +139033,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3119344070819649136}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_index2_R
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -138923,7 +139049,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 913779656654637765}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: regwepon_joint_R79
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -138939,7 +139065,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3382012773696192360}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_joint4
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -139079,7 +139205,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5854739598890945837}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_Off_R_Clavicle
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -139095,7 +139221,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6435675519634959193}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_spine2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -139157,7 +139283,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3652977986357661301}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_group2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -139173,7 +139299,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2849691194676717927}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: joint3
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -139206,7 +139332,7 @@ GameObject:
   - component: {fileID: 3922495682598382433}
   - component: {fileID: 5291051842986215577}
   - component: {fileID: 7232753214056986078}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_pTorus10
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -139300,7 +139426,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1518216017176533692}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_middle2_R
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -139316,7 +139442,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8772145240915080114}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_joint11
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -139347,7 +139473,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 138904359294760854}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_clavicle_L
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -139411,7 +139537,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7674257264379569516}
   - component: {fileID: 5314491699677204758}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_pCube8
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -139427,7 +139553,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2474584939234366446}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_tump1_R
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -139488,7 +139614,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5070228656234779332}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_karada
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -139519,7 +139645,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2074295332603230007}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_tump2_L
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -139536,7 +139662,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3010299865707110715}
   - component: {fileID: 6417276912625030620}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_polySurface442
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -139583,7 +139709,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3675615705788013959}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_joint5
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -139693,7 +139819,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5649268625316617521}
   - component: {fileID: 7914310240795382712}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_polySurface190
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -139724,7 +139850,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3499738587383578645}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_Con_R_Clavicle
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -139741,7 +139867,7 @@ GameObject:
   m_Component:
   - component: {fileID: 9101242412781466806}
   - component: {fileID: 9047318916941528172}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_pCylinder16
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -139826,7 +139952,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2643305060885245876}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: regwepon_joint_L78
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -139844,7 +139970,7 @@ GameObject:
   - component: {fileID: 465938001971504993}
   - component: {fileID: 1112578106419602456}
   - component: {fileID: 5746118396311657710}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_polySurface446
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -139860,7 +139986,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1324805098067335374}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_pinky1_R
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -140254,7 +140380,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6431040698344417620}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_ring2_L
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -140271,7 +140397,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2045845558661265657}
   - component: {fileID: 3573107972819310972}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_polySurface268
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -140342,7 +140468,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6091688188601338960}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_Off_L_Hand
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -140390,7 +140516,7 @@ GameObject:
   m_Component:
   - component: {fileID: 757538220398677673}
   - component: {fileID: 4091804603366249090}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_polySurface437
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -140436,7 +140562,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2634979812828055046}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_group4
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -140497,7 +140623,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5190563994119860805}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_pinky2_L
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -140582,7 +140708,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1539462966036991711}
   - component: {fileID: 1548220963646968059}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_polySurface421
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -140693,7 +140819,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1536658601300741961}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_Con_C_Hip
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -140767,7 +140893,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 808701405248021262}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_joint10
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -140799,7 +140925,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6641548286155881818}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_kami1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -140815,7 +140941,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2640416535242543661}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_Off_L_Knee
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -140863,7 +140989,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5053364889434298464}
   - component: {fileID: 6729847399115450924}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_polySurface301
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -140880,7 +141006,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2572276159392308463}
   - component: {fileID: 2505690248502416959}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_pCylinder22
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -140912,7 +141038,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7798335144635667703}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_asi1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -140928,7 +141054,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3605969333231358398}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_Off_R_Knee
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -140944,7 +141070,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1972684594026665662}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_Con_R_Knee
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -141030,7 +141156,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 844697048596117200}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_middle3_L
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -141123,7 +141249,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3199168758403425411}
   - component: {fileID: 7958568376429398276}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_pPlane40
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -141139,7 +141265,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2088888859284128497}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_Off_C_Hair2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -141275,7 +141401,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4562697091504514891}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_lowleg_L
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -141313,7 +141439,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1980236938497017677}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: ikHandle1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -141329,7 +141455,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6047304427926120173}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_joint2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -141490,7 +141616,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2571100613295802837}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_Off_L_Foot
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -141506,7 +141632,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 250913351910754943}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: locator3
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -141522,7 +141648,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5487641067004567660}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_Con_L_Knee
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -141538,7 +141664,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4463302360205703193}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_tump2_R
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -141556,7 +141682,7 @@ GameObject:
   - component: {fileID: 1500743727944305895}
   - component: {fileID: 7866476286396916297}
   - component: {fileID: 7805733680631607288}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_group14_polySurface433
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -141572,7 +141698,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5344806259222763116}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: avater_Off_R_Elbow
   m_TagString: Untagged
   m_Icon: {fileID: 0}
