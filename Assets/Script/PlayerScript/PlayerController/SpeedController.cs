@@ -359,13 +359,12 @@ public class SpeedController : MonoBehaviour
     // =======================================================
 
     /// <summary>
-    /// ビームの発射と着弾判定
+    /// ビームの発射と着弾判定（至近距離補正版）
     /// </summary>
     private void ExecuteBeamLogic()
     {
         if (beamFirePoints == null || beamPrefab == null) return;
 
-        // ターゲットの決定（ロックオンがいればその方向、いなければ正面）
         Transform lockOnTarget = _tpsCamController?.LockOnTarget;
         Vector3 targetPos = lockOnTarget != null
             ? GetLockOnTargetPosition(lockOnTarget, true)
@@ -374,33 +373,50 @@ public class SpeedController : MonoBehaviour
         foreach (var firePoint in beamFirePoints)
         {
             if (firePoint == null) continue;
-            Vector3 origin = firePoint.position;
-            Vector3 fireDirection = (targetPos - origin).normalized;
 
-            // レイキャストによるヒット確認
-            bool didHit = Physics.Raycast(origin, fireDirection, out RaycastHit hit, beamMaxDistance, ~0, QueryTriggerInteraction.Ignore);
-            Vector3 endPoint = didHit ? hit.point : origin + fireDirection * beamMaxDistance;
+            // ??【修正】判定用開始地点を銃口より少し後ろに設定
+            Vector3 visualOrigin = firePoint.position;
+            Vector3 originForRay = visualOrigin - firePoint.forward * 0.5f;
+            Vector3 fireDirection = (targetPos - visualOrigin).normalized;
+
+            // ??【追加】ゼロ距離救済：銃口の目の前に敵がいれば即ヒット
+            Collider[] closeHits = Physics.OverlapSphere(visualOrigin, 0.8f, enemyLayer);
+            if (closeHits.Length > 0)
+            {
+                ApplyDamageToEnemy(closeHits[0], beamDamage);
+                BeamController beam = Instantiate(beamPrefab, visualOrigin, Quaternion.LookRotation(fireDirection));
+                beam.Fire(visualOrigin, closeHits[0].bounds.center, true);
+                continue; // 次のFirePointへ
+            }
+
+            // レイキャスト（少し後ろから飛ばすことで密着時もヒットさせる）
+            bool didHit = Physics.Raycast(originForRay, fireDirection, out RaycastHit hit, beamMaxDistance + 0.5f, ~0, QueryTriggerInteraction.Ignore);
+            Vector3 endPoint = didHit ? hit.point : visualOrigin + fireDirection * beamMaxDistance;
 
             if (didHit) ApplyDamageToEnemy(hit.collider, beamDamage);
 
-            // ビームの生成と演出開始
-            BeamController beamInstance = Instantiate(beamPrefab, origin, Quaternion.LookRotation(fireDirection));
-            beamInstance.Fire(origin, endPoint, didHit);
+            BeamController beamInstance = Instantiate(beamPrefab, visualOrigin, Quaternion.LookRotation(fireDirection));
+            beamInstance.Fire(visualOrigin, endPoint, didHit);
         }
     }
 
     /// <summary>
-    /// 前方の球体範囲内の敵にダメージを与える（近接用）
+    /// 前方の球体範囲内の敵にダメージを与える（近接用・密着対応版）
     /// </summary>
     private void ApplyMeleeSphereDamage(float damage)
     {
-        // 判定の中心点を少し前にずらす
-        Vector3 detectionCenter = transform.position + (Vector3.up * 1.0f) + (transform.forward * 1.5f);
+        // ??【修正】判定の中心点を「プレイヤーの真上」付近から開始するように変更
+        // これにより、モデルにめり込むほど近い敵も逃さず判定できます
+        Vector3 detectionCenter = transform.position + (Vector3.up * 1.0f) + (transform.forward * 0.5f);
+
+        // ??【調整】近接攻撃の半径を少し広め、背後以外の全方位をカバー
         Collider[] hitColliders = Physics.OverlapSphere(detectionCenter, meleeAttackRange, enemyLayer);
 
         foreach (var hitCollider in hitColliders)
         {
-            if (hitCollider.transform.root == transform.root) continue; // 自分自身は除外
+            // 自分自身（Playerレイヤーや自分自身のコライダー）を除外
+            if (hitCollider.transform.root == transform.root) continue;
+
             ApplyDamageToEnemy(hitCollider, damage);
         }
     }
