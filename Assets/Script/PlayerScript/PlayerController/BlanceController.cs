@@ -454,7 +454,6 @@ public class BlanceController : MonoBehaviour
     {
         if (beamFirePoints == null || beamPrefab == null) return transform.position + transform.forward;
 
-        // ロックオン中かどうかを確認
         bool isLockingOn = (_tpsCamController?.LockOnTarget != null);
         Vector3 targetPosition = FindBestAutoAimTarget();
 
@@ -462,29 +461,36 @@ public class BlanceController : MonoBehaviour
         {
             if (firePoint == null) continue;
 
-            Vector3 origin = firePoint.position;
-            Vector3 dir;
+            // ??【修正ポイント1】発射開始地点を少し後ろに下げる（めり込み対策）
+            // これにより、至近距離で銃口が敵を突き抜けても判定が発生します。
+            Vector3 origin = firePoint.position - firePoint.forward * 0.5f;
+            Vector3 dir = isLockingOn ? (targetPosition - origin).normalized : firePoint.forward;
 
-            if (isLockingOn)
+            // ??【修正ポイント2】至近距離の「めり込み」を直接チェック
+            // Raycastは「内側から外側」への当たり判定が弱いため、球体判定で補います。
+            Collider[] closeHits = Physics.OverlapSphere(firePoint.position, 0.7f, enemyLayer);
+            if (closeHits.Length > 0)
             {
-                // ロックオン中はターゲットを正確に狙う
-                dir = (targetPosition - origin).normalized;
-            }
-            else
-            {
-                // ★【ここを修正】カメラではなく、銃口(firePoint)の正面方向に真っ直ぐ飛ばす
-                dir = firePoint.forward;
+                ApplyDamageToEnemy(closeHits[0], beamDamage);
+
+                // ビジュアルだけは銃口から出す
+                BeamController beam = Instantiate(beamPrefab, firePoint.position, Quaternion.LookRotation(dir));
+                beam.Fire(firePoint.position, closeHits[0].bounds.center, true);
+                continue; // 至近距離で当たったので次の銃口へ
             }
 
-            // ヒット判定
-            bool didHit = Physics.Raycast(origin, dir, out RaycastHit hit, beamMaxDistance, ~0, QueryTriggerInteraction.Ignore);
-            Vector3 endPoint = didHit ? hit.point : origin + dir * beamMaxDistance;
+            // 通常のヒット判定（Raycastの距離を調整）
+            float rayDistance = beamMaxDistance + 0.5f;
+            bool didHit = Physics.Raycast(origin, dir, out RaycastHit hit, rayDistance, ~0, QueryTriggerInteraction.Ignore);
+
+            // ビジュアル上の終点
+            Vector3 endPoint = didHit ? hit.point : firePoint.position + dir * beamMaxDistance;
 
             if (didHit) ApplyDamageToEnemy(hit.collider, beamDamage);
 
-            // ビームのビジュアルを生成（銃口の向き dir を適用）
-            BeamController beam = Instantiate(beamPrefab, origin, Quaternion.LookRotation(dir));
-            beam.Fire(origin, endPoint, didHit);
+            // ビジュアル生成（表示は銃口の位置から行う）
+            BeamController beamVisual = Instantiate(beamPrefab, firePoint.position, Quaternion.LookRotation(dir));
+            beamVisual.Fire(firePoint.position, endPoint, didHit);
         }
 
         return targetPosition;

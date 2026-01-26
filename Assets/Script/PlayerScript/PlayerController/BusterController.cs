@@ -444,8 +444,12 @@ public class BusterController : MonoBehaviour
 
     private void FireProjectile(Transform firePoint, Vector3 targetPos, bool isLockedOn, Vector3 forward, bool isBeam)
     {
-        Vector3 origin = firePoint.position;
-        Vector3 fireDirection = isLockedOn ? (targetPos - origin).normalized : forward;
+        // ??【修正】発射位置の微調整
+        // 銃口の少し後ろ(0.5m)から判定を開始することで、敵の体に銃口が埋まっていてもヒットさせます。
+        Vector3 originForRay = firePoint.position - firePoint.forward * 0.5f;
+        Vector3 visualOrigin = firePoint.position; // 見た目の開始位置は銃口のまま
+
+        Vector3 fireDirection = isLockedOn ? (targetPos - visualOrigin).normalized : forward;
 
         if (!isBeam)
         {
@@ -457,19 +461,34 @@ public class BusterController : MonoBehaviour
         // --- 【修正ポイント】ガトリングの場合は Raycast でダメージを与えない ---
         if (isBeam)
         {
-            // ビームは即着弾のまま
-            bool didHit = Physics.Raycast(origin, fireDirection, out RaycastHit hit, beamMaxDistance, ~0, QueryTriggerInteraction.Ignore);
-            Vector3 endPoint = didHit ? hit.point : origin + fireDirection * beamMaxDistance;
+            // ??【修正】至近距離の救済判定 (OverlapSphere)
+            // Raycastが内側から突き抜けてしまうのを防ぐため、銃口付近に敵がいるかチェック
+            Collider[] closeHits = Physics.OverlapSphere(visualOrigin, 0.8f, enemyLayer);
+            if (closeHits.Length > 0)
+            {
+                ApplyDamageToEnemy(closeHits[0], beamDamage);
+
+                BeamController beam = Instantiate(beamPrefab, visualOrigin, Quaternion.LookRotation(fireDirection));
+                beam.Fire(visualOrigin, closeHits[0].bounds.center, true);
+                return;
+            }
+
+            // 通常のビーム判定（少し後ろからRayを飛ばす）
+            bool didHit = Physics.Raycast(originForRay, fireDirection, out RaycastHit hit, beamMaxDistance + 0.5f, ~0, QueryTriggerInteraction.Ignore);
+            Vector3 endPoint = didHit ? hit.point : visualOrigin + fireDirection * beamMaxDistance;
 
             if (didHit) ApplyDamageToEnemy(hit.collider, beamDamage);
 
-            BeamController beamInstance = Instantiate(beamPrefab, origin, Quaternion.LookRotation(fireDirection));
-            beamInstance.Fire(origin, endPoint, didHit);
+            BeamController beamInstance = Instantiate(beamPrefab, visualOrigin, Quaternion.LookRotation(fireDirection));
+            beamInstance.Fire(visualOrigin, endPoint, didHit);
         }
         else if (gatlingBulletPrefab != null)
         {
-            // ガトリングは弾を生成するだけ（ダメージは弾側のスクリプトに任せる）
-            GameObject bulletObj = Instantiate(gatlingBulletPrefab, origin, Quaternion.LookRotation(fireDirection));
+            // ??【修正】ガトリング弾の生成位置も少し調整
+            // 銃口が埋まっていても弾が内側から発生して衝突するように、生成位置を少しだけ手前に引くか、
+            // 弾丸側のスクリプト(GatlingBullet)に渡す情報を強化します。
+
+            GameObject bulletObj = Instantiate(gatlingBulletPrefab, visualOrigin, Quaternion.LookRotation(fireDirection));
             GatlingBullet bullet = bulletObj.GetComponent<GatlingBullet>();
             if (bullet != null) bullet.Launch(fireDirection);
         }
