@@ -147,6 +147,22 @@ public class PauseManager : MonoBehaviour
             PauseGame();
         }
     }
+
+    /// <summary>
+    /// 現在のシーンを最初からやり直します。
+    /// ボタンのOnClickにこのメソッドを割り当ててください。
+    /// </summary>
+    public void RestartGame()
+    {
+        // 1. まずポーズ状態を完全に解除（パネル非表示 & TimeScaleを1に）
+        ResumeGame();
+
+        // 2. 現在のアクティブなシーンの名前を取得してロード
+        string currentSceneName = SceneManager.GetActiveScene().name;
+        SceneManager.LoadScene(currentSceneName);
+
+        Debug.Log("Scene Restarted: " + currentSceneName);
+    }
     // --- ポーズ/ポーズ解除処理 ---
     public void ResumeGame()
     {
