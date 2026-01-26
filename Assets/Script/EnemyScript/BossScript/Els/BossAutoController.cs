@@ -40,7 +40,7 @@ public class BossAutoController : MonoBehaviour
     [SerializeField] private GameObject _beamEffectPrefab;
     [SerializeField] private float _beamDuration = 1.0f;
     [SerializeField] private float _beamAttackSpread = 6.0f;
-    [SerializeField] private float _beamDamage = 1000f;
+    [SerializeField] private float _beamDamage = 200f;
 
     private Vector3[] _beamBitLocalDefaults;
     private Vector3[] _stabBitLocalDefaults;
