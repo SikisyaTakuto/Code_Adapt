@@ -30,10 +30,15 @@ public class VoxPart : MonoBehaviour
     {
         if (mainController != null)
         {
-            mainController.DamageArm(armIndex, Mathf.CeilToInt(damage));
-            mainController.DamageBoss(Mathf.CeilToInt(damage * 1f));
+            int dmgInt = Mathf.CeilToInt(damage);
 
-            // ダメージ演出（赤く光らせる）を開始
+            // アーム自体のHPを減らす（これは制限なし）
+            mainController.DamageArm(armIndex, dmgInt);
+
+            // ボス本体へのダメージ（第2引数に true を渡してアーム経由であることを伝える）
+            mainController.DamageBoss(dmgInt, true);
+
+            // ダメージ演出
             StopAllCoroutines();
             StartCoroutine(FlashRoutine());
         }

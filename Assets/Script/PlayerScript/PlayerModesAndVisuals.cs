@@ -39,6 +39,7 @@ public class PlayerModesAndVisuals : MonoBehaviour
     [Header("Switch Effects")]
     public GameObject switchEffectObject; // フェードさせる演出用オブジェクト
     public float effectDuration = 1.0f;   // 表示時間
+    public Vector3 rotationSpeed = new Vector3(0, 0, 360); // 1秒間に回転する角度
 
     private Coroutine _effectCoroutine;
 
@@ -164,23 +165,29 @@ public class PlayerModesAndVisuals : MonoBehaviour
     {
         switchEffectObject.SetActive(true);
 
-        // CanvasGroupがアタッチされている場合はフェードイン演出が可能
+        // 回転をリセットしたい場合はここを有効化
+        // switchEffectObject.transform.localRotation = Quaternion.identity;
+
         CanvasGroup cg = switchEffectObject.GetComponent<CanvasGroup>();
 
         float elapsed = 0;
         while (elapsed < effectDuration)
         {
             elapsed += Time.deltaTime;
+
+            // --- 追加：回転処理 ---
+            // deltaTimeを掛けることで、フレームレートに関係なく一定速度で回転します
+            switchEffectObject.transform.Rotate(rotationSpeed * Time.deltaTime);
+
             if (cg != null)
             {
-                // 後半に向けてフェードアウトする例
                 cg.alpha = Mathf.Lerp(1f, 0f, elapsed / effectDuration);
             }
             yield return null;
         }
 
         switchEffectObject.SetActive(false);
-        if (cg != null) cg.alpha = 1f; // アルファ値を戻しておく
+        if (cg != null) cg.alpha = 1f;
     }
 
     // 見た目とアイコンだけを更新（ステータス合算は維持）

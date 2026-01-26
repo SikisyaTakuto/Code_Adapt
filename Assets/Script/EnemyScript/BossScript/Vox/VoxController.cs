@@ -76,6 +76,9 @@ public class VoxController : MonoBehaviour
     private const float SPECIAL_Z_FAR = -310f;
     private const float SPECIAL_Z_NEAR = -50f;
 
+    private float totalArmDamage = 0; // アーム経由で与えた累計ダメージ
+    private float maxArmDamageLimit;  // アーム経由のダメージ上限（Awake/Startで設定）
+
     void Start()
     {
         bossAnimator = GetComponent<Animator>(); // これが必要です
@@ -113,6 +116,8 @@ public class VoxController : MonoBehaviour
         {
             armAnimators[i] = armsArray[i].GetComponent<Animator>();
         }
+
+        maxArmDamageLimit = bossMaxHP * 0.5f; // 最大HPの半分を上限に設定
 
         SetNewTargets(); // 開始時に全アームへランダム目標設定し、移動開始
     }
@@ -227,24 +232,41 @@ public class VoxController : MonoBehaviour
         }
     }
 
-    public void DamageBoss(int damage)
+    public void DamageBoss(int damage, bool isFromArm = false)
     {
-        bossCurrentHP -= damage;
-        bossCurrentHP = Mathf.Max(bossCurrentHP, 0);
+        int finalDamage = damage;
 
+        // アームからのダメージの場合の制限処理
+        if (isFromArm)
+        {
+            // 既に上限に達しているならダメージ無効
+            if (totalArmDamage >= maxArmDamageLimit)
+            {
+                return;
+            }
+
+            // 今回のダメージを加算して上限を超えるなら、超えない分だけ適用
+            if (totalArmDamage + damage > maxArmDamageLimit)
+            {
+                finalDamage = Mathf.FloorToInt(maxArmDamageLimit - totalArmDamage);
+            }
+
+            totalArmDamage += finalDamage;
+            if (finalDamage > 0)
+            {
+                Debug.Log($"<color=yellow>アームダメージ適用: {finalDamage} (累計: {totalArmDamage}/{maxArmDamageLimit})</color>");
+            }
+        }
+
+        bossCurrentHP -= finalDamage;
+        bossCurrentHP = Mathf.Max(bossCurrentHP, 0);
         bossHpBar.value = (float)bossCurrentHP / (float)bossMaxHP;
 
-        // --- 追加：HPが半分以下（発狂モード）の判定 ---
+        // --- 発狂モード判定 ---
         if (!isEnraged && bossCurrentHP <= bossMaxHP / 2)
         {
             isEnraged = true;
-            moveSpeed = fastMoveSpeed; // 全体速度を高速化
-
-            //bodyTargetZ = Random.Range(-200f, -150f);
-            //isBodyMoving = true;
-            //Debug.Log("<color=red>HP半分以下：発狂モード突入！速度アップ ＆ 移動範囲拡大！</color>");
-
-            // 現在の移動を中断して、即座に新しい広い範囲の目標へ向かわせる
+            moveSpeed = fastMoveSpeed;
             ForceRetargetAll();
         }
 
