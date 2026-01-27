@@ -521,10 +521,20 @@ public class BlanceController : MonoBehaviour
         GameObject target = hitCollider.gameObject;
         bool isHit = false;
 
-        // --- 1. ボス(TestBoss)への判定を追加 ---
         // 直接のオブジェクト、または親階層に TestBoss がついているか確認
-        var boss = target.GetComponentInParent<ElsController>();
-        if (boss != null)
+        // ヒットしたオブジェクト自体、またはその親に BossHurtBox があるか確認
+        var hurtBox = target.GetComponent<BossHurtBox>();
+        if (hurtBox == null) hurtBox = target.GetComponentInParent<BossHurtBox>();
+
+        if (hurtBox != null)
+        {
+            hurtBox.OnHit(damage);
+            isHit = true;
+        }
+        // ----------------------------------------------
+
+        // 既存の ElsController への直接判定（念のため残す場合）
+        else if (target.TryGetComponent<ElsController>(out var boss))
         {
             boss.TakeDamage(damage);
             isHit = true;

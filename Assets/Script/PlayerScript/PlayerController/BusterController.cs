@@ -499,9 +499,20 @@ public class BusterController : MonoBehaviour
         GameObject target = hitCollider.gameObject;
         bool isHit = false;
 
-        // --- 1. ボス(TestBoss)への判定を追加 ---
-        var boss = target.GetComponentInParent<ElsController>();
-        if (boss != null)
+        // --- 【重要】新しいボス判定システムへの対応 ---
+        // ヒットしたオブジェクト自体、またはその親に BossHurtBox があるか確認
+        var hurtBox = target.GetComponent<BossHurtBox>();
+        if (hurtBox == null) hurtBox = target.GetComponentInParent<BossHurtBox>();
+
+        if (hurtBox != null)
+        {
+            hurtBox.OnHit(damageAmount);
+            isHit = true;
+        }
+        // ----------------------------------------------
+
+        // 既存の ElsController への直接判定（念のため残す場合）
+        else if (target.TryGetComponent<ElsController>(out var boss))
         {
             boss.TakeDamage(damageAmount);
             isHit = true;

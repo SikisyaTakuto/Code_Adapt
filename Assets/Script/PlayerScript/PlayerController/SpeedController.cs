@@ -422,38 +422,52 @@ public class SpeedController : MonoBehaviour
     }
 
     /// <summary>
-    /// ヒットしたコライダーの親オブジェクトを走査し、敵コンポーネントがあればダメージを与える
+    /// ヒットしたコライダーのオブジェクトを走査し、敵コンポーネントがあればダメージを与える
     /// </summary>
     private void ApplyDamageToEnemy(Collider hitCollider, float damageAmount)
     {
+        GameObject target = hitCollider.gameObject;
         bool isHit = false;
 
-        // 親階層を遡って敵スクリプトを探す（複数の敵タイプに対応）
-        Component[] components = hitCollider.GetComponentsInParent<Component>();
-        foreach (var comp in components)
-        {
-            // --- 1. ボス(TestBoss)への判定を追加 ---
-            if (comp is ElsController boss)
-            {
-                boss.TakeDamage(damageAmount);
-                isHit = true;
-                break; // 判定が見つかったのでループを抜ける
-            }
+        // --- 1. ボスの部位判定 (BossHurtBox) を最優先でチェック ---
+        // ヒットしたオブジェクト自体、または親階層に BossHurtBox があるか確認
+        var hurtBox = target.GetComponent<BossHurtBox>();
+        if (hurtBox == null) hurtBox = target.GetComponentInParent<BossHurtBox>();
 
-            // --- 2. 既存の雑魚敵・部位への判定 ---
-            if (comp is SoldierMoveEnemy s1) { s1.TakeDamage(damageAmount); isHit = true; break; }
-            if (comp is SoliderEnemy s2) { s2.TakeDamage(damageAmount); isHit = true; break; }
-            if (comp is TutorialEnemyController s3) { s3.TakeDamage(damageAmount); isHit = true; break; }
-            if (comp is ScorpionEnemy s4) { s4.TakeDamage(damageAmount); isHit = true; break; }
-            if (comp is SuicideEnemy s5) { s5.TakeDamage(damageAmount); isHit = true; break; }
-            if (comp is DroneEnemy s6) { s6.TakeDamage(damageAmount); isHit = true; break; }
-            if (comp is VoxBodyPart s7) { s7.TakeDamage(damageAmount); isHit = true; break; }
-            if (comp is VoxPart s8) { s8.TakeDamage(damageAmount); isHit = true; break; }
+        if (hurtBox != null)
+        {
+            hurtBox.OnHit(damageAmount);
+            isHit = true;
+        }
+        // --- 2. 直接 ElsController がついている場合の予備判定 ---
+        else if (target.GetComponentInParent<ElsController>() != null)
+        {
+            target.GetComponentInParent<ElsController>().TakeDamage(damageAmount);
+            isHit = true;
+        }
+        // --- 3. 既存の雑魚敵判定 ---
+        else
+        {
+            // 親階層を遡って敵スクリプトを探す
+            Component[] components = hitCollider.GetComponentsInParent<Component>();
+            foreach (var comp in components)
+            {
+                if (comp is SoldierMoveEnemy s1) { s1.TakeDamage(damageAmount); isHit = true; break; }
+                if (comp is SoliderEnemy s2) { s2.TakeDamage(damageAmount); isHit = true; break; }
+                if (comp is TutorialEnemyController s3) { s3.TakeDamage(damageAmount); isHit = true; break; }
+                if (comp is ScorpionEnemy s4) { s4.TakeDamage(damageAmount); isHit = true; break; }
+                if (comp is SuicideEnemy s5) { s5.TakeDamage(damageAmount); isHit = true; break; }
+                if (comp is DroneEnemy s6) { s6.TakeDamage(damageAmount); isHit = true; break; }
+                if (comp is VoxBodyPart s7) { s7.TakeDamage(damageAmount); isHit = true; break; }
+                if (comp is VoxPart s8) { s8.TakeDamage(damageAmount); isHit = true; break; }
+            }
         }
 
         // ヒットした場合のみエフェクト生成
         if (isHit && hitEffectPrefab != null)
+        {
             Instantiate(hitEffectPrefab, hitCollider.bounds.center, Quaternion.identity);
+        }
     }
     #endregion
 
