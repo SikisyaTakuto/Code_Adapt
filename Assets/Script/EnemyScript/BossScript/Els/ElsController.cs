@@ -217,30 +217,51 @@ public class ElsController : MonoBehaviour
         isActivated = false;
         _isActionInProgress = false;
 
-        // --- 1. アニメーションの再生 ---
-        // AnimatorControllerの「Deld」状態へ遷移させます
-        if (_animator != null)
-        {
-            // Triggerパラメーターを使う場合 (おすすめ)
-            // _animator.SetTrigger("Die"); 
-
-            // 直接ステート名を指定して再生する場合
-            _animator.Play("Deld");
-        }
-
-        // --- 2. UIの非表示化 (HPが残る問題の対策) ---
+        // --- 1. HP UIの処理 ---
         if (bossHpBar != null)
         {
+            bossHpBar.value = 0;
             bossHpBar.gameObject.SetActive(false);
+        }
+
+        // --- 2. 死亡アニメーションの再生 ---
+        if (_animator != null)
+        {
+            _animator.Play("Deld");
         }
 
         StopAllCoroutines();
 
+        // --- 3. アニメーション終了を待ってシーン遷移するコルーチンを開始 ---
+        StartCoroutine(WaitAnimationAndClearRoutine());
+    }
+
+    private IEnumerator WaitAnimationAndClearRoutine()
+    {
+        // アニメーションのステートが "Deld" に切り替わるまでわずかに待機
+        yield return new WaitForEndOfFrame();
+
+        float animDuration = 3.0f; // デフォルトの待機時間
+
+        if (_animator != null)
+        {
+            // 現在再生中のアニメーション（Deld）の長さを取得
+            var stateInfo = _animator.GetCurrentAnimatorStateInfo(0);
+            if (stateInfo.IsName("Deld"))
+            {
+                animDuration = stateInfo.length;
+            }
+        }
+
+        // アニメーションの長さ分だけ待機
+        yield return new WaitForSeconds(animDuration);
+
+        // ミッション完了通知
         if (MissionManager.Instance != null)
             MissionManager.Instance.CompleteCurrentMission();
 
-        // アニメーションを見せるために3秒待ってから遷移
-        Invoke(nameof(GoToClearScene), 3.0f);
+        // シーン遷移
+        GoToClearScene();
     }
 
     private void GoToClearScene() => SceneManager.LoadScene("ClearScene2");
