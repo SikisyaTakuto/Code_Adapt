@@ -198,17 +198,48 @@ public class ElsController : MonoBehaviour
     {
         if (_isDead) return;
         _currentHealth -= amount;
+
+        // UIを更新
         if (bossHpBar != null) bossHpBar.value = _currentHealth;
-        if (_currentHealth <= 0) Die();
+
+        if (_currentHealth <= 0)
+        {
+            _currentHealth = 0; // マイナスにならないよう固定
+            if (bossHpBar != null) bossHpBar.value = 0; // UIも確実に0にする
+            Die();
+        }
     }
 
     private void Die()
     {
+        if (_isDead) return;
         _isDead = true;
         isActivated = false;
         _isActionInProgress = false;
+
+        // --- 1. アニメーションの再生 ---
+        // AnimatorControllerの「Deld」状態へ遷移させます
+        if (_animator != null)
+        {
+            // Triggerパラメーターを使う場合 (おすすめ)
+            // _animator.SetTrigger("Die"); 
+
+            // 直接ステート名を指定して再生する場合
+            _animator.Play("Deld");
+        }
+
+        // --- 2. UIの非表示化 (HPが残る問題の対策) ---
+        if (bossHpBar != null)
+        {
+            bossHpBar.gameObject.SetActive(false);
+        }
+
         StopAllCoroutines();
-        if (MissionManager.Instance != null) MissionManager.Instance.CompleteCurrentMission();
+
+        if (MissionManager.Instance != null)
+            MissionManager.Instance.CompleteCurrentMission();
+
+        // アニメーションを見せるために3秒待ってから遷移
         Invoke(nameof(GoToClearScene), 3.0f);
     }
 

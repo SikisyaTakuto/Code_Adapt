@@ -60,8 +60,16 @@ public class GatlingBullet : MonoBehaviour
         GameObject target = hitCollider.gameObject;
         bool isHit = false;
 
-        // --- 修正：GetComponentInParent を使うことで、子オブジェクトのコライダーに当たっても親のスクリプトを探せるようにします ---
-        if (target.GetComponentInParent<SoldierMoveEnemy>() is var s1 && s1 != null) { s1.TakeDamage(damage); isHit = true; }
+        // --- 1. ElsController (ボス) への判定を追加 ---
+        // 子オブジェクト（腕や足など）のコライダーに当たっても親の本体を探せるように GetComponentInParent を使います
+        var boss = target.GetComponentInParent<ElsController>();
+        if (boss != null)
+        {
+            boss.TakeDamage(damage);
+            isHit = true;
+        }
+        // --- 2. その他の敵への判定 (else if で繋ぐ) ---
+        else if (target.GetComponentInParent<SoldierMoveEnemy>() is var s1 && s1 != null) { s1.TakeDamage(damage); isHit = true; }
         else if (target.GetComponentInParent<SoliderEnemy>() is var s2 && s2 != null) { s2.TakeDamage(damage); isHit = true; }
         else if (target.GetComponentInParent<TutorialEnemyController>() is var s3 && s3 != null) { s3.TakeDamage(damage); isHit = true; }
         else if (target.GetComponentInParent<ScorpionEnemy>() is var s4 && s4 != null) { s4.TakeDamage(damage); isHit = true; }
