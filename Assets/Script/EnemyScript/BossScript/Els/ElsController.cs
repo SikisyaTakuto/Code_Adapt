@@ -214,25 +214,24 @@ public class ElsController : MonoBehaviour
     {
         if (_isDead) return;
         _isDead = true;
-        isActivated = false;
-        _isActionInProgress = false;
 
-        // --- 1. HP UIの処理 ---
-        if (bossHpBar != null)
-        {
-            bossHpBar.value = 0;
-            bossHpBar.gameObject.SetActive(false);
-        }
+        Debug.Log("<color=red>死亡処理開始！</color>");
 
-        // --- 2. 死亡アニメーションの再生 ---
-        if (_animator != null)
-        {
-            _animator.Play("Deld");
-        }
-
+        // 1. 他の全コルーチンを止める
         StopAllCoroutines();
 
-        // --- 3. アニメーション終了を待ってシーン遷移するコルーチンを開始 ---
+        // 2. Animatorが生きているか確認
+        if (_animator != null)
+        {
+            // 強制的にDeldステートへ飛ばす（レイヤー0, 時間0から）
+            _animator.Play("Deid", 0, 0f);
+            _animator.Update(0); // 強制的に1フレーム更新して反映させる
+
+        }
+
+        // 3. 物理を止める
+        if (_controller != null) _controller.enabled = false;
+
         StartCoroutine(WaitAnimationAndClearRoutine());
     }
 
