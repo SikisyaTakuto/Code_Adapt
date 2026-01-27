@@ -39,7 +39,7 @@ public class PlayerModesAndVisuals : MonoBehaviour
     [Header("Switch Effects")]
     public GameObject switchEffectObject; // フェードさせる演出用オブジェクト
     public float effectDuration = 1.0f;   // 表示時間
-    public Vector3 rotationSpeed = new Vector3(0, 0, 360); // 1秒間に回転する角度
+    private Vector3 rotationSpeed = new Vector3(0, 360, 0); // 1秒間に回転する角度
 
     private Coroutine _effectCoroutine;
 

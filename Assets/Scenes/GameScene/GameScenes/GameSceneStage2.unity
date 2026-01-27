@@ -13542,7 +13542,6 @@ MonoBehaviour:
   normalColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
   switchEffectObject: {fileID: 1876384082}
   effectDuration: 1
-  rotationSpeed: {x: 0, y: 0, z: 360}
 --- !u!143 &296433121
 CharacterController:
   m_ObjectHideFlags: 0
@@ -51146,7 +51145,7 @@ MonoBehaviour:
   gravity: -9.81
   fastFallMultiplier: 3
   canFly: 1
-  meleeAttackRange: 5
+  meleeAttackRange: 2
   meleeDamage: 200
   beamDamage: 50
   beamAttackEnergyCost: 30
@@ -108630,6 +108629,9 @@ MonoBehaviour:
   - gameSceneName: TutorialScene
     gameOverSceneName: GameOverScene
   defaultGameOverSceneName: GameOverScene 2
+  delaySeconds: 2
+  hpSlider: {fileID: 1784263443}
+  hpText: {fileID: 2025495170}
 --- !u!114 &1823533298
 MonoBehaviour:
   m_ObjectHideFlags: 0

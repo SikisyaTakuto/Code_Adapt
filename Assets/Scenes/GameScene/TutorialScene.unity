@@ -38444,7 +38444,7 @@ MonoBehaviour:
   gravity: -9.81
   fastFallMultiplier: 3
   canFly: 1
-  meleeAttackRange: 5
+  meleeAttackRange: 2
   meleeDamage: 200
   beamDamage: 50
   beamAttackEnergyCost: 30
@@ -56711,6 +56711,9 @@ MonoBehaviour:
   - gameSceneName: TutorialScene
     gameOverSceneName: GameOverScene
   defaultGameOverSceneName: GameOverScene 1
+  delaySeconds: 2
+  hpSlider: {fileID: 1551109232}
+  hpText: {fileID: 982045326}
 --- !u!114 &1481602514
 MonoBehaviour:
   m_ObjectHideFlags: 0
