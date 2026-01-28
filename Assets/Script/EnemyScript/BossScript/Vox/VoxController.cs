@@ -58,6 +58,13 @@ public class VoxController : MonoBehaviour
     private bool isBodyMoving = false;
     [SerializeField] private float bodyMoveSpeed = 20f; // 通常時の本体速度
 
+    [Header("Monitor Materials")]
+    [SerializeField] private MeshRenderer monitorRenderer; // ここにモニターのオブジェクトをドラッグ＆ドロップ
+    [SerializeField] private Material normalMaterial;      // 通常時
+    [SerializeField] private Material damagedMaterial;     // 半分以下
+    [SerializeField] private Material destroyedMaterial;   // 撃破
+    private bool isFlashing = false;
+
     // --- プライベートな状態変数 ---
     private GameObject[] armsArray;                         // アームオブジェクトの配列
     private float[] targetZs;                               // 各アームの目標Z座標
@@ -120,7 +127,8 @@ public class VoxController : MonoBehaviour
         maxArmDamageLimit = bossMaxHP * 0.5f; // 最大HPの半分を上限に設定
 
         SetNewTargets(); // 開始時に全アームへランダム目標設定し、移動開始
-    }
+        UpdateMonitorMaterial();
+    }
 
     void Update()
     {
@@ -232,37 +240,64 @@ public class VoxController : MonoBehaviour
         }
     }
 
+    private void UpdateMonitorMaterial()
+    {
+        if (monitorRenderer == null || isFlashing) return; // フラッシュ中は上書きしない
+
+        float hpPercent = (float)bossCurrentHP / bossMaxHP;
+
+        if (bossCurrentHP <= 0)
+        {
+            monitorRenderer.material = destroyedMaterial;
+        }
+        else
+        {
+            // 撃破されていなければ通常マテリアルを表示
+            monitorRenderer.material = normalMaterial;
+        }
+    }
+
+    IEnumerator DamageFlashCoroutine(float duration)
+    {
+        isFlashing = true;
+        monitorRenderer.material = damagedMaterial; // 被弾マテリアルに切り替え
+
+        yield return new WaitForSeconds(duration); // 指定した時間待つ（例：0.2秒）
+
+        isFlashing = false;
+        UpdateMonitorMaterial(); // HPに応じた本来のマテリアルに戻す
+    }
+
+    // --- 3. 既存の DamageBoss メソッドを修正 ---
     public void DamageBoss(int damage, bool isFromArm = false)
     {
         int finalDamage = damage;
 
-        // アームからのダメージの場合の制限処理
         if (isFromArm)
         {
-            // 既に上限に達しているならダメージ無効
-            if (totalArmDamage >= maxArmDamageLimit)
-            {
-                return;
-            }
-
-            // 今回のダメージを加算して上限を超えるなら、超えない分だけ適用
+            if (totalArmDamage >= maxArmDamageLimit) return;
             if (totalArmDamage + damage > maxArmDamageLimit)
             {
                 finalDamage = Mathf.FloorToInt(maxArmDamageLimit - totalArmDamage);
             }
-
             totalArmDamage += finalDamage;
-            if (finalDamage > 0)
-            {
-                Debug.Log($"<color=yellow>アームダメージ適用: {finalDamage} (累計: {totalArmDamage}/{maxArmDamageLimit})</color>");
-            }
         }
 
         bossCurrentHP -= finalDamage;
         bossCurrentHP = Mathf.Max(bossCurrentHP, 0);
         bossHpBar.value = (float)bossCurrentHP / (float)bossMaxHP;
 
-        // --- 発狂モード判定 ---
+        // ★修正ポイント：被弾フラッシュを開始（0.2秒間切り替え）
+        if (bossCurrentHP > 0)
+        {
+            StopCoroutine("DamageFlashCoroutine"); // 連続被弾時に重ならないよう停止
+            StartCoroutine(DamageFlashCoroutine(1.0f));
+        }
+        else
+        {
+            UpdateMonitorMaterial(); // 死亡時は即座にDestroyマテリアルへ
+        }
+
         if (!isEnraged && bossCurrentHP <= bossMaxHP / 2)
         {
             isEnraged = true;

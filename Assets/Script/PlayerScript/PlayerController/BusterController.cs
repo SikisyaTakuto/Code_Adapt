@@ -338,6 +338,7 @@ public class BusterController : MonoBehaviour
         _isStunned = true;
         _rotationBeforeAttack = transform.rotation;
 
+        // 【重要】開始時のターゲット座標をバックアップとして保存
         Vector3 initialTargetPos = GetAutoAimTargetPosition();
         RotateTowards(initialTargetPos);
         Quaternion attackRotation = transform.rotation;
@@ -345,64 +346,69 @@ public class BusterController : MonoBehaviour
         // 1. 【バックステップ】
         Vector3 backDir = -transform.forward;
         _velocity = backDir * backstepForce + Vector3.up * 2f;
-
-        // 攻撃全体の硬直管理。ループ中は常に上書きするので、まずは安全値。
         _stunTimer = 2.0f;
 
         // 2. 【第一波：メインビーム】
         if (playerStatus.ConsumeEnergy(beamAttackEnergyCost))
         {
+            // initialTargetPos を使うことで確実に正面（または敵）に撃つ
             FireSpecificGuns(true, false, initialTargetPos, true);
         }
 
-        // ビーム後の溜め
         yield return new WaitForSeconds(0.8f);
 
-        // 3. 【第二波：ガトリング長連射】
-        // gatlingBurstCountをインスペクタで「20～30」程度に増やすとより長く撃ちます
-        int burstLimit = gatlingBurstCount * 4; // スクリプト側で倍に調整
+        // 3. 【第二波：ガトリング連射】
+        int burstLimit = gatlingBurstCount * 4;
         float energyPerShot = gatlingEnergyCostTotal / burstLimit;
 
         for (int i = 0; i < burstLimit; i++)
         {
-            // ENが切れたら強制終了
             if (playerStatus.currentEnergy <= 0.1f) break;
             playerStatus.ConsumeEnergy(energyPerShot);
 
-            // 硬直を常に延長（1秒先に更新し続ける）
             _isStunned = true;
             _stunTimer = 1.0f;
 
-            Vector3 currentTargetPos = GetAutoAimTargetPosition();
+            // 【修正】ロックオンが生きている間は追跡し、外れたら最後にいた方向(initialTargetPos)を維持
+            Vector3 currentTargetPos;
+            if (_tpsCamController != null && _tpsCamController.LockOnTarget != null)
+            {
+                currentTargetPos = GetAutoAimTargetPosition();
+                // 敵が動いている場合は、向き(attackRotation)も更新し続ける
+                Vector3 dir = (currentTargetPos - transform.position).normalized;
+                attackRotation = Quaternion.LookRotation(new Vector3(dir.x, 0, dir.z));
+            }
+            else
+            {
+                currentTargetPos = initialTargetPos;
+            }
 
-            // 揺れ計算（iの係数を小さくすると、ゆっくり大きく揺れます）
+            // 揺れ計算
             float baseSway = Mathf.Sin(i * 0.3f) * 2.0f;
             FireSpecificGuns(false, true, currentTargetPos, true, baseSway);
 
-            // 次の弾までの待機
             float shotInterval = 0;
             while (shotInterval < gatlingFireRate)
             {
-                transform.rotation = attackRotation; // 向きを固定
+                // 向きを強制固定（これでアニメーションによる回転を上書き）
+                transform.rotation = attackRotation;
                 shotInterval += Time.deltaTime;
                 yield return null;
             }
         }
 
-        // 4. 【残心 / フォロースルー】
-        // 全弾発射後の大きな隙。ここを長くすることで「撃ちきった重厚感」を出します。
-        float followThroughTime = 1.8f; 
+        // 4. 【後隙】
+        float followThroughTime = 1.5f;
         float timer = 0;
         while (timer < followThroughTime)
         {
             _isStunned = true;
-            _stunTimer = 0.5f; // 解除されないよう維持
-            transform.rotation = attackRotation;
+            _stunTimer = 0.5f;
+            transform.rotation = attackRotation; // ここでも向きを固定
             timer += Time.deltaTime;
             yield return null;
         }
 
-        // 状態リセット
         transform.rotation = _rotationBeforeAttack;
         _isAttacking = false;
         _stunTimer = 0.01f;
@@ -548,18 +554,20 @@ public class BusterController : MonoBehaviour
     // =======================================================
 
     /// <summary>
-    /// ロックオン中ならターゲット、そうでなければプレイヤーの正面方向の座標を返す
+    /// 攻撃の目標地点を計算する。
+    /// ロックオン中ならその敵の座標、そうでなければプレイヤー正面の遠くの座標を返す。
     /// </summary>
     private Vector3 GetAutoAimTargetPosition()
     {
-        // 1. ロックオン対象がいればその中心
-        if (_tpsCamController?.LockOnTarget != null)
+        // 1. ロックオン対象がいればその中心を取得
+        if (_tpsCamController != null && _tpsCamController.LockOnTarget != null)
         {
+            // GetLockOnTargetPositionを使用して、コライダーの中心などを計算
             return GetLockOnTargetPosition(_tpsCamController.LockOnTarget, true);
         }
 
         // 2. 非ロックオン時：プレイヤーの正面(transform.forward)へ真っ直ぐ飛ばす
-        // カメラの向きではなく、モデルが向いている方向を基準にします
+        // beamMaxDistance（射程）の分だけ先の座標をターゲット地点とする
         return transform.position + transform.forward * beamMaxDistance;
     }
 
