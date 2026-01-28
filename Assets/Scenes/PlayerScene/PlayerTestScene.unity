@@ -20949,6 +20949,9 @@ MonoBehaviour:
   - gameSceneName: TutorialScene
     gameOverSceneName: GameOverScene
   defaultGameOverSceneName: GameOverScene 1
+  delaySeconds: 2
+  hpSlider: {fileID: 0}
+  hpText: {fileID: 0}
 --- !u!224 &789288314
 RectTransform:
   m_ObjectHideFlags: 0
@@ -44708,19 +44711,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   player: {fileID: 1453411278}
+  controller: {fileID: 0}
   followSpeed: 2
   rotationSpeed: 5
+  detectionRange: 40
   followOffset: {x: 0, y: 15, z: 2}
+  damageSource: {fileID: 0}
   slamRange: 20
   slamSpeed: 150
   anticipationTime: 0.1
-  pointA: {fileID: 687613074}
-  pointB: {fileID: 1872427166}
-  sweepSpeed: 40
-  prepSpeed: 5
-  sweepRange: 200
+  slamDamage: 200
   recoveryTime: 0.5
   attackCooldown: 1.5
+  damageDistance: 4
 --- !u!1 &1299960453
 GameObject:
   m_ObjectHideFlags: 0
@@ -48969,6 +48972,7 @@ GameObject:
   - component: {fileID: 1453411275}
   - component: {fileID: 1453411274}
   - component: {fileID: 1453411273}
+  - component: {fileID: 1453411279}
   m_Layer: 8
   m_Name: Player
   m_TagString: Player
@@ -49214,6 +49218,24 @@ Transform:
   - {fileID: 382803846}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 180, z: 0}
+--- !u!114 &1453411279
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1453411272}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 97c0cdb56028452498788af344c73878, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  clip: {fileID: 0}
+  ikTarget: {fileID: 0}
+  recordKey: 32
+  recordDuration: 15
+  smoothTime: 0.15
+  noiseAmount: 0.003
 --- !u!1 &1458377470
 GameObject:
   m_ObjectHideFlags: 0
@@ -58620,19 +58642,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   player: {fileID: 1453411278}
+  controller: {fileID: 0}
   followSpeed: 2
   rotationSpeed: 5
+  detectionRange: 40
   followOffset: {x: 0, y: 15, z: 2}
+  damageSource: {fileID: 0}
   slamRange: 20
   slamSpeed: 150
   anticipationTime: 0.1
-  pointA: {fileID: 687613074}
-  pointB: {fileID: 1872427166}
-  sweepSpeed: 40
-  prepSpeed: 5
-  sweepRange: 200
+  slamDamage: 200
   recoveryTime: 0.5
   attackCooldown: 1.5
+  damageDistance: 4
 --- !u!1 &1806162131
 GameObject:
   m_ObjectHideFlags: 0
