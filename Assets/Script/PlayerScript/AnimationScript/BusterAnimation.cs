@@ -5,6 +5,7 @@ public class BusterAnimation : MonoBehaviour
 {
     // 必要なコンポーネント
     private Animator animator;
+    public PlayerStatus playerStatus; // 追加：PlayerStatusを参照
     // CharacterController controller; // 削除
 
     // --- 地面判定のための追加フィールド ---
@@ -27,30 +28,62 @@ public class BusterAnimation : MonoBehaviour
     private readonly int IsRisingHash = Animator.StringToHash("IsRising");
     private readonly int IsGroundedHash = Animator.StringToHash("IsGrounded");
     private readonly int LandTriggerHash = Animator.StringToHash("LandTrigger");
-    // NOTE: JumpTriggerHashは元のスクリプトにはなかったが、Jump入力処理のためにここでは追加しない。
+    private readonly int DieTriggerHash = Animator.StringToHash("Die"); // ★追加
+
+    private bool dieTriggerSent = false; // 二重にトリガーを送らないためのフラグ
 
     void Start()
     {
         animator = GetComponent<Animator>();
 
+        // --- 参照の自動取得を強化 ---
+        if (playerStatus == null)
+        {
+            playerStatus = GetComponentInParent<PlayerStatus>();
+            if (playerStatus == null) playerStatus = GetComponentInChildren<PlayerStatus>();
+        }
+
         if (animator == null)
         {
-            Debug.LogError("Required component 'Animator' missing. Disabling script.");
+            Debug.LogError($"[{gameObject.name}] Animatorが見つかりません。");
             enabled = false;
             return;
         }
 
-        // 移動/物理関連の変数は全て削除
+        if (playerStatus == null)
+        {
+            Debug.LogError($"[{gameObject.name}] PlayerStatusが見つかりません！Inspectorでセットしてください。");
+        }
     }
 
     void Update()
     {
-        // 地面判定を最初に実行し、isGroundedフラグとAnimatorを更新
-        CheckIsGrounded();
+        // ★死亡チェック
+        if (playerStatus != null && playerStatus.IsDead)
+        {
+            // ログが出るか確認
+            if (!dieTriggerSent) Debug.Log($"<color=red>[{gameObject.name}] Death detected in Animation Script!</color>");
+            HandleDeathAnimation();
+            return;
+        }
 
-        // 物理/移動処理を削除し、入力とアニメーション制御のみに特化
+        CheckIsGrounded();
         HandleMovementAnimationInput();
         HandleAirAnimationInput();
+        HandleAttackInput();
+        HandleOtherInput();
+    }
+
+    private void HandleDeathAnimation()
+    {
+        if (!dieTriggerSent)
+        {
+            Debug.Log("<color=yellow>Setting Die Trigger now!</color>");
+            animator.SetTrigger(DieTriggerHash);
+            animator.SetBool(IsWalkingHash, false);
+            animator.SetBool(IsDashingHash, false);
+            dieTriggerSent = true;
+        }
     }
 
     public void PlayAttackAnimation(bool isModeTwo)

@@ -3,6 +3,7 @@ using UnityEngine;
 public class SpeedAnimation : MonoBehaviour
 {
     private Animator animator;
+    public PlayerStatus playerStatus;
 
     [Header("Ground Check Settings")]
     public float groundCheckDistance = 0.3f;
@@ -25,19 +26,54 @@ public class SpeedAnimation : MonoBehaviour
     private readonly int LandTriggerHash = Animator.StringToHash("LandTrigger");
     private readonly int JumpTriggerHash = Animator.StringToHash("JumpTrigger");
     private readonly int Idle2Hash = Animator.StringToHash("Idle2"); // 追加
+    private readonly int DieTriggerHash = Animator.StringToHash("Die"); // ★追加
+
+    private bool dieTriggerSent = false; // 二重送信防止用
 
     void Start()
     {
         animator = GetComponent<Animator>();
-        if (animator == null) { enabled = false; return; }
+
+        // もし自分自身になければ、親や子から探すように変更
+        if (playerStatus == null)
+        {
+            playerStatus = GetComponentInParent<PlayerStatus>();
+            if (playerStatus == null) playerStatus = GetComponentInChildren<PlayerStatus>();
+        }
+
+        if (animator == null) { Debug.LogError("Animatorが見つかりません"); enabled = false; return; }
+        if (playerStatus == null) { Debug.LogWarning("PlayerStatusが紐付いていません。インスペクターでドラッグ&ドロップするか、同じオブジェクトに付けてください"); }
     }
 
     void Update()
     {
+        // 死亡フラグを毎フレーム監視し、変化があったら即ログを出す
+        if (playerStatus != null)
+        {
+            if (playerStatus.IsDead)
+            {
+                // ログが出るか確認
+                Debug.Log($"<color=red>Death detected!</color> IsDead: {playerStatus.IsDead}, Animator: {animator.name}");
+                HandleDeathAnimation();
+                return;
+            }
+        }
+
         CheckIsGrounded();
         HandleGroundAndAirState();
         HandleMovement();
-        HandleIdleTimer(); // ★追加
+        HandleIdleTimer();
+    }
+
+    private void HandleDeathAnimation()
+    {
+        if (!dieTriggerSent)
+        {
+            Debug.Log("<color=yellow>Setting Die Trigger now!</color>");
+            animator.SetTrigger(DieTriggerHash);
+            animator.SetBool(Idle2Hash, false);
+            dieTriggerSent = true;
+        }
     }
 
     // ★追加：放置時間を計測して Idle2 を制御する

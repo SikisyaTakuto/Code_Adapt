@@ -37,10 +37,7 @@ public class SceneBasedGameOverManager : MonoBehaviour
         if (isGameOverStarted) return;
         isGameOverStarted = true;
 
-        // --- ★ ここで待機前にUIを0にする ---
-        ForceUpdateUIToZero();
-        // ----------------------------------
-
+        // マネージャー側の遅延は使わず、PlayerStatus側の遅延に合わせるなら即座にコルーチンを開始
         StartCoroutine(DelayedGameOverRoutine());
     }
 
@@ -63,6 +60,7 @@ public class SceneBasedGameOverManager : MonoBehaviour
 
     private IEnumerator DelayedGameOverRoutine()
     {
+        // マネージャー側の待機時間を0にするか、PlayerStatus側のgameOverDelayと調整してください
         yield return new WaitForSeconds(delaySeconds);
 
         string currentSceneName = SceneManager.GetActiveScene().name;
@@ -72,10 +70,6 @@ public class SceneBasedGameOverManager : MonoBehaviour
         if (!string.IsNullOrEmpty(targetGameOverScene))
         {
             SceneManager.LoadScene(targetGameOverScene);
-        }
-        else
-        {
-            Debug.LogError("遷移先シーンが設定されていません。");
         }
     }
 }

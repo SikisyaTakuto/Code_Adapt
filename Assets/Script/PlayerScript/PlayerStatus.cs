@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using System.Collections; // コルーチンを使うために必要
 
 public class PlayerStatus : MonoBehaviour
 {
@@ -25,10 +26,15 @@ public class PlayerStatus : MonoBehaviour
     private bool _isDead = false;
     public bool IsDead => _isDead;
 
+    [Header("Death Settings")]
+    [Tooltip("死んでからゲームオーバー画面に行くまでの待ち時間")]
+    public float gameOverDelay = 2.0f;
+    public float fadeDuration = 2.0f; // 何秒かけて暗くするか
+    public FadeManager fadeManager;   // 上で作ったFadeCanvasをドラッグ&ドロップ
+
     public SceneBasedGameOverManager gameOverManager;
 
-    // 重力パネルに触れているかどうかを保持するフラグ
-    [HideInInspector] // インスペクターで隠したい場合
+    [HideInInspector]
     public bool isMovementSlowed = false;
 
     void Awake()
@@ -41,7 +47,6 @@ public class PlayerStatus : MonoBehaviour
     {
         if (_isDead) return;
 
-        // 自然回復
         if (Time.time >= _lastEnergyConsumptionTime + recoveryDelay)
         {
             _currentEnergy = Mathf.MoveTowards(_currentEnergy, maxEnergy, energyRecoveryRate * Time.deltaTime);
@@ -65,13 +70,45 @@ public class PlayerStatus : MonoBehaviour
         if (_isDead) return;
         float finalDamage = rawDamage * defenseMultiplier;
         _currentHP = Mathf.Max(0, _currentHP - finalDamage);
+
+        // ダメージを受けた直後にUIを更新（ラグ防止）
+        UpdateUI();
+
         if (_currentHP <= 0) Die();
     }
 
     private void Die()
     {
+        if (_isDead) return;
         _isDead = true;
-        if (gameOverManager != null) gameOverManager.GoToGameOverScene();
+
+        UpdateUI(); // HPを0にする
+
+        Debug.Log("Player Died. Start FadeOut and Animation.");
+
+        // フェードとゲームオーバー遷移のコルーチンを開始
+        StartCoroutine(DeathSequence());
+    }
+
+    private IEnumerator DeathSequence()
+    {
+        // 1. 死亡アニメーションを少し見せる（1秒間など）
+        yield return new WaitForSeconds(1.0f);
+
+        // 2. フェードアウト開始
+        if (fadeManager != null)
+        {
+            yield return StartCoroutine(fadeManager.FadeOut(fadeDuration));
+        }
+
+        // 3. 残りの時間を待機してからシーン遷移
+        float remainingWait = gameOverDelay - fadeDuration - 1.0f;
+        if (remainingWait > 0) yield return new WaitForSeconds(remainingWait);
+
+        if (gameOverManager != null)
+        {
+            gameOverManager.GoToGameOverScene();
+        }
     }
 
     private void UpdateUI()

@@ -3,6 +3,7 @@ using UnityEngine;
 public class BalanceAnimation : MonoBehaviour
 {
     private Animator animator;
+    public PlayerStatus playerStatus; // 追加：PlayerStatusを参照
 
     [Header("Ground Check Settings")]
     public float groundCheckDistance = 0.3f;
@@ -29,25 +30,67 @@ public class BalanceAnimation : MonoBehaviour
     private readonly int LandTriggerHash = Animator.StringToHash("LandTrigger");
     private readonly int JumpTriggerHash = Animator.StringToHash("JumpTrigger");
     private readonly int Idle2Hash = Animator.StringToHash("Idle2");
+    private readonly int DieTriggerHash = Animator.StringToHash("Die"); // ★追加
+
+    private bool dieTriggerSent = false; // 二重にトリガーを送らないためのフラグ
 
     void Start()
     {
         animator = GetComponent<Animator>();
-        if (animator == null) { enabled = false; return; }
+
+        // --- 参照の自動取得を強化 ---
+        if (playerStatus == null)
+        {
+            playerStatus = GetComponentInParent<PlayerStatus>();
+            if (playerStatus == null) playerStatus = GetComponentInChildren<PlayerStatus>();
+        }
+
+        if (animator == null)
+        {
+            Debug.LogError($"[{gameObject.name}] Animatorが見つかりません。");
+            enabled = false;
+            return;
+        }
+
+        if (playerStatus == null)
+        {
+            Debug.LogWarning($"[{gameObject.name}] PlayerStatusが見つかりません。Inspectorでセットしてください。");
+        }
 
         // 初期状態ではモニターを非表示にする
-        if (idleMonitorObject != null)
-        {
-            idleMonitorObject.SetActive(false);
-        }
+        if (idleMonitorObject != null) idleMonitorObject.SetActive(false);
     }
 
     void Update()
     {
+        // ★死亡チェック
+        if (playerStatus != null && playerStatus.IsDead)
+        {
+            if (!dieTriggerSent) Debug.Log($"<color=red>[{gameObject.name}] Death detected!</color>");
+            HandleDeathAnimation();
+            return;
+        }
+
         CheckIsGrounded();
         HandleMovementAnimationInput();
         HandleAirAnimationInput();
         HandleIdleTimer();
+    }
+
+    private void HandleDeathAnimation()
+    {
+        if (!dieTriggerSent)
+        {
+            Debug.Log("<color=yellow>Setting Die Trigger now!</color>");
+            animator.SetTrigger(DieTriggerHash);
+
+            // 死亡時は全ての状態をリセット
+            animator.SetBool(IsWalkingHash, false);
+            animator.SetBool(IsDashingHash, false);
+            SetIdleMode(false);
+
+            dieTriggerSent = true;
+        }
     }
 
     private void HandleIdleTimer()
