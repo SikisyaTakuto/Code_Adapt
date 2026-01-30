@@ -19,7 +19,7 @@ public class SceneBasedGameOverManager : MonoBehaviour
     public string defaultGameOverSceneName = "DefaultGameOverScene";
 
     [Header("遅延設定")]
-    public float delaySeconds = 2.0f;
+    private float delaySeconds = 0.5f;
 
     [Header("UI参照 (HPを0にするために必要)")]
     [Tooltip("HPバーのSliderをドラッグ&ドロップ")]
