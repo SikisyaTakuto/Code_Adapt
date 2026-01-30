@@ -14,7 +14,7 @@ public class BGMManager : MonoBehaviour
     [SerializeField] private AudioClip gameOverBGM;
 
     [Header("Fade Settings")]
-    [SerializeField, Range(0.1f, 2.0f)] private float fadeDuration = 1.0f; // フェードにかかる時間
+    [SerializeField, Range(0.1f, 2.0f)] private float fadeDuration = 0.5f; // フェードにかかる時間
 
     private Coroutine fadeCoroutine;
     private float defaultVolume;

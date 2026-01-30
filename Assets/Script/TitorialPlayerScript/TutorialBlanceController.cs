@@ -507,10 +507,6 @@ public class TutorialBlanceController : MonoBehaviour
             if (model != null) model.SetActive(active);
         }
     }
-
-    /// <summary>
-    /// 命中したオブジェクトのコンポーネントをチェックし、適切なダメージメソッドを呼び出します。
-    /// </summary>
     private void ApplyDamageToEnemy(Collider hitCollider, float damage)
     {
         GameObject target = hitCollider.gameObject;
@@ -531,17 +527,24 @@ public class TutorialBlanceController : MonoBehaviour
             isHit = true;
         }
 
-        // 2. ★【修正ポイント】サンドバッグ（TutorialEnemyController）へのダメージ判定を追加
-        // 親階層も含めて検索することで、子オブジェクトのコライダーに当たっても反応するようにします
-        var sandbag = target.GetComponentInParent<EnemyControllerTest>();
-        if (sandbag != null)
+        // 2. サンドバッグ判定 (既存のテスト用と新しいAIサンドバッグ両方に対応)
+        var sandbagTest = target.GetComponentInParent<EnemyControllerTest>();
+        if (sandbagTest != null)
         {
-            sandbag.TakeDamage(damage);
+            sandbagTest.TakeDamage(damage);
+            isHit = true;
+        }
+
+        // ★追加：AI付きサンドバッグへの判定
+        var sandbagAI = target.GetComponentInParent<SoldierSandbagEnemy>();
+        if (sandbagAI != null)
+        {
+            sandbagAI.TakeDamage(damage);
             isHit = true;
         }
 
         // 3. 雑魚敵の種類に応じてダメージを適用
-        if (!isHit) // まだヒット判定が出ていない場合のみ続行
+        if (!isHit)
         {
             if (target.TryGetComponent<SoldierMoveEnemy>(out var s1)) { s1.TakeDamage(damage); isHit = true; }
             else if (target.TryGetComponent<SoliderEnemy>(out var s2)) { s2.TakeDamage(damage); isHit = true; }
@@ -552,7 +555,7 @@ public class TutorialBlanceController : MonoBehaviour
             else if (target.TryGetComponent<VoxPart>(out var part)) { part.TakeDamage(damage); isHit = true; }
         }
 
-        // ヒットした場合、中心に火花などのエフェクトを出す
+        // ヒットエフェクト
         if (isHit && hitEffectPrefab != null)
         {
             Instantiate(hitEffectPrefab, hitCollider.bounds.center, Quaternion.identity);
