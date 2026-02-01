@@ -4362,10 +4362,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   playerStatus: {fileID: 296433119}
+  groundCheckRadius: 0.25
   groundCheckDistance: 0.3
   groundLayer:
     serializedVersion: 2
     m_Bits: 8
+  groundedTimeout: 0.1
 --- !u!95 &107705940
 Animator:
   serializedVersion: 7
@@ -46566,10 +46568,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   playerStatus: {fileID: 296433119}
-  groundCheckDistance: 0.3
+  groundCheckRadius: 0.25
+  groundCheckDistance: 0.2
   groundLayer:
     serializedVersion: 2
     m_Bits: 8
+  groundedTimeout: 0.1
   idle2Threshold: 10
 --- !u!82 &835424410
 AudioSource:
@@ -86874,10 +86878,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   playerStatus: {fileID: 296433119}
+  groundCheckRadius: 0.25
   groundCheckDistance: 0.3
   groundLayer:
     serializedVersion: 2
     m_Bits: 8
+  groundedTimeout: 0.1
   idle2Threshold: 10
   idleMonitorObject: {fileID: 1964488271274053082}
 --- !u!114 &1643362663
@@ -99702,7 +99708,6 @@ MonoBehaviour:
   - gameSceneName: TutorialScene
     gameOverSceneName: GameOverScene
   defaultGameOverSceneName: GameOverScene 2
-  delaySeconds: 2
   hpSlider: {fileID: 1784263443}
   hpText: {fileID: 2025495170}
 --- !u!114 &1823533298

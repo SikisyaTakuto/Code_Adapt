@@ -6,9 +6,16 @@ public class BalanceAnimation : MonoBehaviour
     public PlayerStatus playerStatus; // 追加：PlayerStatusを参照
 
     [Header("Ground Check Settings")]
-    public float groundCheckDistance = 0.3f;
+    [Tooltip("判定に使用する球体の半径。足元の幅に合わせます")]
+    public float groundCheckRadius = 0.25f;
+    [Tooltip("足元からどれくらい下まで地面を探すか")]
+    public float groundCheckDistance = 0.2f;
     public LayerMask groundLayer;
+    [Tooltip("地面を離れてから空中とみなすまでの猶予時間（コヨーテタイム）")]
+    public float groundedTimeout = 0.1f;
+
     private bool isGrounded = true;
+    private float groundedTimer = 0f; // 猶予計算用
 
     [Header("Idle Settings")]
     [Tooltip("何秒入力がないとIdle2に移行するか")]
@@ -147,21 +154,44 @@ public class BalanceAnimation : MonoBehaviour
     private void CheckIsGrounded()
     {
         bool wasGrounded = isGrounded;
-        Vector3 rayOrigin = transform.position + Vector3.up * 0.1f;
-        isGrounded = Physics.Raycast(rayOrigin, Vector3.down, groundCheckDistance, groundLayer);
+
+        // 球体判定の開始地点
+        Vector3 sphereOrigin = transform.position + Vector3.up * groundCheckRadius;
+
+        // SphereCastを実行
+        bool hit = Physics.SphereCast(sphereOrigin, groundCheckRadius, Vector3.down, out RaycastHit hitInfo, groundCheckDistance, groundLayer);
+
+        if (hit)
+        {
+            isGrounded = true;
+            groundedTimer = groundedTimeout; // 接地中は常にタイマーをリセット
+        }
+        else
+        {
+            groundedTimer -= Time.deltaTime;
+            if (groundedTimer <= 0)
+            {
+                isGrounded = false;
+            }
+        }
 
         animator.SetBool(IsGroundedHash, isGrounded);
 
-        if (wasGrounded && !isGrounded)
-        {
-            animator.SetBool(IsGroundedHash, false);
-        }
+        // 着地した瞬間のみトリガーを実行
         if (!wasGrounded && isGrounded)
         {
             animator.SetTrigger(LandTriggerHash);
             animator.SetBool(IsFallingHash, false);
             animator.SetBool(IsRisingHash, false);
         }
+    }
+
+    // エディタ上で判定範囲を表示（デバッグ用）
+    private void OnDrawGizmosSelected()
+    {
+        Gizmos.color = isGrounded ? Color.green : Color.red;
+        Vector3 sphereOrigin = transform.position + Vector3.up * groundCheckRadius;
+        Gizmos.DrawWireSphere(sphereOrigin + Vector3.down * groundCheckDistance, groundCheckRadius);
     }
 
     private void HandleMovementAnimationInput()

@@ -6,15 +6,19 @@ public class BusterAnimation : MonoBehaviour
     // 必要なコンポーネント
     private Animator animator;
     public PlayerStatus playerStatus; // 追加：PlayerStatusを参照
-    // CharacterController controller; // 削除
 
-    // --- 地面判定のための追加フィールド ---
     [Header("Ground Check Settings")]
-    public float groundCheckDistance = 0.3f; // 地面判定のためのレイの長さ
-    public LayerMask groundLayer;            // 地面として判定するレイヤー (Inspectorで設定が必要)
-    private bool isGrounded = true;          // 現在の接地状態
-    private bool landingTriggered = false;   // LandTriggerが発動されたか
-    // ------------------------------------
+    [Tooltip("判定に使用する球体の半径。足元の幅に合わせます")]
+    public float groundCheckRadius = 0.25f;
+    [Tooltip("足元からどれくらい下まで地面を探すか")]
+    public float groundCheckDistance = 0.2f;
+    public LayerMask groundLayer;
+    [Tooltip("地面を離れてから空中とみなすまでの猶予時間。ガタつき防止用")]
+    public float groundedTimeout = 0.1f;
+
+    private bool isGrounded = true;
+    private float groundedTimer = 0f; // 猶予計算用タイマー
+    private bool landingTriggered = false;
 
     // 武装モードの管理フラグ
     private bool isWeaponModeTwo = false;
@@ -101,47 +105,56 @@ public class BusterAnimation : MonoBehaviour
     {
         bool wasGrounded = isGrounded;
 
-        // キャラクターの底面付近から下向きにレイキャスト
-        RaycastHit hit;
-        // 判定開始位置をトランスフォームの中心よりわずかに上 (0.1f) に設定
-        Vector3 rayOrigin = transform.position + Vector3.up * 0.1f;
+        // キャラクターの足元から球体判定を飛ばす
+        // 開始位置はキャラの足元(transform.position)より少し上に設定
+        Vector3 sphereOrigin = transform.position + Vector3.up * groundCheckRadius;
 
-        // デバッグ表示 
-        Debug.DrawRay(rayOrigin, Vector3.down * groundCheckDistance, isGrounded ? Color.green : Color.red);
+        // SphereCastによる判定
+        bool hit = Physics.SphereCast(sphereOrigin, groundCheckRadius, Vector3.down, out RaycastHit hitInfo, groundCheckDistance, groundLayer);
 
-        // Raycastによる地面判定
-        // groundLayerが設定されていない場合（デフォルトは0）は、すべてと衝突する
-        if (Physics.Raycast(rayOrigin, Vector3.down, out hit, groundCheckDistance, groundLayer))
+        if (hit)
         {
             isGrounded = true;
+            groundedTimer = groundedTimeout; // 地面にいればタイマーを常にリセット
         }
         else
         {
-            isGrounded = false;
+            // 地面から外れた場合、猶予時間を減らす
+            groundedTimer -= Time.deltaTime;
+            if (groundedTimer <= 0)
+            {
+                isGrounded = false;
+            }
         }
 
-        // --- 地面接触/離脱のアニメーション制御 ---
+        // --- アニメーション制御 ---
+
+        // 接地状態を更新
+        animator.SetBool(IsGroundedHash, isGrounded);
 
         // 地面から離れた瞬間
         if (wasGrounded && !isGrounded)
         {
-            Debug.Log("Leaving Ground.");
-            animator.SetBool(IsGroundedHash, false);
-            landingTriggered = false; // 空中に出たのでリセット
+            landingTriggered = false;
         }
 
         // 地面に着いた瞬間
         if (!wasGrounded && isGrounded)
         {
-            Debug.Log("Landing Detected (Raycast).");
             animator.SetTrigger(LandTriggerHash);
-            animator.SetBool(IsGroundedHash, true);
             animator.SetBool(IsFallingHash, false);
             animator.SetBool(IsRisingHash, false);
-            landingTriggered = true; // 着地トリガーを発動
+            landingTriggered = true;
         }
     }
 
+    // 判定範囲をSceneビューで見えるようにする（デバッグ用）
+    private void OnDrawGizmosSelected()
+    {
+        Gizmos.color = isGrounded ? Color.green : Color.red;
+        Vector3 sphereOrigin = transform.position + Vector3.up * groundCheckRadius;
+        Gizmos.DrawWireSphere(sphereOrigin + Vector3.down * groundCheckDistance, groundCheckRadius);
+    }
 
     /// <summary>WASDとShiftキーによる移動入力に基づいて、Walk/Dashアニメーションを制御します。</summary>
     private void HandleMovementAnimationInput()

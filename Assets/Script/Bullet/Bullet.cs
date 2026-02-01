@@ -54,7 +54,7 @@ public class Bullet : MonoBehaviour
             HandleHitImpact();
         }
         // 2. 壁や特定のレイヤーに当たった場合
-        else if (other.CompareTag("Wall") || other.gameObject.layer == LayerMask.NameToLayer("Object"))
+        else if (other.CompareTag("Wall") || other.CompareTag("Ground") || other.gameObject.layer == LayerMask.NameToLayer("Object"))
         {
             isProcessed = true;
             HandleHitImpact();

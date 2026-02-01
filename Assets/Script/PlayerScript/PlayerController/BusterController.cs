@@ -334,11 +334,14 @@ public class BusterController : MonoBehaviour
     /// </summary>
     private IEnumerator FullBurstRoutine()
     {
+        // 【追加】開始時点でENがガトリング1発分すらなければ発動しない
+        float minEnergyRequired = gatlingEnergyCostTotal / (gatlingBurstCount * 4);
+        if (playerStatus.currentEnergy < minEnergyRequired) yield break;
+
         _isAttacking = true;
         _isStunned = true;
         _rotationBeforeAttack = transform.rotation;
 
-        // 【重要】開始時のターゲット座標をバックアップとして保存
         Vector3 initialTargetPos = GetAutoAimTargetPosition();
         RotateTowards(initialTargetPos);
         Quaternion attackRotation = transform.rotation;
@@ -351,7 +354,6 @@ public class BusterController : MonoBehaviour
         // 2. 【第一波：メインビーム】
         if (playerStatus.ConsumeEnergy(beamAttackEnergyCost))
         {
-            // initialTargetPos を使うことで確実に正面（または敵）に撃つ
             FireSpecificGuns(true, false, initialTargetPos, true);
         }
 
@@ -363,18 +365,22 @@ public class BusterController : MonoBehaviour
 
         for (int i = 0; i < burstLimit; i++)
         {
-            if (playerStatus.currentEnergy <= 0.1f) break;
+            // 【重要】ENが切れたらガトリング連射を中止してループを抜ける
+            if (playerStatus.currentEnergy < energyPerShot)
+            {
+                Debug.Log("<color=orange>EN切れのためガトリング中断</color>");
+                break;
+            }
+
             playerStatus.ConsumeEnergy(energyPerShot);
 
             _isStunned = true;
             _stunTimer = 1.0f;
 
-            // 【修正】ロックオンが生きている間は追跡し、外れたら最後にいた方向(initialTargetPos)を維持
             Vector3 currentTargetPos;
             if (_tpsCamController != null && _tpsCamController.LockOnTarget != null)
             {
                 currentTargetPos = GetAutoAimTargetPosition();
-                // 敵が動いている場合は、向き(attackRotation)も更新し続ける
                 Vector3 dir = (currentTargetPos - transform.position).normalized;
                 attackRotation = Quaternion.LookRotation(new Vector3(dir.x, 0, dir.z));
             }
@@ -383,14 +389,12 @@ public class BusterController : MonoBehaviour
                 currentTargetPos = initialTargetPos;
             }
 
-            // 揺れ計算
             float baseSway = Mathf.Sin(i * 0.3f) * 2.0f;
             FireSpecificGuns(false, true, currentTargetPos, true, baseSway);
 
             float shotInterval = 0;
             while (shotInterval < gatlingFireRate)
             {
-                // 向きを強制固定（これでアニメーションによる回転を上書き）
                 transform.rotation = attackRotation;
                 shotInterval += Time.deltaTime;
                 yield return null;
@@ -404,7 +408,7 @@ public class BusterController : MonoBehaviour
         {
             _isStunned = true;
             _stunTimer = 0.5f;
-            transform.rotation = attackRotation; // ここでも向きを固定
+            transform.rotation = attackRotation;
             timer += Time.deltaTime;
             yield return null;
         }

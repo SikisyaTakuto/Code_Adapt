@@ -358,10 +358,34 @@ public class SoldierMoveEnemy : MonoBehaviour
         isJumping = false;
     }
 
+    // 視線が通っているかチェックするメソッド
+    private bool CanSeePlayer()
+    {
+        if (player == null) return false;
+
+        // 敵の目線の高さ（適宜調整）からプレイヤーの腰あたりへ線を飛ばす
+        Vector3 eyePosition = transform.position + Vector3.up * 1.5f;
+        Vector3 targetPosition = player.position + Vector3.up * 1.0f;
+
+        RaycastHit hit;
+        // Linecastは2点間に障害物があるか判定する
+        if (Physics.Linecast(eyePosition, targetPosition, out hit))
+        {
+            // 最初に当たったのがPlayerタグなら「見える」と判断
+            if (hit.transform.CompareTag("Player"))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
     void IdleLogic(float distance)
     {
         if (rb != null) rb.linearVelocity = Vector3.zero;
-        if (distance <= sightRange)
+
+        // 距離が近く、かつ「目で見える」場合のみ追いかける
+        if (distance <= sightRange && CanSeePlayer())
         {
             TransitionToChase();
         }
@@ -383,13 +407,14 @@ public class SoldierMoveEnemy : MonoBehaviour
             }
         }
 
-        if (distance <= attackRange)
+        // 攻撃範囲内かつ「目で見える」なら攻撃へ
+        if (distance <= attackRange && CanSeePlayer())
         {
             if (rb != null) rb.linearVelocity = Vector3.zero;
             TransitionToAttack();
         }
-
-        if (distance > sightRange)
+        // 視界から消えた、もしくは離れすぎた場合はIdleへ（または数秒後に見失う処理など）
+        else if (distance > sightRange || !CanSeePlayer())
         {
             TransitionToIdle();
         }
@@ -527,9 +552,20 @@ public class SoldierMoveEnemy : MonoBehaviour
         if (isDead || player == null) return;
         float distance = Vector3.Distance(transform.position, player.position);
 
-        if (currentAmmo <= 0) TransitionToReload();
-        else if (distance <= attackRange * 1.2f) TransitionToAttack();
-        else TransitionToChase();
+        // 距離だけでなく、視線が通っているか (CanSeePlayer) を条件に追加
+        if (currentAmmo <= 0)
+        {
+            TransitionToReload();
+        }
+        else if (distance <= attackRange * 1.2f && CanSeePlayer())
+        {
+            TransitionToAttack();
+        }
+        else
+        {
+            // 見えない、または遠すぎるなら追いかける
+            TransitionToChase();
+        }
     }
 
     void TransitionToReload()
@@ -561,7 +597,9 @@ public class SoldierMoveEnemy : MonoBehaviour
 
     public void ShootBullet()
     {
-        if (isDead || currentAmmo <= 0 || player == null || muzzlePoint == null || bulletPrefab == null) return;
+        // CanSeePlayer() のチェックを追加
+        if (isDead || currentAmmo <= 0 || player == null || muzzlePoint == null || bulletPrefab == null || !CanSeePlayer())
+            return;
 
         currentAmmo--;
 
@@ -587,6 +625,21 @@ public class SoldierMoveEnemy : MonoBehaviour
         {
             // rb.isKinematic = true; ← これを消すことで、重力が効き続けます
             StartCoroutine(FinishLandingCoroutine());
+        }
+    }
+    private void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.blue;
+        Gizmos.DrawWireSphere(transform.position, sightRange);
+
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(transform.position, attackRange);
+
+        if (player != null)
+        {
+            // 視線が通っているなら緑、通っていないなら赤で線を表示
+            Gizmos.color = CanSeePlayer() ? Color.green : Color.red;
+            Gizmos.DrawLine(transform.position + Vector3.up * 1.5f, player.position + Vector3.up * 1.0f);
         }
     }
 }

@@ -9,46 +9,42 @@ public class BossRoomTrigger : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        // 1. 物理的な接触のデバッグ（ログが出ない場合はRigidbodyを確認）
-        Debug.Log($"トリガー接触確認: {other.name}");
-
+        // 既に発動済みなら何もしない
         if (hasTriggered) return;
 
+        // まずタグをチェックする
         if (other.CompareTag("Player"))
         {
+            // Playerだった場合のみログを出し、処理を開始する
+            Debug.Log($"<color=green>Playerがエリアに侵入しました: {other.name}</color>");
+
             if (boss != null)
             {
-                // ボスを起動
-                boss.isActivated = true;
-                Debug.Log("<color=red>Bossの動きを有効化しました</color>");
-
-                // --- 2. ここが重要：ミッションを完了させる ---
-                if (MissionManager.Instance != null)
-                {
-                    MissionManager.Instance.CompleteCurrentMission();
-                }
-
-                // 3. ターゲットマネージャー（矢印など）の更新
-                if (TargetManager.Instance != null)
-                {
-                    TargetManager.Instance.CompleteCurrentObjective();
-                }
-
-                // 4. BGMの再生
-                if (BGMManager.instance != null)
-                {
-                    BGMManager.instance.PlayBossBGM();
-                }
-
-                hasTriggered = true;
-
-                // トリガーのコライダーをオフにして重複を防止
-                GetComponent<Collider>().enabled = false;
+                ActivateBossBattle();
             }
             else
             {
                 Debug.LogError("BossRoomTrigger: ボスがアサインされていません！");
             }
         }
+        else
+        {
+            // Player以外（弾やギミック）が当たった場合のデバッグ用
+            // 不要なら削除してOKです
+            // Debug.Log($"Player以外が接触: {other.name}");
+        }
+    }
+
+    // 処理を見やすくするためにメソッド化
+    private void ActivateBossBattle()
+    {
+        boss.isActivated = true;
+
+        if (MissionManager.Instance != null) MissionManager.Instance.CompleteCurrentMission();
+        if (TargetManager.Instance != null) TargetManager.Instance.CompleteCurrentObjective();
+        if (BGMManager.instance != null) BGMManager.instance.PlayBossBGM();
+
+        hasTriggered = true;
+        GetComponent<Collider>().enabled = false;
     }
 }
