@@ -1,18 +1,24 @@
+using System.Collections;
+using System.Collections.Generic; // Listを使うために追加
 using UnityEngine;
 
 public class GatlingBullet : MonoBehaviour
 {
     public float speed = 100f;
     public float damage = 10f;
-    public float lifeTime = 2f;
+    public float lifeTime = 2f; // これが「消えるまでの時間」
     public GameObject hitEffect;
 
     private Vector3 direction;
+    // 多重ヒット防止用：一度当たった対象を記録する
+    private List<GameObject> _hitObjects = new List<GameObject>();
 
     public void Launch(Vector3 dir)
     {
         direction = dir.normalized;
         transform.rotation = Quaternion.LookRotation(direction);
+
+        // 指定された寿命(lifeTime)が来たら自動で消滅する
         Destroy(gameObject, lifeTime);
     }
 
@@ -23,32 +29,35 @@ public class GatlingBullet : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        // 1. プレイヤー(自分)と、プレイヤーの弾(PlayerBullet)を無視
+        // 1. プレイヤー自身や自分の弾、すでに当たったオブジェクトを無視
         if (other.CompareTag("Player") || other.CompareTag("PlayerBullet") ||
             other.gameObject.layer == LayerMask.NameToLayer("Player") ||
-            other.gameObject.layer == LayerMask.NameToLayer("PlayerBullet"))
+            other.gameObject.layer == LayerMask.NameToLayer("PlayerBullet") ||
+            _hitObjects.Contains(other.gameObject)) // ★追加：多重ヒット防止
         {
             return;
         }
 
-        // 2. 弾丸同士の衝突をスクリプトチェックでも念のため無視
+        // 2. 弾丸同士の衝突を無視
         if (other.GetComponent<GatlingBullet>() != null) return;
 
-        // 3. デバッグログ（対象外の時だけ）
-        Debug.Log($"[Bullet Hit Debug] Name: {other.name} | IsTrigger: {other.isTrigger}");
+        // 3. ヒットリストに追加（これでこの弾はこの敵を「貫通」し、二度とダメージを与えない）
+        _hitObjects.Add(other.gameObject);
 
         // 4. ダメージ判定
         bool isHit = ApplyBulletDamage(other);
 
-        // 5. 消滅ロジック
-        // 敵にヒットした、または「トリガーではない実体（壁・床）」に当たった場合のみ消える
+        // 5. 消滅させずに貫通させるロジック
         if (isHit || !other.isTrigger)
         {
+            // 当たった場所にエフェクトだけ出す
             if (hitEffect != null)
             {
                 Instantiate(hitEffect, transform.position, Quaternion.identity);
             }
-            Destroy(gameObject);
+
+            // ★修正：ここでは Destroy を呼ばないことで「貫通」させる
+            // 弾は Launch で設定した lifeTime が経過するまで飛び続けます
         }
     }
 
@@ -57,7 +66,7 @@ public class GatlingBullet : MonoBehaviour
         GameObject target = hitCollider.gameObject;
         bool isHit = false;
 
-        // ボスおよび各敵コンポーネントの判定
+        // ボスおよび各敵コンポーネントの判定（GetComponentInParentで親も探す）
         var boss = target.GetComponentInParent<ElsController>();
         if (boss != null)
         {
@@ -73,7 +82,7 @@ public class GatlingBullet : MonoBehaviour
         else if (target.GetComponentInParent<VoxBodyPart>() is var bodyPart && bodyPart != null) { bodyPart.TakeDamage(damage); isHit = true; }
         else if (target.GetComponentInParent<VoxPart>() is var part && part != null) { part.TakeDamage(damage); isHit = true; }
 
-        if (isHit) Debug.Log($"Gatling hit: {target.name} - Damage: {damage}");
+        if (isHit) Debug.Log($"Gatling pierced through: {target.name} - Damage: {damage}");
         return isHit;
     }
 }

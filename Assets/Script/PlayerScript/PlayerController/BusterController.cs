@@ -53,7 +53,8 @@ public class BusterController : MonoBehaviour
     public float backstepForce = 20f;       // 全弾発射時の反動（後ろに飛ぶ力）
     public float gatlingFireRate = 0.05f;   // ガトリングの連射間隔（秒）
     public int gatlingBurstCount = 20;      // ガトリングの連射数
-    public float gatlingEnergyCostTotal = 30f; // 特殊攻撃全体のEN消費量
+    public float gatlingEnergyCostTotal = 30f; // 特殊攻撃全体のEN消費量  
+    public float gatlingSpread = 3.5f;//拡散率（数値が大きいほど広がる）
     #endregion
 
     #region 3. 内部ステータス & キャッシュ
@@ -454,39 +455,37 @@ public class BusterController : MonoBehaviour
 
     private void FireProjectile(Transform firePoint, Vector3 targetPos, bool isLockedOn, Vector3 forward, bool isBeam)
     {
-        // ??【修正】発射位置の微調整
-        // 銃口の少し後ろ(0.5m)から判定を開始することで、敵の体に銃口が埋まっていてもヒットさせます。
         Vector3 originForRay = firePoint.position - firePoint.forward * 0.5f;
-        Vector3 visualOrigin = firePoint.position; // 見た目の開始位置は銃口のまま
+        Vector3 visualOrigin = firePoint.position;
 
         Vector3 fireDirection = isLockedOn ? (targetPos - visualOrigin).normalized : forward;
 
+        // ガトリング（弾丸）の場合、拡散率を適用
         if (!isBeam)
         {
-            float spread = 0.5f;
-            Quaternion randomRotation = Quaternion.Euler(Random.Range(-spread, spread), Random.Range(-spread, spread), 0);
-            fireDirection = randomRotation * fireDirection;
+            // 指定した拡散率の範囲内でランダムに方向をズラす
+            Quaternion spreadRotation = Quaternion.Euler(
+                Random.Range(-gatlingSpread, gatlingSpread),
+                Random.Range(-gatlingSpread, gatlingSpread),
+                0
+            );
+            fireDirection = spreadRotation * fireDirection;
         }
 
-        // --- 【修正ポイント】ガトリングの場合は Raycast でダメージを与えない ---
         if (isBeam)
         {
-            // ??【修正】至近距離の救済判定 (OverlapSphere)
-            // Raycastが内側から突き抜けてしまうのを防ぐため、銃口付近に敵がいるかチェック
+            // --- ビームの判定処理（既存のまま） ---
             Collider[] closeHits = Physics.OverlapSphere(visualOrigin, 0.8f, enemyLayer);
             if (closeHits.Length > 0)
             {
                 ApplyDamageToEnemy(closeHits[0], beamDamage);
-
                 BeamController beam = Instantiate(beamPrefab, visualOrigin, Quaternion.LookRotation(fireDirection));
                 beam.Fire(visualOrigin, closeHits[0].bounds.center, true);
                 return;
             }
 
-            // 通常のビーム判定（少し後ろからRayを飛ばす）
             bool didHit = Physics.Raycast(originForRay, fireDirection, out RaycastHit hit, beamMaxDistance + 0.5f, ~0, QueryTriggerInteraction.Ignore);
             Vector3 endPoint = didHit ? hit.point : visualOrigin + fireDirection * beamMaxDistance;
-
             if (didHit) ApplyDamageToEnemy(hit.collider, beamDamage);
 
             BeamController beamInstance = Instantiate(beamPrefab, visualOrigin, Quaternion.LookRotation(fireDirection));
@@ -494,10 +493,7 @@ public class BusterController : MonoBehaviour
         }
         else if (gatlingBulletPrefab != null)
         {
-            // ??【修正】ガトリング弾の生成位置も少し調整
-            // 銃口が埋まっていても弾が内側から発生して衝突するように、生成位置を少しだけ手前に引くか、
-            // 弾丸側のスクリプト(GatlingBullet)に渡す情報を強化します。
-
+            // --- ガトリング弾の生成 ---
             GameObject bulletObj = Instantiate(gatlingBulletPrefab, visualOrigin, Quaternion.LookRotation(fireDirection));
             GatlingBullet bullet = bulletObj.GetComponent<GatlingBullet>();
             if (bullet != null) bullet.Launch(fireDirection);

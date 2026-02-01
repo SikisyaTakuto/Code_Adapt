@@ -11,7 +11,6 @@ GameObject:
   - component: {fileID: 7501669563965342188}
   - component: {fileID: 8348880391246189711}
   - component: {fileID: 8797997068863316470}
-  - component: {fileID: 8264937007022233310}
   m_Layer: 15
   m_Name: Sphere
   m_TagString: PlayerBullet
@@ -87,27 +86,6 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!135 &8264937007022233310
-SphereCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1427040517218364969}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Radius: 0.5
-  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &2405923113817103273
 GameObject:
   m_ObjectHideFlags: 0
@@ -19573,7 +19551,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   speed: 100
-  damage: 50
+  damage: 150
   lifeTime: 2
   hitEffect: {fileID: 5487502716189772801, guid: f919715fc7c57da4d8706548cade6c75, type: 3}
 --- !u!82 &5594927209059799110
