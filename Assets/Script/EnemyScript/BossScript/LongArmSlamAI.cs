@@ -102,47 +102,75 @@ public class LongArmBossAI : MonoBehaviour
         isAttacking = true;
         isCooldown = true;
 
-        // --- 【追加】攻撃開始の瞬間にプレイヤーの方を向く ---
-        Vector3 lookDir = (player.position - transform.position).normalized;
-        if (lookDir != Vector3.zero)
-        {
-            // Y軸以外（上下など）に傾かないように向きを調整
-            lookDir.y = 0;
-            Quaternion targetRot = Quaternion.LookRotation(lookDir) * Quaternion.Euler(rotationOffset);
-            transform.rotation = targetRot; // 瞬時に向かせる
-        }
+        // 1. 攻撃開始時の向きを計算して保持
+        Vector3 directionToPlayer = (player.position - transform.position).normalized;
+        directionToPlayer.y = 0;
 
-        // 1. 予備動作（上に少し浮く）
-        Vector3 windUpPos = transform.position + Vector3.up * 3.0f;
+        // ★攻撃開始直前の回転を「正しい向き」として確定させる
+        Quaternion lookRotation = Quaternion.LookRotation(directionToPlayer);
+        Quaternion fixedRotation = lookRotation * Quaternion.Euler(rotationOffset);
+        transform.rotation = fixedRotation;
+
+        // 2. 予備動作（上昇）
+        Vector3 startPos = transform.position;
+        Vector3 windUpPos = startPos + Vector3.up * 3.0f;
         float t = 0;
         while (t < 1.0f)
         {
             if (!controller.isActivated) yield break;
             t += Time.deltaTime / anticipationTime;
-            transform.position = Vector3.Lerp(transform.position, windUpPos, t);
+            transform.position = Vector3.Lerp(startPos, windUpPos, t);
+            transform.rotation = fixedRotation; // 固定
             yield return null;
         }
 
-        // 2. 叩きつけ（ターゲットの位置へ）
-        // ※攻撃中にプレイヤーが動くことを考慮し、ここで再度ターゲット位置を取得
+        // 3. 叩きつけ（ターゲットへ突進）
         Vector3 targetSlamPos = player.position;
-
-        while (Vector3.Distance(transform.position, targetSlamPos) > 0.5f)
+        while (Vector3.Distance(transform.position, targetSlamPos) > 0.1f)
         {
             if (!controller.isActivated) yield break;
             transform.position = Vector3.MoveTowards(transform.position, targetSlamPos, slamSpeed * Time.deltaTime);
+            transform.rotation = fixedRotation; // 固定
             yield return null;
         }
         transform.position = targetSlamPos;
 
         CheckSlamHit();
 
-        yield return new WaitForSeconds(recoveryTime);
-        isAttacking = false;
+        // --- 4. 元の位置・回転に戻る動作 ---
+        yield return new WaitForSeconds(recoveryTime * 0.5f); // 叩きつけた後の硬直
+
+        float returnTime = 0.5f; // 戻るのにかかる時間
+        float r = 0;
+        Vector3 slamEndPos = transform.position;
+
+        while (r < 1.0f)
+        {
+            if (!controller.isActivated) yield break;
+            r += Time.deltaTime / returnTime;
+
+            // 位置を戻す
+            transform.position = Vector3.Lerp(slamEndPos, player.position + followOffset, r);
+
+            // ★回転を戻す
+            // 攻撃用の固定回転(fixedRotation)から、プレイヤーを向く本来の回転へ徐々に戻す
+            Vector3 currentDir = (player.position - transform.position).normalized;
+            currentDir.y = 0;
+            if (currentDir != Vector3.zero)
+            {
+                Quaternion targetRot = Quaternion.LookRotation(currentDir) * Quaternion.Euler(rotationOffset);
+                transform.rotation = Quaternion.Slerp(fixedRotation, targetRot, r);
+            }
+
+            yield return null;
+        }
+
+        isAttacking = false; // ここで Update() の移動・回転処理が再開される
 
         yield return new WaitForSeconds(attackCooldown);
         isCooldown = false;
     }
+   
 
     private void CheckSlamHit()
     {
