@@ -28,6 +28,9 @@ public class LongArmBossAI : MonoBehaviour
     private bool isAttacking = false;
     private bool isCooldown = false;
 
+    [Header("向きの補正")]
+    public Vector3 rotationOffset; // Inspectorから (0, 180, 0) などに設定
+
     void Awake()
     {
         // 起動時の位置を「待機ポジション」として保持
@@ -36,32 +39,25 @@ public class LongArmBossAI : MonoBehaviour
 
     void Update()
     {
+        // ここが重要：isAttacking（叩きつけ中）は Update 内の移動・回転処理を完全にスキップする
         if (controller == null || !controller.isActivated || player == null || isAttacking) return;
 
-        // 待機場所（中心点）からプレイヤーへの距離を測る
         float distFromIdlePos = Vector3.Distance(_idlePosition, player.position);
-        // 現在のアーム位置からプレイヤーへの距離を測る
         float distFromPlayer = Vector3.Distance(transform.position, player.position);
 
         if (distFromIdlePos <= detectionRange)
         {
-            // --- プレイヤーが範囲内にいる場合 ---
-
             if (distFromPlayer <= slamRange && !isCooldown)
             {
-                // 射程内なら叩きつけ
                 StartCoroutine(SlamRoutine());
             }
             else
             {
-                // 射程外なら追跡
                 MoveTowardsPlayer();
-                LookAtPlayer(player.position);
             }
         }
         else
         {
-            // --- プレイヤーが範囲外にいる場合：定位置へ戻る ---
             ReturnToIdle();
         }
     }
@@ -85,7 +81,20 @@ public class LongArmBossAI : MonoBehaviour
     {
         Vector3 direction = (targetPos - transform.position).normalized;
         if (direction != Vector3.zero)
-            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(direction), Time.deltaTime * rotationSpeed);
+        {
+            // 上下方向への傾きを防ぐ（水平方向のみ向く）
+            direction.y = 0;
+
+            // 1. ターゲットを向く回転
+            Quaternion lookRotation = Quaternion.LookRotation(direction);
+
+            // 2. モデル固有の向き補正（rotationOffset）を適用
+            // この順番（Rotation * Offset）にすることで、
+            // 「プレイヤーの方向を向いた後、モデルをその場で回転させる」動きになります
+            Quaternion finalRotation = lookRotation * Quaternion.Euler(rotationOffset);
+
+            transform.rotation = Quaternion.Slerp(transform.rotation, finalRotation, Time.deltaTime * rotationSpeed);
+        }
     }
 
     IEnumerator SlamRoutine()
@@ -93,7 +102,17 @@ public class LongArmBossAI : MonoBehaviour
         isAttacking = true;
         isCooldown = true;
 
-        // 1. 予備動作
+        // --- 【追加】攻撃開始の瞬間にプレイヤーの方を向く ---
+        Vector3 lookDir = (player.position - transform.position).normalized;
+        if (lookDir != Vector3.zero)
+        {
+            // Y軸以外（上下など）に傾かないように向きを調整
+            lookDir.y = 0;
+            Quaternion targetRot = Quaternion.LookRotation(lookDir) * Quaternion.Euler(rotationOffset);
+            transform.rotation = targetRot; // 瞬時に向かせる
+        }
+
+        // 1. 予備動作（上に少し浮く）
         Vector3 windUpPos = transform.position + Vector3.up * 3.0f;
         float t = 0;
         while (t < 1.0f)
@@ -104,8 +123,10 @@ public class LongArmBossAI : MonoBehaviour
             yield return null;
         }
 
-        // 2. 叩きつけ
+        // 2. 叩きつけ（ターゲットの位置へ）
+        // ※攻撃中にプレイヤーが動くことを考慮し、ここで再度ターゲット位置を取得
         Vector3 targetSlamPos = player.position;
+
         while (Vector3.Distance(transform.position, targetSlamPos) > 0.5f)
         {
             if (!controller.isActivated) yield break;
