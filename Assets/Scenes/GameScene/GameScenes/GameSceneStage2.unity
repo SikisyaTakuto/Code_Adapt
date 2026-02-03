@@ -4349,6 +4349,7 @@ MonoBehaviour:
   gatlingFireRate: 0.05
   gatlingBurstCount: 10
   gatlingEnergyCostTotal: 30
+  gatlingSpread: 3.5
 --- !u!114 &107705939
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -120635,7 +120636,7 @@ MonoBehaviour:
   _swipeDistance: 4
   _swipeHitActiveTime: 0.4
   _swipeHitDuration: 5
-  _swipeDamage: 1000
+  _swipeDamage: 500
   _shields:
   - {fileID: 1533010525}
   - {fileID: 732812654}
@@ -120650,7 +120651,7 @@ MonoBehaviour:
   - {fileID: 1721481659}
   _stabPrepareTime: 0.8
   _stabDashSpeed: 55
-  _stabbingDamage: 2000
+  _stabbingDamage: 500
   _beamBits:
   - {fileID: 333616741}
   - {fileID: 1721481659}
