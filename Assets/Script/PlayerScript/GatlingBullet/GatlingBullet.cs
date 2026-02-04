@@ -73,6 +73,7 @@ public class GatlingBullet : MonoBehaviour
             boss.TakeDamage(damage);
             isHit = true;
         }
+        else if (target.GetComponentInParent<SoldierSandbagEnemy>() is var sandbag && sandbag != null) { sandbag.TakeDamage(damage); isHit = true; }
         else if (target.GetComponentInParent<SoldierMoveEnemy>() is var s1 && s1 != null) { s1.TakeDamage(damage); isHit = true; }
         else if (target.GetComponentInParent<SoliderEnemy>() is var s2 && s2 != null) { s2.TakeDamage(damage); isHit = true; }
         else if (target.GetComponentInParent<TutorialEnemyController>() is var s3 && s3 != null) { s3.TakeDamage(damage); isHit = true; }
