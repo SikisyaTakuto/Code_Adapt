@@ -217,23 +217,19 @@ public class ScorpionEnemy : MonoBehaviour
     {
         if (beamOrigin == null || beamPrefab == null || playerTarget == null) return;
 
+        // ターゲットの方向を計算
         Vector3 targetPos = playerTarget.position + Vector3.up * 1.0f;
         Vector3 direction = (targetPos - beamOrigin.position).normalized;
-        float range = detectionRange + 5f;
 
-        RaycastHit hit;
-        bool didHit = Physics.Raycast(beamOrigin.position, direction, out hit, range);
-
-        Debug.DrawRay(beamOrigin.position, direction * range, Color.red, 1.0f);
-
-        Vector3 endPoint = didHit ? hit.point : beamOrigin.position + (direction * range);
-
+        // ビーム（エフェクト弾）を生成
         GameObject beamObj = Instantiate(beamPrefab, beamOrigin.position, Quaternion.LookRotation(direction));
-        EnemyBeamController beamController = beamObj.GetComponent<EnemyBeamController>();
 
+        // Controllerを取得して発射
+        EnemyBeamController beamController = beamObj.GetComponent<EnemyBeamController>();
         if (beamController != null)
         {
-            beamController.Fire(beamOrigin.position, endPoint, didHit, didHit ? hit.collider.gameObject : null);
+            // 引数に方向だけ渡して飛ばす
+            beamController.Launch(direction);
         }
 
         hardStopEndTime = Time.time + hardStopDuration;

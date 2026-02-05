@@ -3,61 +3,71 @@ using UnityEngine;
 public class EnemyBeamController : MonoBehaviour
 {
     [Header("Visual Settings")]
-    public float lifetime = 0.5f;
-    public Transform beamVisual;
+    public float lifetime = 2.0f; // 弾が消えるまでの時間
+    public float speed = 30f;     // 弾の移動速度
 
     [Header("Damage Settings")]
-    public float damageAmount = 100f; // floatに統一
+    public float damageAmount = 100f;
 
-    private bool hasDealtDamage = false; // 重複ダメージ防止
+    private bool hasDealtDamage = false;
+    private Rigidbody rb;
 
-    public void Fire(Vector3 startPoint, Vector3 endPoint, bool didHit, GameObject hitObject = null)
+    private void Awake()
     {
-        // 【デバッグ用】そもそも何かに当たっているかログを出す
-        Debug.Log($"Beam Fire: didHit={didHit}, hitObject={(hitObject != null ? hitObject.name : "null")}");
-
-        if (beamVisual != null) { /* 省略 */ }
-
-        if (didHit && hitObject != null && !hasDealtDamage)
+        rb = GetComponent<Rigidbody>();
+        // トリガーとして判定するため、Rigidbodyの設定をコードで保証
+        if (rb != null)
         {
-            ApplyDamage(hitObject);
+            rb.useGravity = false;
+            rb.isKinematic = true; // 物理演算で飛ばすならfalse、自前で動かすならtrue
+        }
+    }
+
+    // 発射時に呼ばれる（移動方向をセット）
+    public void Launch(Vector3 direction)
+    {
+        // 速度ベクトルをセット
+        if (rb != null)
+        {
+            // direction方向に真っ直ぐ飛ばす
+            transform.forward = direction;
         }
         Destroy(gameObject, lifetime);
     }
 
-    private void ApplyDamage(GameObject target)
+    private void Update()
     {
-        // 1. 当たったオブジェクトそのもの、あるいはその親や子のどこかに PlayerStatus があるか探す
-        // これにより、タグの有無に依存せず「ダメージを受けられる存在か」で判定できます
-        PlayerStatus status = target.GetComponentInParent<PlayerStatus>() ??
-                             target.GetComponentInChildren<PlayerStatus>() ??
-                             target.GetComponent<PlayerStatus>();
+        // 弾を前方に移動させる
+        transform.Translate(Vector3.forward * speed * Time.deltaTime);
+    }
 
-        // 2. status が見つかれば、それはプレイヤー（またはダメージ対象）であると確定
+    private void OnTriggerEnter(Collider other)
+    {
+        // すでに何かに当たっていたら無視
+        if (hasDealtDamage) return;
+
+        // PlayerStatusを探す
+        PlayerStatus status = other.GetComponentInParent<PlayerStatus>() ??
+                             other.GetComponentInChildren<PlayerStatus>() ??
+                             other.GetComponent<PlayerStatus>();
+
         if (status != null)
         {
             hasDealtDamage = true;
 
-            // 防御倍率の計算
+            // 防御倍率などの取得（以前のロジック）
             float defense = 1.0f;
+            // ※必要に応じて各Controllerの取得処理を追加
 
-            // 各コントローラーの取得（親・子・自身から検索）
-            var balance = target.GetComponentInParent<BlanceController>() ?? target.GetComponentInChildren<BlanceController>() ?? target.GetComponent<BlanceController>();
-            var buster = target.GetComponentInParent<BusterController>() ?? target.GetComponentInChildren<BusterController>() ?? target.GetComponent<BusterController>();
-            var speed = target.GetComponentInParent<SpeedController>() ?? target.GetComponentInChildren<SpeedController>() ?? target.GetComponent<SpeedController>();
-
-            // ここで各アーマーごとの防御倍率処理を記述可能（例）
-            // if (balance != null) defense = balance.defenseRate;
-
-            // ダメージ適用
             status.TakeDamage(damageAmount, defense);
+            Debug.Log($"[Effect Hit] {other.name} にヒット！");
 
-            Debug.Log($"[Beam] {status.gameObject.name} にダメージ適用！ (HitObject: {target.name})");
+            // ヒットしたらエフェクトを消す（貫通させたいならここを消す）
+            Destroy(gameObject);
         }
-        else
+        else if (other.CompareTag("Wall")) // 壁に当たった場合
         {
-            // PlayerStatus が見つからなかった場合は、プレイヤー以外（壁など）に当たったとみなす
-            Debug.Log($"[Beam] プレイヤー以外にヒット: {target.name}");
+            Destroy(gameObject);
         }
     }
 }
